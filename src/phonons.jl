@@ -1,0 +1,113 @@
+
+
+function get_alphabeta(TEMP, w_full, pols_full)
+    # omega are frequencies in Rydberg
+    # T is in Kelvin
+    
+    if TEMP<0
+        error("Temperature must be >= 0, got instead $T")
+    end
+    
+    K_to_Ry=6.336857346553283e-06
+
+    n_mod = length(w_full)
+    pols, w = remove_translations(pols_full, w_full)
+
+    nw = zeros(n_mod - 3)
+    aw = zeros(n_mod - 3)
+    bw = zeros(n_mod - 3)
+
+    if TEMP > SMALL_VALUE
+        """
+        arg = w./(TEMP.*K_to_Ry)
+        arg[arg .> 10.0] .= 10.0
+        nw .= 1 ./(exp.(arg).-1)
+        nw[nw .< SMALL_VALUE] .= 0.0
+        """
+        arg = w./(TEMP.*K_to_Ry) ./ 2.0
+        cotangent = coth.(arg)
+    else
+        cotangent = ones(n_mod - 3)
+    end
+    
+    """
+    aw .= 2 .* w ./(2.0 .* nw .+ 1)
+    bw .= 2 ./(2.0 .* nw .+ 1) ./ w
+    """
+    aw .= 2 .* w ./(cotangent)
+    bw .= 2 ./(cotangent) ./  w
+
+    pols_mod = pols .* aw'
+    alpha = pols * pols_mod'
+
+    pols_mod = pols .* bw'
+    beta = pols * pols_mod'
+    return Symmetric(alpha), Symmetric(beta)
+
+
+
+    #alpha = zeros(n_mod, n_mod)
+    #beta = zeros(n_mod, n_mod)
+
+    
+end
+
+
+function get_correlators(TEMP, w_full, pols_full)
+    # omega are frequencies in Rydberg
+    # T is in Kelvin
+    
+    if TEMP<0
+        error("Temperature must be >= 0, got instead $T")
+    end
+    
+    K_to_Ry=6.336857346553283e-06
+
+    n_mod = length(w_full)
+    pols, w = remove_translations(pols_full, w_full)
+
+    nw = zeros(n_mod - 3)
+    aw = zeros(n_mod - 3)
+    bw = zeros(n_mod - 3)
+
+    if TEMP > SMALL_VALUE
+        """
+        arg = w./(TEMP.*K_to_Ry)
+        arg[arg .> 10.0] .= 10.0
+        nw .= 1 ./(exp.(arg).-1)
+        nw[nw .< SMALL_VALUE] .= 0.0
+        """
+        arg = w./(TEMP.*K_to_Ry) ./ 2.0
+        cotangent = coth.(arg)
+    else
+        cotangent = ones(n_mod - 3)
+    end
+    
+    """
+    aw .= 2 .* w ./(2.0 .* nw .+ 1)
+    bw .= 2 ./(2.0 .* nw .+ 1) ./ w
+    """
+    aw .= (cotangent) ./ 2 ./ w
+    bw .= (cotangent) ./ 2 .* w
+
+    pols_mod = pols .* aw'
+    RR_corr = pols * pols_mod'
+
+    pols_mod = pols .* bw'
+    PP_corr = pols * pols_mod'
+    return Symmetric(RR_corr), Symmetric(PP_corr)
+
+
+
+    #alpha = zeros(n_mod, n_mod)
+    #beta = zeros(n_mod, n_mod)
+
+    
+end
+
+"""
+# TODO: add a function to load and save the ensemble on disk
+function load_ensemble!(ensemble :: Ensemble{T}, path_to_json :: String) where {T <: AbstractFloat}
+end
+
+"""

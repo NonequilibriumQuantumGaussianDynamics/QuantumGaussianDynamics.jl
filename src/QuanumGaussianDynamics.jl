@@ -11,8 +11,14 @@ Therefore each derived units (like forces and times) are appropriately rescaled.
 
 const SMALL_VALUE :: Float64 = 1e-8
 const CONV_FS :: Float64 = 0.04134137333518211  # femtoseconds
-const CONV_EV :: Float64 = 3.674932217565499e-5
-const CONV_ANGSTROM :: Float64 = 1.8897261246257702
+const CONV_RY :: Float64 = 0.0734985857 # eV to Ry
+const CONV_BOHR :: Float64 = 1.8897261246257702 # Angstrom to Bohr
+const CONV_MASS :: Float64 = 911.444175 # amu to kg
+
+export SMALL_VALUE
+export CONV_FS
+export CONV_RY
+export CONV_BOHR
 
 """
 Here information about the dynamics are stored, 
@@ -38,48 +44,46 @@ Info about the wigner distribution
 Note that all the variable here are with a tilde (mass rescaled)
 So that we can use linear-algebra on them quickly.
 """
-struct WignerDistribution{T<: AbstractFloat}
+Base.@kwdef struct WignerDistribution{T<: AbstractFloat}
     R_av    :: Vector{T}
     P_av    :: Vector{T}
     masses  :: Vector{T}
     n_atoms :: Int32
-    RR_corr :: Matrix{T}
-    PP_corr :: Matrix{T}
+    RR_corr :: Symmetric{T, Matrix{T}}
+    PP_corr :: Symmetric{T, Matrix{T}}
     RP_corr :: Matrix{T}
+    alpha   :: Symmetric{T, Matrix{T}}
+    beta    :: Symmetric{T, Matrix{T}}
+    gamma   :: Matrix{T}
 
     # Eigenvalues and eigenvectors of the current Y matrix 
     λs :: Vector{T}
     λs_vect :: Matrix{T}
 end
 
+Base.@kwdef struct Ensemble{T <: AbstractFloat}
+    rho0 :: WignerDistribution{T}
 
-struct Ensemble{T <: AbstractFloat}
-    original_RR_corr :: Matrix{T} # All quantities with the tilde
-    original_R_av :: Matrix # All these quantities are with the tilde
-
-    # Eigenvalues and eigenvectors of the Y matrix that generated the ensemble
-    λs_inv :: Vector{T}
-    λs_vect :: Matrix{T}
-
+    # stocastic displacements and forces
+    # index i, j means configuration j, coordinate i
     positions :: Matrix{T}  # Positions are multiplied by the squareroot of the masses
     forces :: Matrix{T} # Forces are divided by the squareroot of masses
-    # index i, j means configuration j, coordinate i
     n_configs :: Int32
     weights :: Vector{T}
 
-    masses :: Vector{T}
-    unit_cell :: Matrix{T}
+    #unit_cell :: Matrix{T}
 end 
 
 """
 Remove acoustic sum rule from eigenvalue and eigenvectors
 """
 function remove_translations(vectors, values)
+    print(values)
     not_trans_mask =  values .> SMALL_VALUE
 
-    @assert sum(not_trans_mask) == 3   """
+    @assert sum(.!not_trans_mask) == 3   """
 Error, the expected number of acustic modes is 3
-       got $(sum(not_trans_mask)) instead.
+       got $(sum(.!not_trans_mask)) instead.
 """
 
     new_values = values[ not_trans_mask ]
@@ -96,8 +100,47 @@ function apply_ASR!(matrix :: Matrix{T}, masses :: Vector{T}) where {T <: Abstra
     mass_array = zeros(T, size(matrix, 1))
 end
 
-include("time_evolution.jl")
+function init_from_dyn(dyn, TEMPERATURE :: T) where {T <: AbstractFloat}
+
+    # Initialize the WignerDistribution structure starting from a dynamical matrix
+    
+    super_struct = dyn.structure.generate_supercell(dyn.GetSupercell())
+    N_modes = Int32(super_struct.N_atoms) * 3
+    N_atoms = Int32(super_struct.N_atoms)
+
+    w, pols = dyn.DiagonalizeSupercell()
+    
+    alpha, beta = QuanumGaussianDynamics.get_alphabeta(Float64(TEMPERATURE), w, pols)
+    RR_corr, PP_corr = QuanumGaussianDynamics.get_correlators(Float64(TEMPERATURE), w, pols)
+    gamma = zeros(N_modes, N_modes) #already rescaled (tilde)
+    RP_corr = zeros(N_modes, N_modes) #already rescaled (tilde)
+    R_av = super_struct.coords * CONV_BOHR #units
+    P_av = zeros(N_atoms, 3)
+
+    # Reshape
+    R_av = reshape(permutedims(R_av), N_modes)
+    P_av = reshape(permutedims(P_av), N_modes)
+
+    # Rescale
+    masses = super_struct.get_masses_array() # already in Rydberg units
+    mass_array = vec(repeat(masses,3,1)) # array of 3N masses ordered according to m1 m1 m1 m2 m2 m2 ...
+    R_av = R_av.*sqrt.(mass_array)
+    P_av = P_av./sqrt.(mass_array)
+
+    # Diagonalize alpha
+    lambda_eigen = eigen(alpha)
+    λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values) #NO NEEDED WITH ALPHAS
+
+    # Initialize
+    rho = QuanumGaussianDynamics.WignerDistribution(R_av  = R_av, P_av = P_av, n_atoms = N_atoms, masses = mass_array,
+                                                alpha = alpha, beta = beta, gamma = gamma, RR_corr = RR_corr, PP_corr = PP_corr, RP_corr = RP_corr, 
+                                                λs_vect = λvects, λs = λs)
+    return rho
+end
+
+#include("time_evolution.jl")
 include("ensemble.jl")
-include("dynamics.jl")
+include("phonons.jl")
+#include("dynamics.jl")
 
 end # module QuanumGaussianDynamics
