@@ -78,7 +78,7 @@ end
 Remove acoustic sum rule from eigenvalue and eigenvectors
 """
 function remove_translations(vectors, values)
-    print(values)
+    #print(values)
     not_trans_mask =  values .> SMALL_VALUE
 
     @assert sum(.!not_trans_mask) == 3   """

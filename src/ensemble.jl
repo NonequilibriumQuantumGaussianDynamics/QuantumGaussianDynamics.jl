@@ -3,40 +3,6 @@
 Update the weights of the ensemble according with the new wigner distribution
 """
 
-function update_weights_from_ens!(ensemble:: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
-
-    # This routine is used to update the weight after loading the ensemble with load_bin, and the dyn from final_result
-    # WARNING: here we use alpha because gamma=0, otherwise we should work with \\alpha-\\gamma^T\\beta^-1\\gamma
-
-    # Prepare the normalization rescale
-    lambda_eigen = eigen(wigner_distribution.alpha)
-    λvects, λs = remove_translations(lambda_eigen.vectors, lambda_eigen.values) #WARNING, NOT WITH EXTERNAL POTENTIAL
-    
-    ensemble.weights .= sqrt(λs' * ensemble.λs_inv)
-    #wigner_distribution.λs .= λs 
-    #wigner_distribution.λs_vect .= λs_vect
-
-    delta_new = zeros(T, wigner_distribution.n_atoms * 3)
-    delta_old = zeros(T, wigner_distribution.n_atoms * 3)
-    u_new = zeros(T, length(λs))
-    u_old = zeros(T, length(λs))
-
-
-    @views for i = 1:ensemble.n_configs
-        delta_new .=  ensemble.positions[:, i] .- wigner_distribution.R_av
-        delta_old .=  ensemble.positions[:, i] .- ensemble.original_R_av
-
-        u_new .= lambda_eigen.vectors' * delta_new 
-        u_new .*= sqrt(λs)   # using alpha
-        u_old .= (ensemble.λs_vect' * delta_old) 
-        u_old ./= sqrt(ensemble.λs_inv)
-
-        numerator = - 0.5 * (u_new' * u_new)
-        denominator = - 0.5 *  (u_old' * u_old)
-        ensemble.weights[i] *= exp( numerator - denominator)
-    end
-end 
-
 
 function update_weights!(ensemble:: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
 
@@ -45,19 +11,16 @@ function update_weights!(ensemble:: Ensemble{T}, wigner_distribution :: WignerDi
     if length(wigner_distribution.λs) != length(ensemble.rho0.λs)
         error("Different length of the eigenvalues vectors")
     end
-
-    # Prepare the normalization rescale
-    λs = wigner_distribution.λs
-    λs0_inv = ones(T, length(λs)) ./ ensemble.rho0.λs
-    
-    ensemble.weights .= sqrt(λs' * λs0_inv)
+ 
+    #ensemble.weights .= sqrt(λs' * λs0_inv) # Since we are using the alphas
+    ensemble.weights .= prod(sqrt.(wigner_distribution.λs ./ ensemble.rho0.λs))
     #wigner_distribution.λs .= λs 
     #wigner_distribution.λs_vect .= λs_vect
 
     delta_new = zeros(T, wigner_distribution.n_atoms * 3)
     delta_old = zeros(T, wigner_distribution.n_atoms * 3)
-    u_new = zeros(T, length(λs))
-    u_old = zeros(T, length(λs))
+    u_new = zeros(T, length(wigner_distribution.λs))
+    u_old = zeros(T, length(wigner_distribution.λs))
 
 
     @views for i = 1:ensemble.n_configs
@@ -65,15 +28,26 @@ function update_weights!(ensemble:: Ensemble{T}, wigner_distribution :: WignerDi
         delta_old .=  ensemble.positions[:, i] .- ensemble.rho0.R_av
 
         u_new .= wigner_distribution.λs_vect' * delta_new 
-        u_new .*= sqrt.(λs)   # using alpha
+        u_new .*= sqrt.(wigner_distribution.λs)   # using alpha
         u_old .= (ensemble.rho0.λs_vect' * delta_old) 
-        u_old ./= sqrt.(λs0_inv)
+        u_old .*= sqrt.(ensemble.rho0.λs)
 
         numerator = - 0.5 * (u_new' * u_new)
         denominator = - 0.5 *  (u_old' * u_old)
         ensemble.weights[i] *= exp( numerator - denominator)
     end
 end 
+
+
+function get_average_forces(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
+
+   avg_for = ensemble.forces * ensemble.weights
+   #avg_for ./= Float64(ensemble.n_configs)
+   avg_for ./= T(ensemble.n_configs)
+   #avg_for ./= sum(ensemble.weights)
+   println("avg, ", avg_for .* sqrt.(ensemble.rho0.masses) .* CONV_BOHR ./CONV_RY)
+
+end
 
 
 """
