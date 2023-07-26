@@ -38,6 +38,11 @@ struct Dynamics{T <: AbstractFloat}
     save_each :: Int32 
 end
 
+Base.@kwdef struct GeneralSettings{T <: AbstractFloat}
+    ciao :: T
+    evolve_correlators :: Bool
+end
+
 """
 Info about the wigner distribution
 
@@ -49,6 +54,7 @@ Base.@kwdef struct WignerDistribution{T<: AbstractFloat}
     P_av    :: Vector{T}
     masses  :: Vector{T}
     n_atoms :: Int32
+    n_modes :: Int32
     RR_corr :: Symmetric{T, Matrix{T}}
     PP_corr :: Symmetric{T, Matrix{T}}
     RP_corr :: Matrix{T}
@@ -59,6 +65,7 @@ Base.@kwdef struct WignerDistribution{T<: AbstractFloat}
     # Eigenvalues and eigenvectors of the current Y matrix 
     λs :: Vector{T}
     λs_vect :: Matrix{T}
+    evolve_correlators :: Bool
 end
 
 Base.@kwdef struct Ensemble{T <: AbstractFloat}
@@ -68,6 +75,7 @@ Base.@kwdef struct Ensemble{T <: AbstractFloat}
     # index i, j means configuration j, coordinate i
     positions :: Matrix{T}  # Positions are multiplied by the squareroot of the masses
     forces :: Matrix{T} # Forces are divided by the squareroot of masses
+    sscha_forces :: Matrix{T}
     n_configs :: Int32
     weights :: Vector{T}
 
@@ -100,12 +108,12 @@ function apply_ASR!(matrix :: Matrix{T}, masses :: Vector{T}) where {T <: Abstra
     mass_array = zeros(T, size(matrix, 1))
 end
 
-function init_from_dyn(dyn, TEMPERATURE :: T) where {T <: AbstractFloat}
+function init_from_dyn(dyn, TEMPERATURE :: T, settings :: GeneralSettings{T}) where {T <: AbstractFloat}
 
     # Initialize the WignerDistribution structure starting from a dynamical matrix
     
     super_struct = dyn.structure.generate_supercell(dyn.GetSupercell())
-    N_modes = Int32(super_struct.N_atoms) * 3
+    N_modes = super_struct.N_atoms * 3
     N_atoms = Int32(super_struct.N_atoms)
 
     w, pols = dyn.DiagonalizeSupercell()
@@ -128,13 +136,18 @@ function init_from_dyn(dyn, TEMPERATURE :: T) where {T <: AbstractFloat}
     P_av = P_av./sqrt.(mass_array)
 
     # Diagonalize alpha
-    lambda_eigen = eigen(alpha)
-    λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values) #NO NEEDED WITH ALPHAS
+    if settings.evolve_correlators == false
+        lambda_eigen = eigen(alpha)
+        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values) #NO NEEDED WITH ALPHAS
+    else
+        lambda_eigen = eigen(RR_corr)
+        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values) #NO NEEDED WITH ALPHAS       
+    end
 
     # Initialize
-    rho = QuanumGaussianDynamics.WignerDistribution(R_av  = R_av, P_av = P_av, n_atoms = N_atoms, masses = mass_array,
+    rho = QuanumGaussianDynamics.WignerDistribution(R_av  = R_av, P_av = P_av, n_atoms = N_atoms, masses = mass_array, n_modes = Int32(N_modes), 
                                                 alpha = alpha, beta = beta, gamma = gamma, RR_corr = RR_corr, PP_corr = PP_corr, RP_corr = RP_corr, 
-                                                λs_vect = λvects, λs = λs)
+                                                λs_vect = λvects, λs = λs, evolve_correlators = settings.evolve_correlators)
     return rho
 end
 
