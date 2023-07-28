@@ -1,6 +1,9 @@
 module QuanumGaussianDynamics
 
 using LinearAlgebra
+using Random
+using PyCall
+
 
 """
 Some guide on the units
@@ -49,7 +52,7 @@ Info about the wigner distribution
 Note that all the variable here are with a tilde (mass rescaled)
 So that we can use linear-algebra on them quickly.
 """
-Base.@kwdef struct WignerDistribution{T<: AbstractFloat}
+Base.@kwdef mutable struct WignerDistribution{T<: AbstractFloat}
     R_av    :: Vector{T}
     P_av    :: Vector{T}
     masses  :: Vector{T}
@@ -66,18 +69,23 @@ Base.@kwdef struct WignerDistribution{T<: AbstractFloat}
     λs :: Vector{T}
     λs_vect :: Matrix{T}
     evolve_correlators :: Bool
+    cell :: Matrix{T}
+    atoms :: Vector{String}
 end
 
-Base.@kwdef struct Ensemble{T <: AbstractFloat}
+Base.@kwdef mutable struct Ensemble{T <: AbstractFloat}
     rho0 :: WignerDistribution{T}
 
     # stocastic displacements and forces
     # index i, j means configuration j, coordinate i
     positions :: Matrix{T}  # Positions are multiplied by the squareroot of the masses
+    energies :: Vector{T} 
     forces :: Matrix{T} # Forces are divided by the squareroot of masses
+    sscha_energies :: Vector{T} 
     sscha_forces :: Matrix{T}
     n_configs :: Int32
     weights :: Vector{T}
+    temperature :: T
 
     #unit_cell :: Matrix{T}
 end 
@@ -144,16 +152,21 @@ function init_from_dyn(dyn, TEMPERATURE :: T, settings :: GeneralSettings{T}) wh
         λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values) #NO NEEDED WITH ALPHAS       
     end
 
+    # Cell
+    cell = super_struct.unit_cell .*CONV_BOHR
+    atoms = super_struct.atoms
+
     # Initialize
     rho = QuanumGaussianDynamics.WignerDistribution(R_av  = R_av, P_av = P_av, n_atoms = N_atoms, masses = mass_array, n_modes = Int32(N_modes), 
                                                 alpha = alpha, beta = beta, gamma = gamma, RR_corr = RR_corr, PP_corr = PP_corr, RP_corr = RP_corr, 
-                                                λs_vect = λvects, λs = λs, evolve_correlators = settings.evolve_correlators)
+                                                λs_vect = λvects, λs = λs, evolve_correlators = settings.evolve_correlators, cell = cell, atoms = atoms)
     return rho
 end
 
 #include("time_evolution.jl")
 include("ensemble.jl")
 include("phonons.jl")
+include("calculator.jl")
 #include("dynamics.jl")
 
 end # module QuanumGaussianDynamics
