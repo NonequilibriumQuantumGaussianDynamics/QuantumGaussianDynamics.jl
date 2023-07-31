@@ -2,17 +2,42 @@
 function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: AbstractFloat}
 
     for i in 1 : ensemble.n_configs
+        #println("Calculating configuration $i out of $(ensemble.n_configs)")
         coords  = get_ase_positions(ensemble.positions[:,i] , ensemble.rho0.masses)
         crystal.positions = coords
+        energy = crystal.get_potential_energy()
         forces = crystal.get_forces()
 
         forces = reshape(permutedims(forces), Int64(ensemble.rho0.n_modes))
-        forces = forces ./ sqrt.(ensemble.rho0.masses)
+        forces = forces ./ sqrt.(ensemble.rho0.masses) .* CONV_RY ./CONV_BOHR
+
+        ensemble.energies[i] = energy * CONV_RY
+        ensemble.forces[:,i] .= forces
+        
+        """
+        println("old, ", ensemble.energies[i])
+        println("new, ", energy * CONV_RY)
 
         println("old, ", ensemble.forces[:,i])
         println("new, ", forces)
+        """
     end
      
+end
+
+function get_classic_forces(wigner_distribution:: WignerDistribution{T}, crystal) where {T <: AbstractFloat}
+
+        #println("Calculating configuration $i out of $(ensemble.n_configs)")
+        coords  = get_ase_positions(wigner_distribution.R_av , wigner_distribution.masses)
+        crystal.positions = coords
+        energy = crystal.get_potential_energy()
+        forces = crystal.get_forces()
+
+        forces = reshape(permutedims(forces), Int64(wigner_distribution.n_modes))
+        forces = forces ./ sqrt.(wigner_distribution.masses) .* CONV_RY ./CONV_BOHR
+
+        println("Classic forces Ry/Bohr/sqrt(m)")
+        display(forces)
 end
 
 function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
@@ -127,7 +152,10 @@ function get_average_energy(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
 
    avg_ene = dot(ensemble.energies,ensemble.weights)
    avg_ene /= sum(ensemble.weights)
-   println("avg ene, ", avg_ene  ./CONV_RY)
+
+   std = dot(ensemble.energies .- avg_ene, ensemble.energies .- avg_ene) / (sum(ensemble.weights) -1)
+   std = sqrt(std) ./ CONV_RY
+   println("avg ene, ", avg_ene  ./CONV_RY, " std, ", std)
 
 end
 
@@ -137,17 +165,21 @@ function get_average_forces(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
    #avg_for ./= Float64(ensemble.n_configs)
    #avg_for ./= T(ensemble.n_configs)
    avg_for ./= sum(ensemble.weights)
-   println("avg, ", avg_for .* sqrt.(ensemble.rho0.masses) .* CONV_BOHR ./CONV_RY)
+   #println("avg, ")
+   #display(avg_for .* sqrt.(ensemble.rho0.masses) .* CONV_BOHR ./CONV_RY)
 
 end
 
 
 """
-Evaluate the average dv_dr and d2v_dr2 from the ensemble and the wigner distribution.
+Evaluate the average force and d2v_dr2 from the ensemble and the wigner distribution.
 
 The weights on the ensemble should have been already updated.
 """
-function get_averages!(dv_dr :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
+function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
+
+    avg_for = ensemble.forces * ensemble.weights
+    avg_for ./= sum(ensemble.weights)
 
     #t0 = time()
     delta = Vector{T}(undef, ensemble.n_configs)
@@ -172,8 +204,8 @@ function get_averages!(dv_dr :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: Ens
 
     d2v_dr2 .+= d2v_dr2'
     d2v_dr2 ./= 2
-    println("fc ")
-    display(d2v_dr2 .* wigner_distribution.masses[1])
+    #println("fc ")
+    #display(d2v_dr2 .* wigner_distribution.masses[1])
 
 
     # TODO! Impose the acoustic sum rule and the symmetries
@@ -182,7 +214,7 @@ end
 """
 Initialize the ensemble
 """
-function init_ensemble_from_python(py_ensemble, settings :: GeneralSettings{T}) where {T <: AbstractFloat}
+function init_ensemble_from_python(py_ensemble, settings :: Dynamics{T}) where {T <: AbstractFloat}
 
     # Init the ensemble from python
 
@@ -201,19 +233,19 @@ function init_ensemble_from_python(py_ensemble, settings :: GeneralSettings{T}) 
     end
 
     # Random energies
-    ens_energies = py_ensemble.energies .* CONV_RY
+    ens_energies = py_ensemble.energies #.* CONV_RY
 
     #SSCHA energies
-    sscha_energies = py_ensemble.sscha_energies .* CONV_RY
+    sscha_energies = py_ensemble.sscha_energies #.* CONV_RY
 
     # Random forces
     ens_forces = reshape(permutedims(py_ensemble.forces,(3,2,1)), (N_modes, py_ensemble.N))
-    ens_forces = ens_forces .* CONV_RY ./ CONV_BOHR
+    ens_forces = ens_forces ./ CONV_BOHR #.* CONV_RY
     ens_forces = ens_forces ./ sqrt.(rho0.masses)
 
     # SSCHA forces
     sscha_forces = reshape(permutedims(py_ensemble.sscha_forces,(3,2,1)), (N_modes, py_ensemble.N))
-    sscha_forces .*= CONV_RY ./ CONV_BOHR
+    sscha_forces ./= CONV_BOHR #./ CONV_RY
     sscha_forces ./= sqrt.(rho0.masses)
 
     weights = ones( py_ensemble.N)

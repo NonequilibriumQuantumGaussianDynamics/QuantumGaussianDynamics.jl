@@ -13,7 +13,7 @@ Therefore each derived units (like forces and times) are appropriately rescaled.
 """
 
 const SMALL_VALUE :: Float64 = 1e-8
-const CONV_FS :: Float64 = 0.04134137333518211  # femtoseconds
+const CONV_FS :: Float64 = 0.048377687 # to femtoseconds
 const CONV_RY :: Float64 = 0.0734985857 # eV to Ry
 const CONV_BOHR :: Float64 = 1.8897261246257702 # Angstrom to Bohr
 const CONV_MASS :: Float64 = 911.444175 # amu to kg
@@ -28,17 +28,18 @@ Here information about the dynamics are stored,
 like integration algorithm, time_step, kong_liu ratio 
 and so on, so forth. 
 """
-struct Dynamics{T <: AbstractFloat}
+Base.@kwdef struct Dynamics{T <: AbstractFloat}
     dt :: T   #In femtosecodns
     total_time :: T # In femtosecodns
     algorithm :: String
     kong_liu_ratio :: T
     verbose :: Bool
+    evolve_correlators :: Bool
 
     # Save the data each
     save_filename :: String 
     save_correlators :: Bool 
-    save_each :: Int32 
+    save_each :: Int64
 end
 
 Base.@kwdef struct GeneralSettings{T <: AbstractFloat}
@@ -116,7 +117,7 @@ function apply_ASR!(matrix :: Matrix{T}, masses :: Vector{T}) where {T <: Abstra
     mass_array = zeros(T, size(matrix, 1))
 end
 
-function init_from_dyn(dyn, TEMPERATURE :: T, settings :: GeneralSettings{T}) where {T <: AbstractFloat}
+function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T <: AbstractFloat}
 
     # Initialize the WignerDistribution structure starting from a dynamical matrix
     
@@ -163,10 +164,10 @@ function init_from_dyn(dyn, TEMPERATURE :: T, settings :: GeneralSettings{T}) wh
     return rho
 end
 
-#include("time_evolution.jl")
+include("time_evolution.jl")
 include("ensemble.jl")
 include("phonons.jl")
 include("calculator.jl")
-#include("dynamics.jl")
+include("dynamics.jl")
 
 end # module QuanumGaussianDynamics
