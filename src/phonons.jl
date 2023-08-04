@@ -42,9 +42,10 @@ function get_alphabeta(TEMP, w_full, pols_full)
 
     pols_mod = pols .* bw'
     beta = pols * pols_mod'
-    return Symmetric(alpha), Symmetric(beta)
-
-
+    #return Symmetric(alpha), Symmetric(beta)
+    alpha .= (alpha .+ alpha')./2.0
+    beta .= (beta .+ beta')./2.0
+    return alpha, beta
 
     #alpha = zeros(n_mod, n_mod)
     #beta = zeros(n_mod, n_mod)
@@ -95,7 +96,10 @@ function get_correlators(TEMP, w_full, pols_full)
 
     pols_mod = pols .* bw'
     PP_corr = pols * pols_mod'
-    return Symmetric(RR_corr), Symmetric(PP_corr)
+    #return Symmetric(RR_corr), Symmetric(PP_corr)
+    RR_corr .= (RR_corr .+ RR_corr')./2.0
+    PP_corr .= (PP_corr .+ PP_corr')./2.0
+    return RR_corr, PP_corr
 
 
 

@@ -35,6 +35,7 @@ Base.@kwdef struct Dynamics{T <: AbstractFloat}
     kong_liu_ratio :: T
     verbose :: Bool
     evolve_correlators :: Bool
+    N :: Int64
 
     # Save the data each
     save_filename :: String 
@@ -59,11 +60,15 @@ Base.@kwdef mutable struct WignerDistribution{T<: AbstractFloat}
     masses  :: Vector{T}
     n_atoms :: Int32
     n_modes :: Int32
-    RR_corr :: Symmetric{T, Matrix{T}}
-    PP_corr :: Symmetric{T, Matrix{T}}
+    #RR_corr :: Symmetric{T, Matrix{T}}
+    #PP_corr :: Symmetric{T, Matrix{T}}
+    RR_corr :: Matrix{T}
+    PP_corr :: Matrix{T}
     RP_corr :: Matrix{T}
-    alpha   :: Symmetric{T, Matrix{T}}
-    beta    :: Symmetric{T, Matrix{T}}
+    #alpha   :: Symmetric{T, Matrix{T}}
+    #beta    :: Symmetric{T, Matrix{T}}
+    alpha :: Matrix{T}
+    beta :: Matrix{T}
     gamma   :: Matrix{T}
 
     # Eigenvalues and eigenvectors of the current Y matrix 
@@ -95,7 +100,8 @@ end
 Remove acoustic sum rule from eigenvalue and eigenvectors
 """
 function remove_translations(vectors, values)
-    #print(values)
+    println("values")
+    println(values)
     not_trans_mask =  values .> SMALL_VALUE
 
     @assert sum(.!not_trans_mask) == 3   """
@@ -150,6 +156,8 @@ function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T 
         λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values) #NO NEEDED WITH ALPHAS
     else
         lambda_eigen = eigen(RR_corr)
+        #println("RR_Coror")
+        #display(RR_corr)
         λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values) #NO NEEDED WITH ALPHAS       
     end
 

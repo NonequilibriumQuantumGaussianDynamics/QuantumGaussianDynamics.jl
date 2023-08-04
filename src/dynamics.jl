@@ -1,4 +1,4 @@
-function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, settings :: Dynamics{T}) where {T <: AbstractFloat}
+function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, settings :: Dynamics{T}, crystal) where {T <: AbstractFloat}
     index :: Int32 = 0
     t :: T = 0
     my_dt = settings.dt / CONV_FS # Convert to Rydberg units
@@ -7,6 +7,13 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
 
     avg_for = zeros(T, nat3)
     d2v_dr2 = zeros(T, (nat3, nat3))
+
+    file = open(settings.save_filename*".pos", "w")
+    close(file)
+    file = open(settings.save_filename*".pos", "a")
+    file1 = open(settings.save_filename*".rho", "w")
+    close(file1)
+    file1 = open(settings.save_filename*".rho", "a")
     
     # Integrate
     while t < settings.total_time
@@ -17,10 +24,31 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
 
         # Get the average derivatives
         get_averages!(avg_for, d2v_dr2, ensemble, wigner)
+        println("Average forces:")
+        println(avg_for)
+        classic_for = get_classic_forces(wigner, crystal)
+
 
         # Integrate
         if "euler" == lowercase(settings.algorithm)
+            """
+            println("before RR")
+            println(wigner.RR_corr)
+            println("before PP")
+            println(wigner.PP_corr)
+            println("before RP")
+            println(wigner.PP_corr)
+            println("isimmutable ",isimmutable(wigner.RR_corr) )
+            """
             euler_step!(wigner, my_dt, avg_for, d2v_dr2)
+            """
+            println("after RR")
+            println(wigner.RR_corr)
+            println("after PP")
+            println(wigner.PP_corr)
+            println("after RP")
+            println(wigner.RP_corr)
+            """
         else
             throw(ArgumentError("""
 Error, the selected algorithm $(settings.algorithm)
@@ -29,7 +57,7 @@ Error, the selected algorithm $(settings.algorithm)
         end
 
         # Check if we need to print
-        if index % settings%save_each == 0
+        if index % settings.save_each == 0
             if settings.verbose
                 println("NEW STEP $index")
                 println("==============")
@@ -39,10 +67,68 @@ Error, the selected algorithm $(settings.algorithm)
                 println("Average position:")
                 println(wigner.R_av)
                 println()
+                println("Average momenta:")
+                println(wigner.P_av)
+                println()
+                line = ""                            
+                for i in 1:nat3
+                    line *= "  $(wigner.R_av[i]) "
+                end
+                for i in 1:nat3
+                    line *= "  $(wigner.P_av[i]) "
+                end
+                for i in 1:nat3
+                    line *= "  $(avg_for[i]) "
+                end
+                for i in 1:nat3
+                    line *= "  $(classic_for[i]) "
+                end
+                line *= "\n"
+                write(file, line)                   
+
+                line = ""
+                for i in 1:nat3 , j in 1:nat3
+                    println("line $i $j")
+                    line *= "  $(wigner.RR_corr[i,j]) "
+                end
+                println(line)
+                #for i in 1:nat3 , j in 1:nat3
+                #    line *= "  $(wigner.PP_corr[i,j]) "
+                #end
+                #for i in 1:nat3 , j in 1:nat3
+                #    line *= "  $(wigner.RP_corr[i,j]) "
+                #end
+                line *= "\n"
+                write(file1,line)
+
             # TODO Save the results on file
             end
         end
+        println("RR")
+        println(wigner.RR_corr)
+        lambda_eigen = eigen(Symmetric(wigner.RR_corr))
+        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values)
+        println("before")
+        println("w ", wigner.λs)
+        println("e ", ensemble.rho0.λs)
+        wigner.λs_vect = λvects
+        wigner.λs = λs
+        println("after")
+        println("w ", wigner.λs)
+        println("e ", ensemble.rho0.λs)
+
 
         update_weights!(ensemble, wigner)
+        kl = get_kong_liu(ensemble)
+        println("KL ratio ", kl)
+        if kl < settings.kong_liu_ratio
+            generate_ensemble!(settings.N,ensemble, wigner)
+            calculate_ensemble!(ensemble, crystal)
+        end
+        println("weights")
+        #println(ensemble.weights)
+        #println("len, ", length(ensemble.weights))
     end
+    close(file)
+    close(file1)
 end 

@@ -2,7 +2,7 @@
 function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: AbstractFloat}
 
     for i in 1 : ensemble.n_configs
-        #println("Calculating configuration $i out of $(ensemble.n_configs)")
+        println("Calculating configuration $i out of $(ensemble.n_configs)")
         coords  = get_ase_positions(ensemble.positions[:,i] , ensemble.rho0.masses)
         crystal.positions = coords
         energy = crystal.get_potential_energy()
@@ -37,7 +37,14 @@ function get_classic_forces(wigner_distribution:: WignerDistribution{T}, crystal
         forces = forces ./ sqrt.(wigner_distribution.masses) .* CONV_RY ./CONV_BOHR
 
         println("Classic forces Ry/Bohr/sqrt(m)")
-        display(forces)
+        println(forces)
+        return forces
+end
+
+function get_kong_liu(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
+    sumrho2 = sum(ensemble.weights.^2)
+    sumrho  = sum(ensemble.weights)
+    return sumrho2/sumrho^2
 end
 
 function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
@@ -78,7 +85,7 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
     
     # update ensemble
     ensemble.weights = ones(T, N)
-    ensemble.rho0 = wigner_distribution
+    ensemble.rho0 = deepcopy(wigner_distribution)
     ensemble.forces  = zeros(T, (wigner_distribution.n_modes, N))
     ensemble.sscha_forces = zeros(T, (wigner_distribution.n_modes, N))
     ensemble.energies = zeros(T, N)
@@ -135,6 +142,7 @@ function update_weights!(ensemble:: Ensemble{T}, wigner_distribution :: WignerDi
         @views for i = 1:ensemble.n_configs
             delta_new .=  ensemble.positions[:, i] .- wigner_distribution.R_av
             delta_old .=  ensemble.positions[:, i] .- ensemble.rho0.R_av
+            #println("delta ", wigner_distribution.R_av .-ensemble.rho0.R_av )
 
             u_new .= wigner_distribution.λs_vect' * delta_new 
             u_new ./= sqrt.(wigner_distribution.λs)   # using alpha
@@ -178,7 +186,7 @@ The weights on the ensemble should have been already updated.
 """
 function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
 
-    avg_for = ensemble.forces * ensemble.weights
+    avg_for .= ensemble.forces * ensemble.weights
     avg_for ./= sum(ensemble.weights)
 
     #t0 = time()

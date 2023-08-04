@@ -19,7 +19,7 @@ function euler_step!(wigner_distribution:: WignerDistribution{T}, dt :: T, avg_f
 
     wigner_distribution.RP_corr .+= wigner_distribution.PP_corr .* dt # update RP
 
-    wigner_distribution.PP_corr .-= Symmetric(tmp_d2v_mul + tmp_d2v_mul')    # update PP
+    wigner_distribution.PP_corr .-= (tmp_d2v_mul .+ tmp_d2v_mul')    # update PP
     #wigner_distribution.PP_corr .-= tmp_d2v_mul'      # update PP
 
     mul!(tmp_d2v_mul, wigner_distribution.RR_corr, d2V_dr2)
