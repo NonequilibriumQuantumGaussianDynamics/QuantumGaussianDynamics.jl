@@ -44,7 +44,7 @@ end
 function get_kong_liu(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
     sumrho2 = sum(ensemble.weights.^2)
     sumrho  = sum(ensemble.weights)
-    return sumrho2/sumrho^2
+    return sumrho^2/sumrho2
 end
 
 function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
@@ -211,7 +211,7 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
 
 
     d2v_dr2 .+= d2v_dr2'
-    d2v_dr2 ./= 2
+    d2v_dr2 ./= (-2.0)
     #println("fc ")
     #display(d2v_dr2 .* wigner_distribution.masses[1])
 

@@ -8,12 +8,13 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
     avg_for = zeros(T, nat3)
     d2v_dr2 = zeros(T, (nat3, nat3))
 
-    file = open(settings.save_filename*".pos", "w")
+    name = settings.save_filename*"$(settings.dt)-$(settings.total_time)-$(settings.N)"
+    file = open(name*".pos", "w")
     close(file)
-    file = open(settings.save_filename*".pos", "a")
-    file1 = open(settings.save_filename*".rho", "w")
+    file = open(name*".pos", "a")
+    file1 = open(name*".rho", "w")
     close(file1)
-    file1 = open(settings.save_filename*".rho", "a")
+    file1 = open(name*".rho", "a")
     
     # Integrate
     while t < settings.total_time
@@ -26,6 +27,8 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
         get_averages!(avg_for, d2v_dr2, ensemble, wigner)
         println("Average forces:")
         println(avg_for)
+        println("d2Vdr")
+        display(d2v_dr2./CONV_RY.*CONV_BOHR^2.0*wigner.masses[1])
         classic_for = get_classic_forces(wigner, crystal)
 
 
@@ -49,6 +52,9 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
             println("after RP")
             println(wigner.RP_corr)
             """
+        elseif "semi-implicit-euler" == lowercase(settings.algorithm)
+            semi_implicit_euler_step!(wigner, my_dt, avg_for, d2v_dr2)
+
         else
             throw(ArgumentError("""
 Error, the selected algorithm $(settings.algorithm)
@@ -70,7 +76,7 @@ Error, the selected algorithm $(settings.algorithm)
                 println("Average momenta:")
                 println(wigner.P_av)
                 println()
-                line = ""                            
+                line = "$t "                            
                 for i in 1:nat3
                     line *= "  $(wigner.R_av[i]) "
                 end
@@ -120,8 +126,8 @@ Error, the selected algorithm $(settings.algorithm)
 
         update_weights!(ensemble, wigner)
         kl = get_kong_liu(ensemble)
-        println("KL ratio ", kl)
-        if kl < settings.kong_liu_ratio
+        println("KL ratio ", kl/T(ensemble.n_configs))
+        if kl < settings.kong_liu_ratio*ensemble.n_configs
             generate_ensemble!(settings.N,ensemble, wigner)
             calculate_ensemble!(ensemble, crystal)
         end
