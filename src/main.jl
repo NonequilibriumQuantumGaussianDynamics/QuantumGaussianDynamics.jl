@@ -1,3 +1,4 @@
+t0 = time()
 push!(LOAD_PATH, "/home/flibbi/programs/sscha/QuantumGaussianDynamics.jl")
 println(LOAD_PATH)
 import QuanumGaussianDynamics
@@ -5,40 +6,72 @@ using QuanumGaussianDynamics.QuanumGaussianDynamics
 
 using PyCall
 using LinearAlgebra
+using DelimitedFiles
+
 #import .QuanumGaussianDynamics
 
 @pyimport cellconstructor.Phonons as PH
 @pyimport cellconstructor as CC
+@pyimport  sscha.Ensemble as  PyEnsemble
+@pyimport ase
+@pyimport quippy.potential as potential
+@pyimport DIMER.Calculator as DIMERCalc
 
 #Constants to be moved for later use
 #CONV_BOHR = 1.88972598
 
-TEMPERATURE = 0
+TEMPERATURE = 0.0 #FLOAT
 
 # Load the dyn corresponding to the equilibrium structure of a SSCHA calculation
-sscha_path = "/scratch/flibbi/sscha/tests/usual_folder/"
-dyn = PH.Phonons.(sscha_path * "dyn", 10)
+sscha_path = "./"
+dyn = PH.Phonons.(sscha_path * "final_result", 1)
+py_ensemble = PyEnsemble.Ensemble(dyn, TEMPERATURE)
+py_ensemble.load_bin(sscha_path * "sscha_ensemble", 1)
+dyn.Symmetrize()
+dyn.ForcePositiveDefinite()
 
-super_struct = dyn.structure.generate_supercell(dyn.GetSupercell())
-N_modes = Int32(super_struct.N_atoms) * 3
-N_atoms = Int32(super_struct.N_atoms)
+t1 = time()
+
 
 # Initialization
-alpha, beta = dyn.GetAlphaBetaMatrices(float(TEMPERATURE)) #already rescaled (tilde)
-gamma = zeros(N_modes, N_modes) #already rescaled (tilde)
-R_av = super_struct.coords * CONV_BOHR #units
-P_av = zeros(N_atoms, 3)
+method = "semi-implicit-euler"
+settings = QuanumGaussianDynamics.Dynamics(dt = 0.1, total_time = 50.0, algorithm = method, kong_liu_ratio = 1.0, 
+                                           verbose = true,  evolve_correlators = true, save_filename = method, 
+                                          save_correlators = true, save_each = 1, N=400)
+rho = QuanumGaussianDynamics.init_from_dyn(dyn, Float64(TEMPERATURE), settings)
 
-# Reshape
-R_av = reshape(permutedims(R_av), N_modes)
-P_av = reshape(permutedims(P_av), N_modes)
+""" Initializaiton of the ensemble. TODO:
+correctly subtract the translations
+correctly reduce the number of modes by 3
+load the ensamble through python and pass the info to the julia structure
+add check for positive frequencies
+check units
+"""
+ensemble = QuanumGaussianDynamics.init_ensemble_from_python(py_ensemble, settings)
 
-# Rescale
-masses = super_struct.get_masses_array() # already in Rydberg units
-mass_array = vec(repeat(masses,3,1)) # array of 3N masses ordered according to m1 m1 m1 m2 m2 m2 ... 
-R_av = R_av.*sqrt.(mass_array)
-P_av = P_av./sqrt.(mass_array)
+QuanumGaussianDynamics.update_weights!(ensemble, rho)
+QuanumGaussianDynamics.get_average_energy(ensemble)
+QuanumGaussianDynamics.get_average_forces(ensemble)
+writedlm("weights.txt", ensemble.weights, ' ')
+dv_dr = zeros(rho.n_atoms*3)
+d2v_dr2 = zeros(rho.n_atoms*3,rho.n_atoms*3)
+QuanumGaussianDynamics.get_averages!(dv_dr, d2v_dr2, ensemble, rho)
 
-# Initialize
-rho = QuanumGaussianDynamics.WignerDistribution(R_av = R_av, P_av = P_av, n_atoms = N_atoms, masses = mass_array, alpha = alpha, beta = beta, gamma = gamma)
-println(rho.masses)
+calculator = DIMERCalc.DIMERCalculator(2, case= "cubic", k2 = 0.1)
+crystal = QuanumGaussianDynamics.init_calculator(calculator, rho, ase.Atoms)
+
+#println("initial free energy", QuanumGaussianDynamics.get_average_energy(ensemble))
+#println("initial forces", QuanumGaussianDynamics.get_average_forces(ensemble) )
+# Display atoms
+rho.P_av[1] += 0.01 #sqrt(Ry)
+QuanumGaussianDynamics.generate_ensemble!(200,ensemble, rho)
+QuanumGaussianDynamics.calculate_ensemble!(ensemble, crystal)
+#println("free energy", QuanumGaussianDynamics.get_average_energy(ensemble))
+println("initial forces")
+display(QuanumGaussianDynamics.get_average_forces(ensemble))
+QuanumGaussianDynamics.get_classic_forces(rho,crystal)
+
+QuanumGaussianDynamics.integrate!(rho, ensemble, settings, crystal )
+
+
+

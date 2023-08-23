@@ -15,6 +15,9 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
     file1 = open(name*".rho", "w")
     close(file1)
     file1 = open(name*".rho", "a")
+    file2 = open(name*".for", "w")
+    close(file2)
+    file2 = open(name*".for", "a")
     
     # Integrate
     while t < settings.total_time
@@ -78,24 +81,31 @@ Error, the selected algorithm $(settings.algorithm)
                 println()
                 line = "$t "                            
                 for i in 1:nat3
-                    line *= "  $(wigner.R_av[i]) "
+                    line *= "  $(wigner.R_av[i]/sqrt(wigner.masses[i])) "
                 end
                 for i in 1:nat3
-                    line *= "  $(wigner.P_av[i]) "
-                end
-                for i in 1:nat3
-                    line *= "  $(avg_for[i]) "
-                end
-                for i in 1:nat3
-                    line *= "  $(classic_for[i]) "
+                    line *= "  $(wigner.P_av[i]*sqrt(wigner.masses[i])) "
                 end
                 line *= "\n"
                 write(file, line)                   
 
                 line = ""
+                for i in 1:nat3
+                    line *= "  $(avg_for[i]*sqrt(wigner.masses[i])) "
+                end
+                for i in 1:nat3
+                    line *= "  $(classic_for[i]*sqrt(wigner.masses[i])) "
+                end
+                for i in 1:nat3 , j in 1:nat3
+                    line *= "  $(d2v_dr2[i,j]*sqrt(wigner.masses[i])*sqrt(wigner.masses[j]))"
+                end
+                line *= "\n"
+                write(file2, line)                   
+
+                line = ""
                 for i in 1:nat3 , j in 1:nat3
                     println("line $i $j")
-                    line *= "  $(wigner.RR_corr[i,j]) "
+                    line *= "  $(wigner.RR_corr[i,j]/sqrt(wigner.masses[i])/sqrt(wigner.masses[j])) "
                 end
                 println(line)
                 #for i in 1:nat3 , j in 1:nat3
@@ -137,4 +147,5 @@ Error, the selected algorithm $(settings.algorithm)
     end
     close(file)
     close(file1)
+    close(file2)
 end 

@@ -3,6 +3,7 @@ module QuanumGaussianDynamics
 using LinearAlgebra
 using Random
 using PyCall
+using Roots
 
 
 """
@@ -131,7 +132,7 @@ function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T 
     N_modes = super_struct.N_atoms * 3
     N_atoms = Int32(super_struct.N_atoms)
 
-    w, pols = dyn.DiagonalizeSupercell()
+    w, pols = dyn.DiagonalizeSupercell() #frequencies are in Ry
     
     alpha, beta = QuanumGaussianDynamics.get_alphabeta(Float64(TEMPERATURE), w, pols)
     RR_corr, PP_corr = QuanumGaussianDynamics.get_correlators(Float64(TEMPERATURE), w, pols)

@@ -109,6 +109,34 @@ function get_correlators(TEMP, w_full, pols_full)
     
 end
 
+
+
+function extract_dynamical_matrix(wigner :: WignerDistribution{T}, TEMP) where {T <: AbstractFloat}
+        
+    function psi(w,TEMP,val)
+        K_to_Ry=6.336857346553283e-06
+        arg = w./(TEMP.*K_to_Ry) ./ 2.0
+        cotangent = coth.(arg)
+        return cotangent / (2.0*w) - val
+    end
+
+
+    nmodes = length(wigner.λs)
+    for i in 1: nmodes
+        lambda = wigner.λs[i]
+
+        xmin = 1/(2.0*lambda)
+        xmax = sqrt(2/lambda)
+
+        psix = x -> psi(x,TEMP,lambda)
+        omeg = find_zeros(psix, (xmin,xmax))
+        if length(omeg) == 0 
+            error("Root finding failed")
+        end
+    end 
+
+end
+
 """
 # TODO: add a function to load and save the ensemble on disk
 function load_ensemble!(ensemble :: Ensemble{T}, path_to_json :: String) where {T <: AbstractFloat}
