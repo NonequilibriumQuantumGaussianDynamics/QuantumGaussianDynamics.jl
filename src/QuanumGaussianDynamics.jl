@@ -4,7 +4,9 @@ using LinearAlgebra
 using Random
 using PyCall
 using Roots
+using MPI
 
+include("parallel.jl")
 
 """
 Some guide on the units

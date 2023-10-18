@@ -1,26 +1,51 @@
 
 function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: AbstractFloat}
+    isMPI=false
+    if isMPI == false
+        for i in 1 : ensemble.n_configs
+            println("Calculating configuration $i out of $(ensemble.n_configs)")
+            coords  = get_ase_positions(ensemble.positions[:,i] , ensemble.rho0.masses)
+            crystal.positions = coords
+            energy = crystal.get_potential_energy()
+            forces = crystal.get_forces()
 
-    for i in 1 : ensemble.n_configs
-        println("Calculating configuration $i out of $(ensemble.n_configs)")
-        coords  = get_ase_positions(ensemble.positions[:,i] , ensemble.rho0.masses)
-        crystal.positions = coords
-        energy = crystal.get_potential_energy()
-        forces = crystal.get_forces()
+            forces = reshape(permutedims(forces), Int64(ensemble.rho0.n_modes))
+            forces = forces ./ sqrt.(ensemble.rho0.masses) .* CONV_RY ./CONV_BOHR
 
-        forces = reshape(permutedims(forces), Int64(ensemble.rho0.n_modes))
-        forces = forces ./ sqrt.(ensemble.rho0.masses) .* CONV_RY ./CONV_BOHR
+            ensemble.energies[i] = energy * CONV_RY
+            ensemble.forces[:,i] .= forces
+            
+            """
+            println("old, ", ensemble.energies[i])
+            println("new, ", energy * CONV_RY)
 
-        ensemble.energies[i] = energy * CONV_RY
-        ensemble.forces[:,i] .= forces
-        
-        """
-        println("old, ", ensemble.energies[i])
-        println("new, ", energy * CONV_RY)
+            println("old, ", ensemble.forces[:,i])
+            println("new, ", forces)
+            """
+        end
+    else
+        start_per_proc, end_per_proc = parallel_force_distribute(ensemble.n_configs)
+        for i in 1 : ensemble.n_configs
+            println("Calculating configuration $i out of $(ensemble.n_configs)")
+            coords  = get_ase_positions(ensemble.positions[:,i] , ensemble.rho0.masses)
+            crystal.positions = coords
+            energy = crystal.get_potential_energy()
+            forces = crystal.get_forces()
 
-        println("old, ", ensemble.forces[:,i])
-        println("new, ", forces)
-        """
+            forces = reshape(permutedims(forces), Int64(ensemble.rho0.n_modes))
+            forces = forces ./ sqrt.(ensemble.rho0.masses) .* CONV_RY ./CONV_BOHR
+
+            ensemble.energies[i] = energy * CONV_RY
+            ensemble.forces[:,i] .= forces
+            
+            """
+            println("old, ", ensemble.energies[i])
+            println("new, ", energy * CONV_RY)
+
+            println("old, ", ensemble.forces[:,i])
+            println("new, ", forces)
+            """
+        end
     end
      
 end

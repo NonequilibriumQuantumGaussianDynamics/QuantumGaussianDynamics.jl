@@ -87,7 +87,9 @@ Error, the selected algorithm $(settings.algorithm)
                     line *= "  $(wigner.P_av[i]*sqrt(wigner.masses[i])) "
                 end
                 line *= "\n"
-                write(file, line)                   
+                if rank==root
+                    write(file, line)                   
+                end
 
                 line = ""
                 for i in 1:nat3
@@ -100,7 +102,9 @@ Error, the selected algorithm $(settings.algorithm)
                     line *= "  $(d2v_dr2[i,j]*sqrt(wigner.masses[i])*sqrt(wigner.masses[j]))"
                 end
                 line *= "\n"
-                write(file2, line)                   
+                if rank==root
+                    write(file2, line)                   
+                end
 
                 line = ""
                 for i in 1:nat3 , j in 1:nat3
@@ -115,7 +119,9 @@ Error, the selected algorithm $(settings.algorithm)
                 #    line *= "  $(wigner.RP_corr[i,j]) "
                 #end
                 line *= "\n"
-                write(file1,line)
+                if rank == root
+                    write(file1,line)
+                end
 
             # TODO Save the results on file
             end
