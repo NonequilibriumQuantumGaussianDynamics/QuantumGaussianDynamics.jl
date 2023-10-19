@@ -6,6 +6,7 @@ using PyCall
 using Roots
 using MPI
 
+# Init MPI
 include("parallel.jl")
 
 """

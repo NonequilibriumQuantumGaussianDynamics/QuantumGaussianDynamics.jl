@@ -1,6 +1,7 @@
 
-function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: AbstractFloat}
-    isMPI=false
+function calculate_ensemble!(ensemble:: Ensemble{T}, crystal, parall) where {T <: AbstractFloat}
+
+    isMPI = parall["isMPI"]
     if isMPI == false
         for i in 1 : ensemble.n_configs
             println("Calculating configuration $i out of $(ensemble.n_configs)")
@@ -24,9 +25,22 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
             """
         end
     else
-        start_per_proc, end_per_proc = parallel_force_distribute(ensemble.n_configs)
-        for i in 1 : ensemble.n_configs
-            println("Calculating configuration $i out of $(ensemble.n_configs)")
+        MPI = parall["MPI"]
+        rank = parall["rank"]
+        size = parall["size"]
+        comm = parall["comm"]
+
+        start_per_proc, end_per_proc = parallel_force_distribute(ensemble.n_configs, parall)
+        nconf_proc = end_per_proc[rank+1] - start_per_proc[rank+1] + 1
+        energy_vect = Vector{Float64}(undef,nconf_proc)
+        force_array = Matrix{Float64}(undef,Int64(ensemble.rho0.n_modes),nconf_proc)
+
+        #for i in 1 : ensemble.n_configs
+
+        for i in start_per_proc[rank+1]: end_per_proc[rank+1]
+            if rank == 0
+                println("Calculating configuration $i out of $(ensemble.n_configs)")
+            end
             coords  = get_ase_positions(ensemble.positions[:,i] , ensemble.rho0.masses)
             crystal.positions = coords
             energy = crystal.get_potential_energy()
@@ -35,8 +49,9 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
             forces = reshape(permutedims(forces), Int64(ensemble.rho0.n_modes))
             forces = forces ./ sqrt.(ensemble.rho0.masses) .* CONV_RY ./CONV_BOHR
 
-            ensemble.energies[i] = energy * CONV_RY
-            ensemble.forces[:,i] .= forces
+            ind = i - start_per_proc[rank+1] + 1
+            energy_vect[ind] = energy * CONV_RY
+            force_array[:,ind] .= forces
             
             """
             println("old, ", ensemble.energies[i])
@@ -46,8 +61,19 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
             println("new, ", forces)
             """
         end
+        energy_length = Vector{Int32}(undef, size)
+        force_length = Vector{Int32}(undef, size)
+        for i in 1:size
+            energy_length[i] = end_per_proc[i] - start_per_proc[i] + 1
+            force_length[i] = (end_per_proc[i] - start_per_proc[i] + 1)*Int32(ensemble.rho0.n_modes)
+        end
+        println("leng ", energy_length)
+        tot_energies = MPI.Allgatherv(energy_vect,energy_length, comm)
+        #tot_forces = MPI.Allgatherv(force_array,force_length, comm)
+        println(tot_energies)
+        MPI.Barrier(comm)
+        error()
     end
-     
 end
 
 function get_classic_forces(wigner_distribution:: WignerDistribution{T}, crystal) where {T <: AbstractFloat}
