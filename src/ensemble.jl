@@ -1,10 +1,16 @@
 
-function calculate_ensemble!(ensemble:: Ensemble{T}, crystal, parall) where {T <: AbstractFloat}
+function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: AbstractFloat}
 
-    isMPI = parall["isMPI"]
-    if isMPI == false
+    if MPI.Initialized()
+        comm = MPI.COMM_WORLD
+        rank = MPI.Comm_rank(comm)
+        sizep = MPI.Comm_size(comm)
+        root = 0 
+    end
+
+
+    if MPI.Initialized() == false
         for i in 1 : ensemble.n_configs
-            println("Calculating configuration $i out of $(ensemble.n_configs)")
             coords  = get_ase_positions(ensemble.positions[:,i] , ensemble.rho0.masses)
             crystal.positions = coords
             energy = crystal.get_potential_energy()
@@ -15,6 +21,12 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal, parall) where {T <
 
             ensemble.energies[i] = energy * CONV_RY
             ensemble.forces[:,i] .= forces
+
+            if rank==0
+                println("0 Calculating configuration $i out of $(ensemble.n_configs) $(energy * CONV_RY)", )
+            elseif rank==1
+                println("1 Calculating configuration $i out of $(ensemble.n_configs) $(energy * CONV_RY)")
+            end
             
             """
             println("old, ", ensemble.energies[i])
@@ -25,12 +37,7 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal, parall) where {T <
             """
         end
     else
-        MPI = parall["MPI"]
-        rank = parall["rank"]
-        size = parall["size"]
-        comm = parall["comm"]
-
-        start_per_proc, end_per_proc = parallel_force_distribute(ensemble.n_configs, parall)
+        start_per_proc, end_per_proc = parallel_force_distribute(ensemble.n_configs)
         nconf_proc = end_per_proc[rank+1] - start_per_proc[rank+1] + 1
         energy_vect = Vector{Float64}(undef,nconf_proc)
         force_array = Matrix{Float64}(undef,Int64(ensemble.rho0.n_modes),nconf_proc)
@@ -53,27 +60,29 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal, parall) where {T <
             energy_vect[ind] = energy * CONV_RY
             force_array[:,ind] .= forces
             
-            """
-            println("old, ", ensemble.energies[i])
-            println("new, ", energy * CONV_RY)
-
-            println("old, ", ensemble.forces[:,i])
-            println("new, ", forces)
-            """
         end
-        energy_length = Vector{Int32}(undef, size)
-        force_length = Vector{Int32}(undef, size)
-        for i in 1:size
+        energy_length = Vector{Int32}(undef, sizep)
+        force_length = Vector{Int32}(undef, sizep)
+        for i in 1:sizep
             energy_length[i] = end_per_proc[i] - start_per_proc[i] + 1
             force_length[i] = (end_per_proc[i] - start_per_proc[i] + 1)*Int32(ensemble.rho0.n_modes)
         end
-        println("leng ", energy_length)
         tot_energies = MPI.Allgatherv(energy_vect,energy_length, comm)
-        #tot_forces = MPI.Allgatherv(force_array,force_length, comm)
-        println(tot_energies)
-        MPI.Barrier(comm)
-        error()
+        tot_forces = MPI.Allgatherv(force_array,force_length, comm)
+        tot_forces = reshape(tot_forces,(Int32(ensemble.rho0.n_modes),ensemble.n_configs))
+
+        ensemble.energies .= tot_energies
+        ensemble.forces .= tot_forces
     end
+    """
+    check_energy = ensemble.energies .- tot_energies
+    check_forces = ensemble.forces .- tot_forces
+    println("check ",norm(check_energy))
+    println("check for",norm(check_forces))
+    MPI.Barrier(comm)
+    error()
+    """
+
 end
 
 function get_classic_forces(wigner_distribution:: WignerDistribution{T}, crystal) where {T <: AbstractFloat}
@@ -113,6 +122,10 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
         end
         N2 = Int64(N/2.0)
         ymu_i = randn(T, (N_modes, N2))
+        if MPI.Initialized()
+            # So that all the processors work with the same random numbers
+            MPI.Bcast!(ymu_i, 0, MPI.COMM_WORLD)
+        end
         if evolve_correlators
             ymu_i .*= sqrt.(wigner_distribution.λs) #sqrt(λ)*y_mu
         else
@@ -125,6 +138,9 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
         ensemble.positions = new_positions
     else
         ymu_i = randn(T, (N_modes, N))
+        if MPI.Initialized()
+            MPI.Bcast!(ymu_i, 0, MPI.COMM_WORLD)
+        end
         if evolve_correlators
             ymu_i .*= sqrt.(wigner_distribution.λs) #sqrt(λ)*y_mu
         else
@@ -311,6 +327,10 @@ function init_ensemble_from_python(py_ensemble, settings :: Dynamics{T}) where {
     sscha_forces ./= sqrt.(rho0.masses)
 
     weights = ones( py_ensemble.N)
+    if settings.seed != 0 
+        Random.seed!(settings.seed)
+    end
+
 
     ensemble = QuanumGaussianDynamics.Ensemble(rho0 = rho0, positions = ens_positions, forces = ens_forces, n_configs = Int32(py_ensemble.N),
                                           weights = weights, sscha_forces = sscha_forces, energies = ens_energies, sscha_energies = sscha_energies,

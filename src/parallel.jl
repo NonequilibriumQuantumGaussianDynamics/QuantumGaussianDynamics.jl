@@ -1,40 +1,17 @@
 
-"""
-MPI.Init()
-comm = MPI.COMM_WORLD
-rank = MPI.Comm_rank(comm)
-size = MPI.Comm_size(comm)
-root = 0
-println("hereeeee")
-println("rabk ", rank)
-if size>1
-    isMPI = true
-else
-    isMPI = false
-end
-export comm
-export rank
-export size
-export root
-export isMPI
-"""
 
-function parallel_force_distribute(nconf, parall)
-    
-    rank = parall["rank"]
-    size = parall["size"]
-    root = parall["root"]
-    comm = parall["comm"]
-    MPI = parall["MPI"]
-
-    if rank ==root
-        println("NCONF ",nconf )
+function parallel_force_distribute(nconf)
+    if MPI.Initialized()
+        comm = MPI.COMM_WORLD
+        rank = MPI.Comm_rank(comm)
+        size = MPI.Comm_size(comm)
+        root = 0
     end
+    
+
 
     av_point = Int32(floor(nconf/size))
     rest = mod(nconf,size) 
-    println("av ",  av_point)
-    println("rest ", rest)
 
     start_per_proc = Vector{Int32}(undef,size)
     end_per_proc = Vector{Int32}(undef,size)
@@ -60,4 +37,18 @@ function parallel_force_distribute(nconf, parall)
     end 
     return start_per_proc, end_per_proc
 end
+
+
+function write_file(file,line)
+    comm = MPI.COMM_WORLD
+    rank = MPI.Comm_rank(comm)
+
+    if MPI.Initialized() == false
+        write(file, line)
+    else
+        if rank == 0
+            write(file, line)                                                                                    end
+    end
+end
+
     

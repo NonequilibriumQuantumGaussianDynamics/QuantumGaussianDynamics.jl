@@ -39,6 +39,7 @@ Base.@kwdef struct Dynamics{T <: AbstractFloat}
     kong_liu_ratio :: T
     verbose :: Bool
     evolve_correlators :: Bool
+    seed :: Int64
     N :: Int64
 
     # Save the data each
