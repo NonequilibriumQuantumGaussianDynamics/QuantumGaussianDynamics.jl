@@ -28,10 +28,10 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
 
         # Get the average derivatives
         get_averages!(avg_for, d2v_dr2, ensemble, wigner)
-        println("Average forces:")
-        println(avg_for)
-        println("d2Vdr")
-        display(d2v_dr2./CONV_RY.*CONV_BOHR^2.0*wigner.masses[1])
+        #println("Average forces:")
+        #println(avg_for)
+        #println("d2Vdr")
+        #display(d2v_dr2./CONV_RY.*CONV_BOHR^2.0*wigner.masses[1])
         classic_for = get_classic_forces(wigner, crystal)
 
 
@@ -68,17 +68,19 @@ Error, the selected algorithm $(settings.algorithm)
         # Check if we need to print
         if index % settings.save_each == 0
             if settings.verbose
-                println("NEW STEP $index")
-                println("==============")
-                println()
-                println("T = $t fs")
-                println()
-                println("Average position:")
-                println(wigner.R_av)
-                println()
-                println("Average momenta:")
-                println(wigner.P_av)
-                println()
+                if rank == 0
+                    println("NEW STEP $index")
+                    println("==============")
+                    println()
+                    println("T = $t fs")
+                    println()
+                end
+                #println("Average position:")
+                #println(wigner.R_av)
+                #println()
+                #println("Average momenta:")
+                #println(wigner.P_av)
+                #println()
                 line = "$t "                            
                 for i in 1:nat3
                     line *= "  $(wigner.R_av[i]/sqrt(wigner.masses[i])) "
@@ -104,10 +106,8 @@ Error, the selected algorithm $(settings.algorithm)
 
                 line = ""
                 for i in 1:nat3 , j in 1:nat3
-                    println("line $i $j")
                     line *= "  $(wigner.RR_corr[i,j]/sqrt(wigner.masses[i])/sqrt(wigner.masses[j])) "
                 end
-                println(line)
                 #for i in 1:nat3 , j in 1:nat3
                 #    line *= "  $(wigner.PP_corr[i,j]) "
                 #end
@@ -120,28 +120,21 @@ Error, the selected algorithm $(settings.algorithm)
             # TODO Save the results on file
             end
         end
-        println("RR")
-        println(wigner.RR_corr)
         lambda_eigen = eigen(Symmetric(wigner.RR_corr))
-        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values)
-        println("before")
-        println("w ", wigner.λs)
-        println("e ", ensemble.rho0.λs)
+        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, THR_ACOUSTIC)
         wigner.λs_vect = λvects
         wigner.λs = λs
-        println("after")
-        println("w ", wigner.λs)
-        println("e ", ensemble.rho0.λs)
 
 
         update_weights!(ensemble, wigner)
         kl = get_kong_liu(ensemble)
-        println("KL ratio ", kl/T(ensemble.n_configs))
+        if rank == 0
+            println("KL ratio ", kl/T(ensemble.n_configs))
+        end
         if kl < settings.kong_liu_ratio*ensemble.n_configs
             generate_ensemble!(settings.N,ensemble, wigner)
             calculate_ensemble!(ensemble, crystal)
         end
-        println("weights")
         #println(ensemble.weights)
         #println("len, ", length(ensemble.weights))
     end

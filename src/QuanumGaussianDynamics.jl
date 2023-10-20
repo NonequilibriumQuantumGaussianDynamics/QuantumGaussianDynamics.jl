@@ -17,6 +17,7 @@ Therefore each derived units (like forces and times) are appropriately rescaled.
 """
 
 const SMALL_VALUE :: Float64 = 1e-8
+const THR_ACOUSTIC :: Float64 = 1e-1
 const CONV_FS :: Float64 = 0.048377687 # to femtoseconds
 const CONV_RY :: Float64 = 0.0734985857 # eV to Ry
 const CONV_BOHR :: Float64 = 1.8897261246257702 # Angstrom to Bohr
@@ -104,11 +105,13 @@ end
 """
 Remove acoustic sum rule from eigenvalue and eigenvectors
 """
-function remove_translations(vectors, values)
-    println("values")
-    println(values)
-    not_trans_mask =  values .> SMALL_VALUE
+function remove_translations(vectors, values, thr)
+    not_trans_mask =  values .> thr
 
+    if sum(.!not_trans_mask) != 3
+        println("ERROR")
+        println(values)
+    end
     @assert sum(.!not_trans_mask) == 3   """
 Error, the expected number of acustic modes is 3
        got $(sum(.!not_trans_mask)) instead.
@@ -158,12 +161,12 @@ function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T 
     # Diagonalize alpha
     if settings.evolve_correlators == false
         lambda_eigen = eigen(alpha)
-        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values) #NO NEEDED WITH ALPHAS
+        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, THR_ACOUSTIC) #NO NEEDED WITH ALPHAS
     else
         lambda_eigen = eigen(RR_corr)
         #println("RR_Coror")
         #display(RR_corr)
-        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values) #NO NEEDED WITH ALPHAS       
+        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, THR_ACOUSTIC) #NO NEEDED WITH ALPHAS       
     end
 
     # Cell

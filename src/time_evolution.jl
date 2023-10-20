@@ -27,8 +27,8 @@ function euler_step!(wigner_distribution:: WignerDistribution{T}, dt :: T, avg_f
     mul!(tmp_d2v_mul, wigner_distribution.RR_corr, d2V_dr2)
     tmp_d2v_mul .*= dt
     wigner_distribution.RP_corr .-=  tmp_d2v_mul      # update RP
-    println("Check")
-    display(copy_PP_corr.-tmp_d2v_mul )
+    #println("Check")
+    #display(copy_PP_corr.-tmp_d2v_mul )
 
     wigner_distribution.RR_corr .+= copy_RP_corr
     wigner_distribution.RR_corr .+= copy_RP_corr'
@@ -49,8 +49,8 @@ function semi_implicit_euler_step!(wigner_distribution:: WignerDistribution{T}, 
     # Evolve the correlators
     mul!(tmp_d2v_mul, wigner_distribution.RR_corr, d2V_dr2)  # calculate <RR><d2V>
     tmp_d2v_mul .*= dt
-    println("Check")
-    display(wigner_distribution.PP_corr.-tmp_d2v_mul )
+    #println("Check")
+    #display(wigner_distribution.PP_corr.-tmp_d2v_mul )
 
     wigner_distribution.RP_corr .+= (wigner_distribution.PP_corr .* dt .- tmp_d2v_mul) # update RP
 

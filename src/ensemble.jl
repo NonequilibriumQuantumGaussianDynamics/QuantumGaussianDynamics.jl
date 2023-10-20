@@ -94,8 +94,8 @@ function get_classic_forces(wigner_distribution:: WignerDistribution{T}, crystal
         forces = crystal.get_forces()
 
         forces = reshape(permutedims(forces), Int64(wigner_distribution.n_modes))
-        println("Classic forces (eV/A)")
-        println(forces)
+        #println("Classic forces (eV/A)")
+        #println(forces)
         forces = forces ./ sqrt.(wigner_distribution.masses) .* CONV_RY ./CONV_BOHR
 
         #println("Classic forces Ry/Bohr/sqrt(m)")
@@ -232,7 +232,7 @@ function get_average_energy(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
 
    std = dot(ensemble.energies .- avg_ene, ensemble.energies .- avg_ene) / (sum(ensemble.weights) -1)
    std = sqrt(std) ./ CONV_RY
-   println("avg ene, ", avg_ene  ./CONV_RY, " std, ", std)
+   #println("avg ene, ", avg_ene  ./CONV_RY, " std, ", std)
 
 end
 
@@ -242,9 +242,9 @@ function get_average_forces(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
    #avg_for ./= Float64(ensemble.n_configs)
    #avg_for ./= T(ensemble.n_configs)
    avg_for ./= sum(ensemble.weights)
-   println("avg, ")
-   println(avg_for .* sqrt.(ensemble.rho0.masses) )
-   println(avg_for .* sqrt.(ensemble.rho0.masses) .* CONV_BOHR ./CONV_RY)
+   #println("avg, ")
+   #println(avg_for .* sqrt.(ensemble.rho0.masses) )
+   #println(avg_for .* sqrt.(ensemble.rho0.masses) .* CONV_BOHR ./CONV_RY)
 
 end
 

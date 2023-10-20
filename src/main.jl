@@ -67,7 +67,7 @@ rho.P_av[1] += 0.01 #sqrt(Ry)
 QuanumGaussianDynamics.generate_ensemble!(200,ensemble, rho)
 QuanumGaussianDynamics.calculate_ensemble!(ensemble, crystal)
 #println("free energy", QuanumGaussianDynamics.get_average_energy(ensemble))
-println("initial forces")
+#println("initial forces")
 display(QuanumGaussianDynamics.get_average_forces(ensemble))
 QuanumGaussianDynamics.get_classic_forces(rho,crystal)
 
