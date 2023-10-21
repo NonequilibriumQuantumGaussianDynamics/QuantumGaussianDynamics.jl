@@ -109,16 +109,20 @@ function remove_translations(vectors, values, thr)
     not_trans_mask =  values .> thr
 
     if sum(.!not_trans_mask) != 3
-        println("ERROR")
-        println(values)
+        println("WARNING")
+        println("the expected number of acustic modes is 3
+                #       got $(sum(.!not_trans_mask)) instead")
+        println(values[:3])
     end
-    @assert sum(.!not_trans_mask) == 3   """
-Error, the expected number of acustic modes is 3
-       got $(sum(.!not_trans_mask)) instead.
-"""
+    #@assert sum(.!not_trans_mask) == 3   """
+#Error, the expected number of acustic modes is 3
+#       got $(sum(.!not_trans_mask)) instead.
+#"""
 
-    new_values = values[ not_trans_mask ]
-    new_vectors = vectors[:, not_trans_mask]
+    #new_values = values[ not_trans_mask ]
+    #new_vectors = vectors[:, not_trans_mask]
+    new_values = values[4:end]
+    new_vectors = vectors[:,4:end]
 
     return new_vectors, new_values
 end

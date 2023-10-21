@@ -8,8 +8,6 @@ function parallel_force_distribute(nconf)
         root = 0
     end
     
-
-
     av_point = Int32(floor(nconf/size))
     rest = mod(nconf,size) 
 
@@ -45,10 +43,36 @@ function write_file(file,line)
 
     if MPI.Initialized() == false
         write(file, line)
+        flush(file)
     else
         if rank == 0
-            write(file, line)                                                                                    end
+            write(file, line) 
+            flush(file)
+        end
     end
 end
 
+    
+function init_file(filename)
+    if MPI.Initialized()
+        comm = MPI.COMM_WORLD
+        rank = MPI.Comm_rank(comm)
+        size = MPI.Comm_size(comm)
+        root = 0
+        if rank == 0 
+            file = open(filename, "w")
+            close(file)
+            file = open(filename, "a")
+            return file
+        else
+            return ""
+        end
+    else
+        file = open(filename, "w")
+        close(file)
+        file = open(filename, "a")
+        return file
+    end
+
+end
     

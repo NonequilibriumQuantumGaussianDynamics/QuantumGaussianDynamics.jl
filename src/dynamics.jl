@@ -8,16 +8,15 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
     avg_for = zeros(T, nat3)
     d2v_dr2 = zeros(T, (nat3, nat3))
 
+    Rs = deepcopy(wigner.R_av)
+    Ps = deepcopy(wigner.P_av)
+
     name = settings.save_filename*"$(settings.dt)-$(settings.total_time)-$(settings.N)"
-    file = open(name*".pos", "w")
-    close(file)
-    file = open(name*".pos", "a")
-    file1 = open(name*".rho", "w")
-    close(file1)
-    file1 = open(name*".rho", "a")
-    file2 = open(name*".for", "w")
-    close(file2)
-    file2 = open(name*".for", "a")
+    rank  = MPI.Comm_rank(MPI.COMM_WORLD)
+    file0 = init_file(name*".pos")
+    file1 = init_file(name*".rho")
+    file2 = init_file(name*".for")
+    file3 = init_file(name*".cl")
     
     # Integrate
     while t < settings.total_time
@@ -28,11 +27,13 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
 
         # Get the average derivatives
         get_averages!(avg_for, d2v_dr2, ensemble, wigner)
+        total_energy = get_total_energy(ensemble, wigner)
+        classic_for = get_classic_forces(wigner, crystal)
         #println("Average forces:")
         #println(avg_for)
         #println("d2Vdr")
         #display(d2v_dr2./CONV_RY.*CONV_BOHR^2.0*wigner.masses[1])
-        classic_for = get_classic_forces(wigner, crystal)
+        cl_for, cl_energy = get_classic_ef(Rs, wigner, crystal)
 
 
         # Integrate
@@ -65,6 +66,9 @@ Error, the selected algorithm $(settings.algorithm)
 """))
         end
 
+        # Classic integration
+        classic_evolution!(Rs, Ps, dt, cl_for)
+
         # Check if we need to print
         if index % settings.save_each == 0
             if settings.verbose
@@ -88,8 +92,12 @@ Error, the selected algorithm $(settings.algorithm)
                 for i in 1:nat3
                     line *= "  $(wigner.P_av[i]*sqrt(wigner.masses[i])) "
                 end
+                if rank==0
+                    println("Total energy ", total_energy)
+                end
+                line *= " $total_energy"
                 line *= "\n"
-                write_file(file,line)
+                write_file(file0,line)
 
                 line = ""
                 for i in 1:nat3
@@ -104,6 +112,7 @@ Error, the selected algorithm $(settings.algorithm)
                 line *= "\n"
                 write_file(file2, line)                   
 
+
                 line = ""
                 for i in 1:nat3 , j in 1:nat3
                     line *= "  $(wigner.RR_corr[i,j]/sqrt(wigner.masses[i])/sqrt(wigner.masses[j])) "
@@ -117,6 +126,16 @@ Error, the selected algorithm $(settings.algorithm)
                 line *= "\n"
                 write_file(file1,line)
 
+
+                for i in 1:nat3
+                    line *= "  $(Rs[i]/sqrt(wigner.masses[i])) "
+                end
+                for i in 1:nat3
+                    line *= "  $(Ps[i]*sqrt(wigner.masses[i])) "
+                end
+                line *= " $cl_energy"
+                line *= "\n"
+                write_file(file3,line)
             # TODO Save the results on file
             end
         end
@@ -138,7 +157,10 @@ Error, the selected algorithm $(settings.algorithm)
         #println(ensemble.weights)
         #println("len, ", length(ensemble.weights))
     end
-    close(file)
-    close(file1)
-    close(file2)
+    if rank==0
+        close(file0)
+        close(file1)
+        close(file2)
+        close(file3)
+    end
 end 

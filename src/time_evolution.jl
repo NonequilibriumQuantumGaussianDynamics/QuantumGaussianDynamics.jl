@@ -63,3 +63,8 @@ function semi_implicit_euler_step!(wigner_distribution:: WignerDistribution{T}, 
 end 
 
 
+function classic_evolution!(Rs::Vector{T}, Ps::Vector{T}, dt::T, cl_for) where {T <: AbstractFloat}
+        Ps .+= cl_for .* dt
+        Rs .+= Ps .* dt
+end
+

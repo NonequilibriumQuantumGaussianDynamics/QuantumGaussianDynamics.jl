@@ -103,6 +103,20 @@ function get_classic_forces(wigner_distribution:: WignerDistribution{T}, crystal
         return forces
 end
 
+function get_classic_ef(Rs:: Matrix{T}, wigner_distribution:: WignerDistribution{T},  crystal) where {T <: AbstractFloat}
+
+        #println("Calculating configuration $i out of $(ensemble.n_configs)")
+        coords  = get_ase_positions(Rs , wigner_distribution.masses)
+        crystal.positions = coords
+        energy = crystal.get_potential_energy()
+        energy *= CONV_RY
+        forces = crystal.get_forces()
+        forces = reshape(permutedims(forces), Int64(wigner_distribution.n_modes))
+        forces = forces ./ sqrt.(wigner_distribution.masses) .* CONV_RY ./CONV_BOHR
+
+        return energy, forces
+end
+
 function get_kong_liu(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
     sumrho2 = sum(ensemble.weights.^2)
     sumrho  = sum(ensemble.weights)
@@ -225,6 +239,14 @@ function update_weights!(ensemble:: Ensemble{T}, wigner_distribution :: WignerDi
     end
 end 
 
+function get_total_energy(ensemble :: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
+   avg_ene = get_average_energy(ensemble)
+   K_rho = tr(wigner_distribution.PP_corr)
+   K_point = sum(wigner_distribution.P_av.^2 )
+
+   return avg_ene + 0.5*(K_rho + K_point)
+end
+
 function get_average_energy(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
 
    avg_ene = dot(ensemble.energies,ensemble.weights)
@@ -233,7 +255,7 @@ function get_average_energy(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
    std = dot(ensemble.energies .- avg_ene, ensemble.energies .- avg_ene) / (sum(ensemble.weights) -1)
    std = sqrt(std) ./ CONV_RY
    #println("avg ene, ", avg_ene  ./CONV_RY, " std, ", std)
-
+   return avg_ene
 end
 
 function get_average_forces(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
@@ -349,3 +371,5 @@ end
 # TODO: add a function to load and save the ensemble on disk
 function load_ensemble!(ensemble :: Ensemble{T}, path_to_json :: String) where {T <: AbstractFloat}
 end
+
+
