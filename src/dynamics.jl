@@ -1,4 +1,4 @@
-function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, settings :: Dynamics{T}, crystal) where {T <: AbstractFloat}
+function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, settings :: Dynamics{T}, crystal, efield :: ElectricField{T}) where {T <: AbstractFloat}
     index :: Int32 = 0
     t :: T = 0
     my_dt = settings.dt / CONV_FS # Convert to Rydberg units
@@ -17,6 +17,7 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
     file1 = init_file(name*".rho")
     file2 = init_file(name*".for")
     file3 = init_file(name*".cl")
+    file4 = init_file(name*".ext")
     
     # Integrate
     while t < settings.total_time
@@ -34,6 +35,10 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
         #println("d2Vdr")
         #display(d2v_dr2./CONV_RY.*CONV_BOHR^2.0*wigner.masses[1])
         cl_energy, cl_for = get_classic_ef(Rs, wigner, crystal)
+        ext_for = get_external_forces(t, efield, wigner)
+
+        tot_for = avg_for .+ ext_for
+        tot_cl_for = cl_for .+ ext_for
 
 
         # Integrate
@@ -47,7 +52,7 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
             println(wigner.PP_corr)
             println("isimmutable ",isimmutable(wigner.RR_corr) )
             """
-            euler_step!(wigner, my_dt, avg_for, d2v_dr2)
+            euler_step!(wigner, my_dt, tot_for, d2v_dr2)
             """
             println("after RR")
             println(wigner.RR_corr)
@@ -57,7 +62,7 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
             println(wigner.RP_corr)
             """
         elseif "semi-implicit-euler" == lowercase(settings.algorithm)
-            semi_implicit_euler_step!(wigner, my_dt, avg_for, d2v_dr2)
+            semi_implicit_euler_step!(wigner, my_dt, tot_for, d2v_dr2)
 
         else
             throw(ArgumentError("""
@@ -67,7 +72,7 @@ Error, the selected algorithm $(settings.algorithm)
         end
 
         # Classic integration
-        classic_evolution!(Rs, Ps, my_dt, cl_for)
+        classic_evolution!(Rs, Ps, my_dt, tot_cl_for)
 
         # Check if we need to print
         if index % settings.save_each == 0
@@ -79,7 +84,7 @@ Error, the selected algorithm $(settings.algorithm)
                     println("T = $t fs")
                     println()
                 end
-                #println("Average position:")
+            #println("Average position:")
                 #println(wigner.R_av)
                 #println()
                 #println("Average momenta:")
@@ -137,6 +142,13 @@ Error, the selected algorithm $(settings.algorithm)
                 line *= " $cl_energy"
                 line *= "\n"
                 write_file(file3,line)
+
+                line = ""
+                for i in 1:nat3
+                    line *= "  $(ext_for[i]*sqrt(wigner.masses[i])) "
+                end
+                line *= "\n"
+                write_file(file4,line)
             # TODO Save the results on file
             end
         end
@@ -163,5 +175,6 @@ Error, the selected algorithm $(settings.algorithm)
         close(file1)
         close(file2)
         close(file3)
+        close(file4)
     end
 end 

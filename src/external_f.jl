@@ -96,7 +96,7 @@ function sin_field(t,A,w)
 end
 
 
-function get_external_forces!(t::T, efield :: ElectricField{T}, wigner :: WignerDistribution{T}, forces::Vector{T}) where {T <: AbstractFloat}
+function get_external_forces(t::T, efield :: ElectricField{T}, wigner :: WignerDistribution{T}) where {T <: AbstractFloat}
 
     # t must be in Rydberg units
     # efield.fun must be a function of t only
@@ -111,6 +111,7 @@ function get_external_forces!(t::T, efield :: ElectricField{T}, wigner :: Wigner
     end
 
     nat = Int32(length(efield.Zeff[:,1])/3.0)
+    forces = Vector{T}(undef, 3*nat)
 
     for i in 1:nat
         start = 3*(i-1) +1
@@ -121,6 +122,7 @@ function get_external_forces!(t::T, efield :: ElectricField{T}, wigner :: Wigner
         forces[start:fin] .= ZepsE .* sqrt(2) ./sqrt(wigner.masses[i]).* efield.fun(t)
 
     end
+    return forces
 end
 
 
