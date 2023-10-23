@@ -103,7 +103,7 @@ function get_classic_forces(wigner_distribution:: WignerDistribution{T}, crystal
         return forces
 end
 
-function get_classic_ef(Rs:: Matrix{T}, wigner_distribution:: WignerDistribution{T},  crystal) where {T <: AbstractFloat}
+function get_classic_ef(Rs:: Vector{T}, wigner_distribution:: WignerDistribution{T},  crystal) where {T <: AbstractFloat}
 
         #println("Calculating configuration $i out of $(ensemble.n_configs)")
         coords  = get_ase_positions(Rs , wigner_distribution.masses)

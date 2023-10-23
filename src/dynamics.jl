@@ -33,7 +33,7 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
         #println(avg_for)
         #println("d2Vdr")
         #display(d2v_dr2./CONV_RY.*CONV_BOHR^2.0*wigner.masses[1])
-        cl_for, cl_energy = get_classic_ef(Rs, wigner, crystal)
+        cl_energy, cl_for = get_classic_ef(Rs, wigner, crystal)
 
 
         # Integrate
@@ -67,7 +67,7 @@ Error, the selected algorithm $(settings.algorithm)
         end
 
         # Classic integration
-        classic_evolution!(Rs, Ps, dt, cl_for)
+        classic_evolution!(Rs, Ps, my_dt, cl_for)
 
         # Check if we need to print
         if index % settings.save_each == 0
@@ -127,6 +127,7 @@ Error, the selected algorithm $(settings.algorithm)
                 write_file(file1,line)
 
 
+                line = ""
                 for i in 1:nat3
                     line *= "  $(Rs[i]/sqrt(wigner.masses[i])) "
                 end
