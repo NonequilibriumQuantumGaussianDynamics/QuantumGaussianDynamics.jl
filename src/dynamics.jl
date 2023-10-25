@@ -20,6 +20,12 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
     file3 = init_file(name*".cl")
     file4 = init_file(name*".ext")
     
+    # Get the average derivatives
+    get_averages!(avg_for, d2v_dr2, ensemble, wigner)
+    total_energy = get_total_energy(ensemble, wigner)
+    classic_for = get_classic_forces(wigner, crystal)
+    cl_energy, cl_for = get_classic_ef(Rs, wigner, crystal)
+    ext_for = get_external_forces(t/CONV_FS, efield, wigner)
     # Integrate
     while t < settings.total_time
         # Update the ensemble 
@@ -27,43 +33,17 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
         t += settings.dt
         my_dt = settings.dt / CONV_FS
 
-        # Get the average derivatives
-        get_averages!(avg_for, d2v_dr2, ensemble, wigner)
-        total_energy = get_total_energy(ensemble, wigner)
-        classic_for = get_classic_forces(wigner, crystal)
-        #println("Average forces:")
-        #println(avg_for)
-        #println("d2Vdr")
-        #display(d2v_dr2./CONV_RY.*CONV_BOHR^2.0*wigner.masses[1])
-        cl_energy, cl_for = get_classic_ef(Rs, wigner, crystal)
-        ext_for = get_external_forces(t/CONV_FS, efield, wigner)
-
         tot_for = avg_for .+ ext_for
         tot_cl_for = cl_for .+ ext_for
 
 
         # Integrate
         if "euler" == lowercase(settings.algorithm)
-            """
-            println("before RR")
-            println(wigner.RR_corr)
-            println("before PP")
-            println(wigner.PP_corr)
-            println("before RP")
-            println(wigner.PP_corr)
-            println("isimmutable ",isimmutable(wigner.RR_corr) )
-            """
             euler_step!(wigner, my_dt, tot_for, d2v_dr2)
-            """
-            println("after RR")
-            println(wigner.RR_corr)
-            println("after PP")
-            println(wigner.PP_corr)
-            println("after RP")
-            println(wigner.RP_corr)
-            """
         elseif "semi-implicit-euler" == lowercase(settings.algorithm)
             semi_implicit_euler_step!(wigner, my_dt, tot_for, d2v_dr2)
+        elseif "semi-implicit-verlet" == lowercase(settings.algorithm)
+            semi_implicit_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 1)
 
         else
             throw(ArgumentError("""
@@ -74,6 +54,34 @@ Error, the selected algorithm $(settings.algorithm)
 
         # Classic integration
         classic_evolution!(Rs, Ps, my_dt, tot_cl_for)
+
+        # Update matrix and weights
+        lambda_eigen = eigen(Symmetric(wigner.RR_corr))
+        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, THR_ACOUSTIC)
+        wigner.λs_vect = λvects
+        wigner.λs = λs
+
+
+        update_weights!(ensemble, wigner)
+        kl = get_kong_liu(ensemble)
+        if rank == 0
+            println("KL ratio ", kl/T(ensemble.n_configs))
+        end
+        if kl < settings.kong_liu_ratio*ensemble.n_configs
+            generate_ensemble!(settings.N,ensemble, wigner)
+            calculate_ensemble!(ensemble, crystal)
+        end
+
+        # Get the average derivatives
+        get_averages!(avg_for, d2v_dr2, ensemble, wigner)
+        total_energy = get_total_energy(ensemble, wigner)
+        classic_for = get_classic_forces(wigner, crystal)
+        cl_energy, cl_for = get_classic_ef(Rs, wigner, crystal)
+        ext_for = get_external_forces(t/CONV_FS, efield, wigner)
+
+        if "semi-implicit-verlet" == lowercase(settings.algorithm)
+            semi_implicit_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
+        end
 
         # Check if we need to print
         if index % settings.save_each == 0
@@ -153,23 +161,6 @@ Error, the selected algorithm $(settings.algorithm)
             # TODO Save the results on file
             end
         end
-        lambda_eigen = eigen(Symmetric(wigner.RR_corr))
-        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, THR_ACOUSTIC)
-        wigner.λs_vect = λvects
-        wigner.λs = λs
-
-
-        update_weights!(ensemble, wigner)
-        kl = get_kong_liu(ensemble)
-        if rank == 0
-            println("KL ratio ", kl/T(ensemble.n_configs))
-        end
-        if kl < settings.kong_liu_ratio*ensemble.n_configs
-            generate_ensemble!(settings.N,ensemble, wigner)
-            calculate_ensemble!(ensemble, crystal)
-        end
-        #println(ensemble.weights)
-        #println("len, ", length(ensemble.weights))
     end
     if rank==0
         close(file0)
