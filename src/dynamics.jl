@@ -1,4 +1,5 @@
 function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, settings :: Dynamics{T}, crystal, efield :: ElectricField{T}) where {T <: AbstractFloat}
+    
     index :: Int32 = 0
     t :: T = 0
     my_dt = settings.dt / CONV_FS # Convert to Rydberg units
@@ -35,7 +36,7 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
         #println("d2Vdr")
         #display(d2v_dr2./CONV_RY.*CONV_BOHR^2.0*wigner.masses[1])
         cl_energy, cl_for = get_classic_ef(Rs, wigner, crystal)
-        ext_for = get_external_forces(t, efield, wigner)
+        ext_for = get_external_forces(t/CONV_FS, efield, wigner)
 
         tot_for = avg_for .+ ext_for
         tot_cl_for = cl_for .+ ext_for

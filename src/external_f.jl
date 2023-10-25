@@ -117,7 +117,7 @@ function get_external_forces(t::T, efield :: ElectricField{T}, wigner :: WignerD
         start = 3*(i-1) +1
         fin = start+2
 
-        epsE = efield.eps*efield.edir
+        epsE = inv(efield.eps)*efield.edir
         ZepsE  = efield.Zeff[start:fin,:] * epsE
         forces[start:fin] .= ZepsE .* sqrt(2) ./sqrt(wigner.masses[i]).* efield.fun(t)
 
