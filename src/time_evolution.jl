@@ -90,13 +90,52 @@ function semi_implicit_verlet_step!(wigner_distribution:: WignerDistribution{T},
 
         wigner_distribution.PP_corr .-= (tmp_d2v_mul .+ tmp_d2v_mul')    # update PP
 
+        wigner_distribution.RR_corr .+= (wigner_distribution.RP_corr .+ wigner_distribution.RP_corr')*dt # update RR
+    end
+end 
+
+
+function generalized_verlet_step!(wigner_distribution:: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}, part ) where {T <: AbstractFloat}
+    # Solve the newton equations
+    if part == 1
+        wigner_distribution.R_av .+= wigner_distribution.P_av .* dt .+ 1/2.0 * avg_for .* dt^2
+        wigner_distribution.P_av .+= 1/2.0 .* avg_for .* dt
+
+        tmp_d2v_mul = similar(d2V_dr2)
+        mul!(tmp_d2v_mul, wigner_distribution.RR_corr, d2V_dr2)  # calculate <RR><d2V>
+        wigner_distribution.RR_corr .+= (wigner_distribution.RP_corr .+ wigner_distribution.RP_corr')*dt .- (tmp_d2v_mul .* tmp_d2v_mul').*dt^2/2.0 .+ wigner_distribution.PP_corr .* dt^2
+
+    elseif part == 2
+        wigner_distribution.P_av .+= 1/2.0 .* avg_for .* dt # repeat with the new force
+
+        tmp_d2v_mul = similar(d2V_dr2)
+
+        # Evolve the correlators
+        mul!(tmp_d2v_mul, wigner_distribution.RR_corr, d2V_dr2)  # calculate <RR><d2V>
+        tmp_d2v_mul .*= dt
+        #println("Check")
+        #display(wigner_distribution.PP_corr.-tmp_d2v_mul )
+
+        wigner_distribution.RP_corr .+= (wigner_distribution.PP_corr .* dt .- tmp_d2v_mul) # update RP
+
+        mul!(tmp_d2v_mul, d2V_dr2, wigner_distribution.RP_corr) # calculate <d2V><RP>
+        tmp_d2v_mul .*= dt
+
+        wigner_distribution.PP_corr .-= (tmp_d2v_mul .+ tmp_d2v_mul')    # update PP
+
         wigner_distribution.RR_corr .+= (wigner_distribution.RP_corr .+ wigner_distribution.RP_corr') # update RR
     end
 end 
 
 
-function classic_evolution!(Rs::Vector{T}, Ps::Vector{T}, dt::T, cl_for) where {T <: AbstractFloat}
-        Ps .+= cl_for .* dt
-        Rs .+= Ps .* dt
+function classic_evolution!(Rs::Vector{T}, Ps::Vector{T}, dt::T, cl_for, part) where {T <: AbstractFloat}
+        #Ps .+= cl_for .* dt
+        #Rs .+= Ps .* dt
+        if part == 1
+            Rs .+= Ps .* dt + 1/2.0 .* cl_for .* dt^2
+            Ps .+= 1/2.0 .* cl_for .* dt
+        elseif part ==2
+            Ps .+= 1/2.0 .* cl_for .* dt
+        end
 end
 

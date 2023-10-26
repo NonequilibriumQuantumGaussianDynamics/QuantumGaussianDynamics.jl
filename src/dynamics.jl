@@ -44,6 +44,8 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
             semi_implicit_euler_step!(wigner, my_dt, tot_for, d2v_dr2)
         elseif "semi-implicit-verlet" == lowercase(settings.algorithm)
             semi_implicit_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 1)
+        elseif "none" == lowercase(settings.algorithm)
+            nothing
 
         else
             throw(ArgumentError("""
@@ -52,8 +54,8 @@ Error, the selected algorithm $(settings.algorithm)
 """))
         end
 
-        # Classic integration
-        classic_evolution!(Rs, Ps, my_dt, tot_cl_for)
+        # Classic integration (part 1)
+        classic_evolution!(Rs, Ps, my_dt, tot_cl_for, 1)
 
         # Update matrix and weights
         lambda_eigen = eigen(Symmetric(wigner.RR_corr))
@@ -82,6 +84,8 @@ Error, the selected algorithm $(settings.algorithm)
         if "semi-implicit-verlet" == lowercase(settings.algorithm)
             semi_implicit_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
         end
+        # Classic integration (part 2)
+        classic_evolution!(Rs, Ps, my_dt, tot_cl_for, 2)
 
         # Check if we need to print
         if index % settings.save_each == 0
