@@ -137,6 +137,27 @@ function extract_dynamical_matrix(wigner :: WignerDistribution{T}, TEMP) where {
 
 end
 
+
+
+function displace_along_mode(mod, eta, wigner, dyn) 
+    # eta in Angstrom*sqrt(uma)
+    eta = eta * CONV_BOHR * sqrt(CONV_MASS)
+
+    eig, eigv = dyn.DiagonalizeSupercell()
+    v = eigv[:,mod]
+
+    du = v .* eta # No need to divide by sqrt(m), by definition of TDSCHA coord
+
+    display(du)
+    println("original")
+    display(wigner.R_av)
+end
+
+
+
+    
+
+
 """
 # TODO: add a function to load and save the ensemble on disk
 function load_ensemble!(ensemble :: Ensemble{T}, path_to_json :: String) where {T <: AbstractFloat}
