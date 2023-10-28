@@ -168,7 +168,7 @@ function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T 
 
     # Rescale
     masses = super_struct.get_masses_array() # already in Rydberg units
-    mass_array = vec(repeat(masses,3,1)) # array of 3N masses ordered according to m1 m1 m1 m2 m2 m2 ...
+    mass_array = reshape(repeat(masses',3,1), N_modes)
     R_av = R_av.*sqrt.(mass_array)
     P_av = P_av./sqrt.(mass_array)
 
