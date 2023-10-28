@@ -147,17 +147,6 @@ function displace_along_mode!(mod, eta, wigner, dyn)
     v = eigv[:,mod]
 
     du = v .* eta # No need to divide by sqrt(m), by definition of TDSCHA coord
-    display(get_ase_positions(du,wigner.masses))
-    println("v")
-    println(v)
-    println("du")
-    display(get_ase_positions_array(du,wigner.masses))
-    println("sqrtm")
-    println(length(wigner.masses))
-    display(sqrt.(wigner.masses))
-    println("du v ", dot(du,v)/ CONV_BOHR / sqrt(CONV_MASS))
-    println(dot(v,get_ase_positions_array(du,wigner.masses)))
-    error()
     wigner.R_av .+= du
 end
 

@@ -103,6 +103,7 @@ Base.@kwdef mutable struct Ensemble{T <: AbstractFloat}
     positions :: Matrix{T}  # Positions are multiplied by the squareroot of the masses
     energies :: Vector{T} 
     forces :: Matrix{T} # Forces are divided by the squareroot of masses
+    stress :: Matrix{T} # Stress in eV/A^3
     sscha_energies :: Vector{T} 
     sscha_forces :: Matrix{T}
     n_configs :: Int32

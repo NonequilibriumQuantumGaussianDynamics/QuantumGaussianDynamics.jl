@@ -15,12 +15,14 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
             crystal.positions = coords
             energy = crystal.get_potential_energy()
             forces = crystal.get_forces()
+            stress = crystal.get_stress()
 
             forces = reshape(permutedims(forces), Int64(ensemble.rho0.n_modes))
             forces = forces ./ sqrt.(ensemble.rho0.masses) .* CONV_RY ./CONV_BOHR
 
             ensemble.energies[i] = energy * CONV_RY
             ensemble.forces[:,i] .= forces
+            ensemble.stress[:,i] .= stress
 
             if rank==0
                 println("0 Calculating configuration $i out of $(ensemble.n_configs) $(energy * CONV_RY)", )
@@ -41,6 +43,7 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
         nconf_proc = end_per_proc[rank+1] - start_per_proc[rank+1] + 1
         energy_vect = Vector{Float64}(undef,nconf_proc)
         force_array = Matrix{Float64}(undef,Int64(ensemble.rho0.n_modes),nconf_proc)
+        stress_array = Matrix{Float64}(undef,6,nconf_proc)
 
         #for i in 1 : ensemble.n_configs
 
@@ -52,6 +55,7 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
             crystal.positions = coords
             energy = crystal.get_potential_energy()
             forces = crystal.get_forces()
+            stress = crystal.get_stress()
 
             forces = reshape(permutedims(forces), Int64(ensemble.rho0.n_modes))
             forces = forces ./ sqrt.(ensemble.rho0.masses) .* CONV_RY ./CONV_BOHR
@@ -59,20 +63,26 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
             ind = i - start_per_proc[rank+1] + 1
             energy_vect[ind] = energy * CONV_RY
             force_array[:,ind] .= forces
+            stress_array[:,ind] .= stress
             
         end
         energy_length = Vector{Int32}(undef, sizep)
         force_length = Vector{Int32}(undef, sizep)
+        stress_length = Vector{Int32}(undef, sizep)
         for i in 1:sizep
             energy_length[i] = end_per_proc[i] - start_per_proc[i] + 1
             force_length[i] = (end_per_proc[i] - start_per_proc[i] + 1)*Int32(ensemble.rho0.n_modes)
+            stress_length[i] = (end_per_proc[i] - start_per_proc[i] + 1) *6
         end
         tot_energies = MPI.Allgatherv(energy_vect,energy_length, comm)
         tot_forces = MPI.Allgatherv(force_array,force_length, comm)
+        tot_stress = MPI.Allgatherv(stress_array, stress_length, comm)
         tot_forces = reshape(tot_forces,(Int32(ensemble.rho0.n_modes),ensemble.n_configs))
+        tot_stress = reshape(tot_stress,(6,ensemble.n_configs))
 
         ensemble.energies .= tot_energies
         ensemble.forces .= tot_forces
+        ensemble.stress .= tot_stress
     end
     """
     check_energy = ensemble.energies .- tot_energies
@@ -170,6 +180,7 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
     ensemble.weights = ones(T, N)
     ensemble.rho0 = deepcopy(wigner_distribution)
     ensemble.forces  = zeros(T, (wigner_distribution.n_modes, N))
+    ensemble.stress  = zeros(T, (6, N))
     ensemble.sscha_forces = zeros(T, (wigner_distribution.n_modes, N))
     ensemble.energies = zeros(T, N)
     ensemble.sscha_energies = zeros(T, N)
@@ -348,15 +359,27 @@ function init_ensemble_from_python(py_ensemble, settings :: Dynamics{T}) where {
     sscha_forces ./= CONV_BOHR #./ CONV_RY
     sscha_forces ./= sqrt.(rho0.masses)
 
+    # Random stress
+    ens_stresses = py_ensemble.stresses
+    ens_voigt = Matrix{T}(undef, 6, py_ensemble.N)
+    ens_voigt[1,:] = ens_stresses[:,1,1] 
+    ens_voigt[2,:] = ens_stresses[:,2,2] 
+    ens_voigt[3,:] = ens_stresses[:,3,3] 
+    ens_voigt[4,:] = ens_stresses[:,2,3]  #yz
+    ens_voigt[5,:] = ens_stresses[:,1,3]  #xz
+    ens_voigt[6,:] = ens_stresses[:,1,2]  #xy
+
+
     weights = ones( py_ensemble.N)
     if settings.seed != 0 
         Random.seed!(settings.seed)
     end
 
 
-    ensemble = QuanumGaussianDynamics.Ensemble(rho0 = rho0, positions = ens_positions, forces = ens_forces, n_configs = Int32(py_ensemble.N),
-                                          weights = weights, sscha_forces = sscha_forces, energies = ens_energies, sscha_energies = sscha_energies,
-                                         temperature = TEMPERATURE)
+    ensemble = QuanumGaussianDynamics.Ensemble(rho0 = rho0, positions = ens_positions, forces = ens_forces, stress = ens_voigt,
+                                               n_configs = Int32(py_ensemble.N), weights = weights, sscha_forces = sscha_forces,
+                                               energies = ens_energies, sscha_energies = sscha_energies,
+                                               temperature = TEMPERATURE)
 
     return ensemble
 end

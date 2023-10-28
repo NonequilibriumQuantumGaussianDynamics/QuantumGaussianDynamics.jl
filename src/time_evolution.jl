@@ -131,11 +131,13 @@ end
 function classic_evolution!(Rs::Vector{T}, Ps::Vector{T}, dt::T, cl_for, part) where {T <: AbstractFloat}
         #Ps .+= cl_for .* dt
         #Rs .+= Ps .* dt
+        γ = 0.001
         if part == 1
-            Rs .+= Ps .* dt + 1/2.0 .* cl_for .* dt^2
-            Ps .+= 1/2.0 .* cl_for .* dt
+            Rs .+= Ps .* dt + 1/2.0 .* (cl_for .- γ .* Ps) .* dt^2
+            Ps .= ((1 - γ/2.0*dt)*Ps .+ 1/2.0 .* cl_for .* dt) ./ (1+γ/2.0*dt)
         elseif part ==2
-            Ps .+= 1/2.0 .* cl_for .* dt
+            Ps .+= (1/2.0 .* cl_for .* dt) ./ (1+γ/2.0*dt)
         end
+        #((f + fext + f_old + fext_old)/2.0*dt + (1 - γ/2.0*dt)*u[2])/(1+γ/2.0*dt)
 end
 
