@@ -19,6 +19,7 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
     file2 = init_file(name*".for")
     file3 = init_file(name*".cl")
     file4 = init_file(name*".ext")
+    file5 = init_file(name*".str")
     
     # Get the average derivatives
     get_averages!(avg_for, d2v_dr2, ensemble, wigner)
@@ -26,16 +27,16 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
     classic_for = get_classic_forces(wigner, crystal)
     cl_energy, cl_for = get_classic_ef(Rs, wigner, crystal)
     ext_for = get_external_forces(t/CONV_FS, efield, wigner)
+
+    tot_for = avg_for .+ ext_for
+    tot_cl_for = cl_for .+ ext_for
+
     # Integrate
     while t < settings.total_time
         # Update the ensemble 
         index += 1
         t += settings.dt
         my_dt = settings.dt / CONV_FS
-
-        tot_for = avg_for .+ ext_for
-        tot_cl_for = cl_for .+ ext_for
-
 
         # Integrate
         if "euler" == lowercase(settings.algorithm)
@@ -77,9 +78,13 @@ Error, the selected algorithm $(settings.algorithm)
         # Get the average derivatives
         get_averages!(avg_for, d2v_dr2, ensemble, wigner)
         total_energy = get_total_energy(ensemble, wigner)
+        avg_stress = get_average_stress(ensemble)
         classic_for = get_classic_forces(wigner, crystal)
         cl_energy, cl_for = get_classic_ef(Rs, wigner, crystal)
         ext_for = get_external_forces(t/CONV_FS, efield, wigner)
+
+        tot_for = avg_for .+ ext_for
+        tot_cl_for = cl_for .+ ext_for
 
         if "semi-implicit-verlet" == lowercase(settings.algorithm)
             semi_implicit_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
@@ -162,6 +167,15 @@ Error, the selected algorithm $(settings.algorithm)
                 end
                 line *= "\n"
                 write_file(file4,line)
+
+
+                line = ""
+                for i in 1:6
+                    line *= " $(avg_stress[i]) "
+                end
+                line *= "\n"
+                write_file(file5,line)
+
             # TODO Save the results on file
             end
         end
@@ -172,5 +186,6 @@ Error, the selected algorithm $(settings.algorithm)
         close(file2)
         close(file3)
         close(file4)
+        close(file5)
     end
 end 

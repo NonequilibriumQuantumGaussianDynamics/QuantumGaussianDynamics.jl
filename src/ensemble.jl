@@ -281,6 +281,14 @@ function get_average_forces(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
 
 end
 
+function get_average_stress(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
+
+   avg_str = ensemble.stress * ensemble.weights
+   avg_str ./= sum(ensemble.weights)
+   return avg_str
+
+end
+
 
 """
 Evaluate the average force and d2v_dr2 from the ensemble and the wigner distribution.
