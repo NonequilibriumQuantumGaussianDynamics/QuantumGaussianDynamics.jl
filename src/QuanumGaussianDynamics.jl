@@ -5,6 +5,10 @@ using Random
 using PyCall
 using Roots
 using MPI
+#using Optimization
+using Optim
+using OptimizationOptimJL
+using ForwardDiff
 
 # Init MPI
 include("parallel.jl")
