@@ -146,6 +146,17 @@ function generalized_verlet_step!(wigner :: WignerDistribution{T}, dt :: T, avg_
 end 
 
 
+function fixed_step!(wigner :: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T},part ) where {T <: AbstractFloat}
+    # Solve the newton equations
+    if part == 1
+        wigner.R_av .+= wigner.P_av .* dt .+ 1/2.0 * avg_for .* dt^2
+        wigner.P_av .+= 1/2.0 .* avg_for .* dt
+
+    elseif part == 2
+        wigner.P_av .+= 1/2.0 .* avg_for .* dt # repeat with the new force
+    end
+end 
+
 function full_generalized_verlet_step!(wigner :: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}, bc0 :: Vector{T} ,part ) where {T <: AbstractFloat}
     # Solve the newton equations
     if part == 1

@@ -45,6 +45,8 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
             semi_implicit_euler_step!(wigner, my_dt, tot_for, d2v_dr2)
         elseif "semi-implicit-verlet" == lowercase(settings.algorithm)
             semi_implicit_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 1)
+        elseif "fixed" == lowercase(settings.algorithm)
+            fixed_step!(wigner, my_dt, tot_for, d2v_dr2, 1)
         elseif "generalized-verlet" == lowercase(settings.algorithm) 
             bc0 = get_merged_vector(wigner.PP_corr, wigner.RP_corr)
             generalized_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, bc0, 1) 
@@ -91,6 +93,8 @@ Error, the selected algorithm $(settings.algorithm)
 
         if "semi-implicit-verlet" == lowercase(settings.algorithm)
             semi_implicit_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
+        elseif "fixed" == lowercase(settings.algorithm)
+            fixed_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
         elseif "generalized-verlet" == lowercase(settings.algorithm) 
             generalized_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, bc0, 2)
         end

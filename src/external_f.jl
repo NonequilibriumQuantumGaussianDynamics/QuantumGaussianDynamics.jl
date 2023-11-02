@@ -92,7 +92,18 @@ function sin_field(t,A,w)
     A_Ry = A*CONV_EFIELD
     w_Ry = w*CONV_FREQ
 
-    return A_Ry*sin(w_Ry*t)
+    return A_Ry*sin(2*π*w_Ry*t)
+end
+
+function pulse(t, A, w, t0, sig )
+
+    A_Ry = A*CONV_EFIELD
+    w_Ry = w*CONV_FREQ
+    t0_Ry = t0/CONV_FS
+    sig_Ry = sig/CONV_FS
+
+    return A_Ry * cos(2*π*w_Ry*t) * exp(-0.5*(t-t0_Ry)^2/sig_Ry^2)
+
 end
 
 
@@ -118,8 +129,8 @@ function get_external_forces(t::T, efield :: ElectricField{T}, wigner :: WignerD
         fin = start+2
 
         epsE = inv(efield.eps)*efield.edir
-        ZepsE  = efield.Zeff[start:fin,:] * epsE
-        forces[start:fin] .= ZepsE .* sqrt(2) ./sqrt(wigner.masses[i]).* efield.fun(t)
+        ZepsE  = efield.Zeff[start:fin,:]  * epsE
+        forces[start:fin] .= ZepsE .* sqrt(2) ./sqrt(wigner.masses[3*(i-1)+1]).* efield.fun(t)
 
     end
     return forces
