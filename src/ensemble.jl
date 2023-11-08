@@ -314,12 +314,7 @@ function get_average_stress(ensemble :: Ensemble{T}, wigner :: WignerDistributio
    delta_str =  [2*sxx, 2*syy, 2*szz, syz+szy, sxz+szx, sxy+syx]
    delta_str .*= (1) / 2.0 /Vol /CONV_RY *CONV_BOHR^3
 
-   println("1", avg_str)
-   println("2", delta_str)
-   println("3", avg_str + delta_str)
-
-   error()
-   #return avg_str
+   return avg_str.+delta_str
 
 end
 
