@@ -83,7 +83,7 @@ Error, the selected algorithm $(settings.algorithm)
         # Get the average derivatives
         get_averages!(avg_for, d2v_dr2, ensemble, wigner)
         total_energy = get_total_energy(ensemble, wigner)
-        avg_stress = get_average_stress(ensemble)
+        avg_stress = get_average_stress(ensemble, wigner)
         classic_for = get_classic_forces(wigner, crystal)
         cl_energy, cl_for = get_classic_ef(Rs, wigner, crystal)
         ext_for = get_external_forces(t/CONV_FS, efield, wigner)
