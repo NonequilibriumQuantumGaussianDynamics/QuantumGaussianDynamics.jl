@@ -56,6 +56,7 @@ Base.@kwdef struct Dynamics{T <: AbstractFloat}
     evolve_correlators :: Bool
     seed :: Int64
     N :: Int64
+    correlated :: Bool
 
     # Save the data each
     save_filename :: String 
@@ -113,6 +114,8 @@ Base.@kwdef mutable struct Ensemble{T <: AbstractFloat}
     n_configs :: Int32
     weights :: Vector{T}
     temperature :: T
+    correlated :: Bool
+    y0 :: Matrix{T}
 
     #unit_cell :: Matrix{T}
 end 

@@ -133,6 +133,31 @@ function get_kong_liu(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
     return sumrho^2/sumrho2
 end
 
+function get_random_y(N, N_modes, settings :: Dynamics{T}) where {T <: AbstractFloat}
+
+    even_odd = true
+
+    if even_odd
+        if mod(N,2) !=0
+            error("Error, evenodd allowed only with an even number of random structures")
+        end
+        N2 = Int64(N/2.0)
+        ymu_i = randn(T, (N_modes, N2))
+        if MPI.Initialized()
+            # So that all the processors work with the same random numbers
+            MPI.Bcast!(ymu_i, 0, MPI.COMM_WORLD)
+        end
+    else
+        ymu_i = randn(T, (N_modes, N))
+        if MPI.Initialized()
+            MPI.Bcast!(ymu_i, 0, MPI.COMM_WORLD)
+        end
+    end
+
+    return ymu_i
+end
+
+
 function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
     
     ensemble.n_configs = N
@@ -145,25 +170,35 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
             error("Error, evenodd allowed only with an even number of random structures")
         end
         N2 = Int64(N/2.0)
-        ymu_i = randn(T, (N_modes, N2))
-        if MPI.Initialized()
-            # So that all the processors work with the same random numbers
-            MPI.Bcast!(ymu_i, 0, MPI.COMM_WORLD)
-        end
-        if evolve_correlators
-            ymu_i .*= sqrt.(wigner_distribution.λs) #sqrt(λ)*y_mu
+        if ensemble.correlated
+            ymu_i  = copy(ensemble.y0) 
+            sqrt_RR = wigner_distribution.λs_vect * Diagonal(sqrt.(wigner_distribution.λs)) * wigner_distribution.λs_vect'
+            dRa_i = sqrt_RR * ymu_i
         else
-            ymu_i ./= sqrt.(wigner_distribution.λs) #1/sqrt(λ)*y_mu
+            ymu_i = randn(T, (N_modes, N2))
+            if MPI.Initialized()
+                # So that all the processors work with the same random numbers
+                MPI.Bcast!(ymu_i, 0, MPI.COMM_WORLD)
+            end
+            if evolve_correlators
+                ymu_i .*= sqrt.(wigner_distribution.λs) #sqrt(λ)*y_mu
+            else
+                ymu_i ./= sqrt.(wigner_distribution.λs) #1/sqrt(λ)*y_mu
+            end
+            dRa_i = wigner_distribution.λs_vect * ymu_i #\sum_{\mu} e_{a\mu}*sqrt(λ_\mu)*y_\mu
         end
-        dRa_i = wigner_distribution.λs_vect * ymu_i #\sum_{\mu} e_{a\mu}*sqrt(λ_\mu)*y_\mu
         new_positions = Matrix{T}(undef, wigner_distribution.n_modes, N)
         new_positions[:,1:N2] .= dRa_i .+ wigner_distribution.R_av
         new_positions[:,N2+1:end] .= -dRa_i .+ wigner_distribution.R_av
         ensemble.positions = new_positions
     else
-        ymu_i = randn(T, (N_modes, N))
-        if MPI.Initialized()
-            MPI.Bcast!(ymu_i, 0, MPI.COMM_WORLD)
+        if ensemble.correlated
+            ymu_i = copy(ensemble.y0)
+        else
+            ymu_i = randn(T, (N_modes, N))
+            if MPI.Initialized()
+                MPI.Bcast!(ymu_i, 0, MPI.COMM_WORLD)
+            end
         end
         if evolve_correlators
             ymu_i .*= sqrt.(wigner_distribution.λs) #sqrt(λ)*y_mu
@@ -275,8 +310,17 @@ function get_average_forces(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
    #avg_for ./= Float64(ensemble.n_configs)
    #avg_for ./= T(ensemble.n_configs)
    avg_for ./= sum(ensemble.weights)
-   #println("avg, ")
-   #println(avg_for .* sqrt.(ensemble.rho0.masses) )
+   """
+   comm = MPI.COMM_WORLD
+   rank = MPI.Comm_rank(comm)
+   if rank==0
+   println("forces ")
+   println(avg_for .* sqrt.(ensemble.rho0.masses) )
+   println("norm ")
+   println(norm(avg_for .* sqrt.(ensemble.rho0.masses)))
+   error()
+   end
+   """
    #println(avg_for .* sqrt.(ensemble.rho0.masses) .* CONV_BOHR ./CONV_RY)
 
 end
@@ -309,7 +353,6 @@ function get_average_stress(ensemble :: Ensemble{T}, wigner :: WignerDistributio
    syx = sum(f_shape[2,:,:].*du[1,:,:]) / Nw
 
    Vol = det(wigner.cell)
-   println("Volume ", Vol)
 
    delta_str =  [2*sxx, 2*syy, 2*szz, syz+szy, sxz+szx, sxy+syx]
    delta_str .*= (1) / 2.0 /Vol /CONV_RY *CONV_BOHR^3
@@ -328,6 +371,18 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
 
     avg_for .= ensemble.forces * ensemble.weights
     avg_for ./= sum(ensemble.weights)
+
+    comm = MPI.COMM_WORLD
+    rank = MPI.Comm_rank(comm)
+    if rank==0
+    println("forces ")
+    println(avg_for[1,1]*sqrt(ensemble.rho0.masses[1]))
+    #display(avg_for .* sqrt.(ensemble.rho0.masses) )
+    println("norm ")
+    println(norm(avg_for .* sqrt.(ensemble.rho0.masses)))
+    println("max ")
+    println(maximum(avg_for .* sqrt.(ensemble.rho0.masses)))
+    end
 
     #t0 = time()
     delta = Vector{T}(undef, ensemble.n_configs)
@@ -412,11 +467,16 @@ function init_ensemble_from_python(py_ensemble, settings :: Dynamics{T}) where {
         Random.seed!(settings.seed)
     end
 
+    if settings.correlated
+       y0 = get_random_y(settings.N, N_modes, settings )
+    else
+       y0 = 0.0 .* get_random_y(settings.N, N_modes-3, settings )
+    end
 
     ensemble = QuanumGaussianDynamics.Ensemble(rho0 = rho0, positions = ens_positions, forces = ens_forces, stress = ens_voigt,
                                                n_configs = Int32(py_ensemble.N), weights = weights, sscha_forces = sscha_forces,
                                                energies = ens_energies, sscha_energies = sscha_energies,
-                                               temperature = TEMPERATURE)
+                                               temperature = TEMPERATURE, y0 = y0, correlated = settings.correlated)
 
     return ensemble
 end

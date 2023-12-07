@@ -48,9 +48,6 @@ function read_charges_from_out!(filename,  wigner:: WignerDistribution{T}) where
        end
     end
 
-   println("s1 ", sum(Zeff[:,1]))
-   println("s2 ", sum(Zeff[:,2]))
-   println("s3 ", sum(Zeff[:,3]))
 
    # sum rule simple
    count = 0.0
