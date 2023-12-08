@@ -17,5 +17,6 @@ add the dependency (add LinearAlgebra)
 # Install on a new machine
 julia
 using Pkg
-Pkg.activate("path/QuantumGaussianDynamics.jl")
-Pkg.instantiate()
+#Pkg.activate("path/QuantumGaussianDynamics.jl")
+#Pkg.instantiate()
+Pkg.add(PackageSpec(path="path/QuantumGaussianDynamics.jl"))
