@@ -12,3 +12,10 @@ open Julia shell
 enter the package mode (type ])
 activate the packacge (activate . )
 add the dependency (add LinearAlgebra)
+
+
+# Install on a new machine
+julia
+using Pkg
+Pkg.activate("path/QuantumGaussianDynamics.jl")
+Pkg.instantiate()
