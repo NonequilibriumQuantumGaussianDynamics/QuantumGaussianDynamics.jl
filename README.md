@@ -5,3 +5,10 @@ equation of motion of the Time-Dependent Self-Consistent Harmonic Approximation
 
 
 The code is written in julia to achieve high performance.
+
+
+# Activate and add dependencies
+open Julia shell
+enter the package mode (type ])
+activate the packacge (activate . )
+add the dependency (add LinearAlgebra)
