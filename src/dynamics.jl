@@ -20,6 +20,8 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
     file3 = init_file(name*".cl")
     file4 = init_file(name*".ext")
     file5 = init_file(name*".str")
+    file6 = init_file(name*".bet")
+    file7 = init_file(name*".gam")
     
     # Get the average derivatives
     get_averages!(avg_for, d2v_dr2, ensemble, wigner)
@@ -149,14 +151,22 @@ Error, the selected algorithm $(settings.algorithm)
                 for i in 1:nat3 , j in 1:nat3
                     line *= "  $(wigner.RR_corr[i,j]/sqrt(wigner.masses[i])/sqrt(wigner.masses[j])) "
                 end
-                #for i in 1:nat3 , j in 1:nat3
-                #    line *= "  $(wigner.PP_corr[i,j]) "
-                #end
-                #for i in 1:nat3 , j in 1:nat3
-                #    line *= "  $(wigner.RP_corr[i,j]) "
-                #end
                 line *= "\n"
                 write_file(file1,line)
+
+                line = ""
+                for i in 1:nat3 , j in 1:nat3
+                    line *= "  $(wigner.PP_corr[i,j]*sqrt(wigner.masses[i])*sqrt(wigner.masses[j])) "
+                end
+                line *= "\n"
+                write_file(file6,line)
+
+                line = ""
+                for i in 1:nat3 , j in 1:nat3
+                    line *= "  $(wigner.RP_corr[i,j]/sqrt(wigner.masses[i])*sqrt(wigner.masses[j])) "
+                end
+                line *= "\n"
+                write_file(file7,line)
 
 
                 line = ""
@@ -196,5 +206,7 @@ Error, the selected algorithm $(settings.algorithm)
         close(file3)
         close(file4)
         close(file5)
+        close(file6)
+        close(file7)
     end
 end 
