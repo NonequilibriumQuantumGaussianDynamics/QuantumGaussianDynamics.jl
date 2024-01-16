@@ -303,7 +303,6 @@ function classic_evolution!(Rs::Vector{T}, Ps::Vector{T}, dt::T, cl_for, part) w
             Ps .+= (1/2.0 .* cl_for .* dt) ./ (1+γ/2.0*dt)
         end
         #((f + fext + f_old + fext_old)/2.0*dt + (1 - γ/2.0*dt)*u[2])/(1+γ/2.0*dt)
-        #
 end
 
 
