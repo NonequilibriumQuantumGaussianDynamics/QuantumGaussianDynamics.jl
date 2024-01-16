@@ -20,3 +20,7 @@ using Pkg
 #Pkg.activate("path/QuantumGaussianDynamics.jl")
 #Pkg.instantiate()
 Pkg.add(PackageSpec(path="path/QuantumGaussianDynamics.jl"))
+
+# Also install cellconstructor and sscha
+pip install Cellconstructor
+pip install python-sscha

@@ -115,26 +115,38 @@ function generalized_verlet_step!(wigner :: WignerDistribution{T}, dt :: T, avg_
         wigner.P_av .+= 1/2.0 .* avg_for .* dt # repeat with the new force
 
         rank  = MPI.Comm_rank(MPI.COMM_WORLD)
-        function obj(x,p) 
-            B0p = p[1]
-            C0p = p[2]
-            K1 = p[3]
-            AK1 = p[4]
+        function obj(B1, C1, d2V_dr2, B0p, C0p) 
 
-            B1, C1 = unmerge_vector(x)
             KC1 = similar(d2V_dr2)
             mul!(KC1, d2V_dr2, C1)
 
-            tot = B1 .- B0p .+ 1/2.0 * (KC1 .+ KC1') *dt
-            tot .+= C1 .- C0p .- 1/2.0 * B1 *dt .+ 1/2.0 * AK1 * dt 
+            dB = B0p - 1/2.0 * (KC1 .+ KC1') *dt
+            dC = C0p + 1/2.0 * B1 *dt 
 
-            return(norm(tot)^2)
+            return dB, dC
+
         end
 
-        B0 = copy(wigner.PP_corr)
-        C0 = copy(wigner.RP_corr)
-        KC = similar(C0)
-        mul!(KC, d2V_dr2, C0)  # calculate <d2V><RP>
+        B1 = copy(wigner.PP_corr)
+
+        AK = similar(B1)
+        mul!(AK, wigner.RR_corr, d2V_dr2)
+        wigner.RP_corr .-= 1/2.0 * AK * dt 
+
+        C1 = copy(wigner.RP_corr)
+        
+        niter = 3
+        for i in 1 : niter
+            B1, C1 = obj(B1, C1, d2V_dr2, wigner.PP_corr, wigner.RP_corr)
+        end
+
+        wigner.PP_corr .= B1
+        wigner.RP_corr .= C1
+
+
+        """
+        KC = similar(C1)
+        mul!(KC, d2V_dr2, C1)  # calculate <d2V><RP>
         AK = similar(C0)
         mul!(AK, wigner.RR_corr, d2V_dr2)
         B0 .-= 1/2.0 * (KC .+ KC') *dt
@@ -142,6 +154,8 @@ function generalized_verlet_step!(wigner :: WignerDistribution{T}, dt :: T, avg_
 
         wigner.PP_corr .= B0
         wigner.RP_corr .= C0
+        """
+
     end
 end 
 

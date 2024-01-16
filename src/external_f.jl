@@ -133,4 +133,15 @@ function get_external_forces(t::T, efield :: ElectricField{T}, wigner :: WignerD
     return forces
 end
 
+function fake_field(nat)
 
+   Zeff = zeros(3*nat, 3)
+   eps = [1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0]
+   edir = [1.0,0,0]
+   field_f = t -> 0
+
+   efield = QuanumGaussianDynamics.ElectricField(fun = field_f, Zeff = Zeff, edir=edir, eps = eps)
+  
+   return efield
+  
+end
