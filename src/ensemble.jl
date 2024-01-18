@@ -160,6 +160,7 @@ end
 
 function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
     
+    old_N = copy(ensemble.n_configs)
     ensemble.n_configs = N
     evolve_correlators = wigner_distribution.evolve_correlators
     N_modes = length(wigner_distribution.λs)
@@ -171,9 +172,19 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
         end
         N2 = Int64(N/2.0)
         if ensemble.correlated
-            ymu_i  = copy(ensemble.y0) 
             sqrt_RR = wigner_distribution.λs_vect * Diagonal(sqrt.(wigner_distribution.λs)) * wigner_distribution.λs_vect'
-            dRa_i = sqrt_RR * ymu_i
+
+            if old_N==N
+                @views mul!(ensemble.positions[:,1:N2], sqrt_RR , ensemble.y0)
+                @views ensemble.positions[:,N2+1:end] .= .-ensemble.positions[:,1:N2]
+                ensemble.positions .+= wigner_distribution.R_av
+            else
+                new_positions = Matrix{T}(undef, wigner_distribution.n_modes, N)
+                @views mul!(new_positions[:,1:N2], sqrt_RR , ensemble.y0)
+                @views new_positions[:,N2+1:end] .= -new_positions[:,1:N2]
+                new_positions[:,:] .+= wigner_distribution.R_av
+                ensemble.positions = new_positions
+            end
         else
             ymu_i = randn(T, (N_modes, N2))
             if MPI.Initialized()
@@ -186,11 +197,18 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
                 ymu_i ./= sqrt.(wigner_distribution.λs) #1/sqrt(λ)*y_mu
             end
             dRa_i = wigner_distribution.λs_vect * ymu_i #\sum_{\mu} e_{a\mu}*sqrt(λ_\mu)*y_\mu
+
+            if old_N==N
+                ensemble.positions[:,1:N2] .= dRa_i .+ wigner_distribution.R_av
+                ensemble.positions[:,N2+1:end] .= -dRa_i .+ wigner_distribution.R_av
+            else
+                new_positions = Matrix{T}(undef, wigner_distribution.n_modes, N)
+                new_positions[:,1:N2] .= dRa_i .+ wigner_distribution.R_av
+                new_positions[:,N2+1:end] .= -dRa_i .+ wigner_distribution.R_av
+                ensemble.positions = new_positions
+            end
         end
-        new_positions = Matrix{T}(undef, wigner_distribution.n_modes, N)
-        new_positions[:,1:N2] .= dRa_i .+ wigner_distribution.R_av
-        new_positions[:,N2+1:end] .= -dRa_i .+ wigner_distribution.R_av
-        ensemble.positions = new_positions
+
     else
         if ensemble.correlated
             ymu_i = copy(ensemble.y0)
@@ -211,14 +229,24 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
         ensemble.positions = new_positions
     end
     
-    # update ensemble
-    ensemble.weights = ones(T, N)
-    ensemble.rho0 = deepcopy(wigner_distribution)
-    ensemble.forces  = zeros(T, (wigner_distribution.n_modes, N))
-    ensemble.stress  = zeros(T, (6, N))
-    ensemble.sscha_forces = zeros(T, (wigner_distribution.n_modes, N))
-    ensemble.energies = zeros(T, N)
-    ensemble.sscha_energies = zeros(T, N)
+    # reset the ensemble
+    if old_N==N
+        ensemble.weights .= 1.0
+        ensemble.rho0 = deepcopy(wigner_distribution)
+        ensemble.forces  .= 0 
+        ensemble.stress  .= 0 
+        ensemble.sscha_forces .= 0
+        ensemble.energies .= 0 
+        ensemble.sscha_energies .= 0
+    else
+        ensemble.weights = ones(T, N)
+        ensemble.rho0 = deepcopy(wigner_distribution)
+        ensemble.forces  = zeros(T, (wigner_distribution.n_modes, N))
+        ensemble.stress  = zeros(T, (6, N))
+        ensemble.sscha_forces = zeros(T, (wigner_distribution.n_modes, N))
+        ensemble.energies = zeros(T, N)
+        ensemble.sscha_energies = zeros(T, N)
+    end
 
 end
 
