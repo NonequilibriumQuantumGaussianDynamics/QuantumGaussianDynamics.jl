@@ -63,9 +63,7 @@ MPI.Init()
     QuanumGaussianDynamics.integrate!(rho, ensemble, settings, crystal, efield )
 
     data = readdlm(method*"0.1-10.0-100.pos")
-    println(data)
     ref = readdlm("../../examples/H2/semi-implicit-verlet0.1-10.0-100.pos")
-    println(ref)
 
     @test norm(data.-ref) < 1e-8
 end

@@ -46,8 +46,7 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
         elseif "semi-implicit-euler" == lowercase(settings.algorithm)
             semi_implicit_euler_step!(wigner, my_dt, tot_for, d2v_dr2)
         elseif "semi-implicit-verlet" == lowercase(settings.algorithm)
-            println("step 1")
-            @time semi_implicit_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 1)
+            semi_implicit_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 1)
         elseif "fixed" == lowercase(settings.algorithm)
             fixed_step!(wigner, my_dt, tot_for, d2v_dr2, 1)
         elseif "generalized-verlet" == lowercase(settings.algorithm) 
@@ -73,16 +72,14 @@ Error, the selected algorithm $(settings.algorithm)
         wigner.λs = λs
 
 
-        println("update weights")
-        @time update_weights!(ensemble, wigner)
+        update_weights!(ensemble, wigner)
         kl = get_kong_liu(ensemble)
         if rank == 0
             println("KL ratio ", kl/T(ensemble.n_configs))
         end
         if kl < settings.kong_liu_ratio*ensemble.n_configs
-            println("new ens")
-            @time generate_ensemble!(settings.N,ensemble, wigner)
-            @time calculate_ensemble!(ensemble, crystal)
+            generate_ensemble!(settings.N,ensemble, wigner)
+            calculate_ensemble!(ensemble, crystal)
         end
 
         # Get the average derivatives
@@ -97,8 +94,7 @@ Error, the selected algorithm $(settings.algorithm)
         tot_cl_for = cl_for .+ ext_for
 
         if "semi-implicit-verlet" == lowercase(settings.algorithm)
-            println("step 2")
-            @time semi_implicit_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
+            semi_implicit_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
         elseif "fixed" == lowercase(settings.algorithm)
             fixed_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
         elseif "generalized-verlet" == lowercase(settings.algorithm) 
