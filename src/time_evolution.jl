@@ -123,6 +123,11 @@ function generalized_verlet_step!(wigner :: WignerDistribution{T}, dt :: T, avg_
             dB = B0p - 1/2.0 * (KC1 .+ KC1') *dt
             dC = C0p + 1/2.0 * B1 *dt 
 
+            if rank == 0
+                println("optimization B ", norm((dB.-B1).^2))
+                println("optimization C ", norm((dC.-C1).^2))
+            end
+
             return dB, dC
 
         end
@@ -135,7 +140,7 @@ function generalized_verlet_step!(wigner :: WignerDistribution{T}, dt :: T, avg_
 
         C1 = copy(wigner.RP_corr)
         
-        niter = 3
+        niter = 4
         for i in 1 : niter
             B1, C1 = obj(B1, C1, d2V_dr2, wigner.PP_corr, wigner.RP_corr)
         end
