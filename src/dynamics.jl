@@ -199,10 +199,10 @@ Error, the selected algorithm $(settings.algorithm)
             end
         end
 
-        if index%500 == 0
-            println("Garbage")
-            GC.gc()
-        end
+        #if index%500 == 0
+            #println("Garbage")
+            #GC.gc()
+        #end
     end
     if rank==0
         close(file0)
