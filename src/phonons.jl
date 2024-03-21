@@ -1,6 +1,6 @@
 
 
-function get_alphabeta(TEMP, w_full, pols_full)
+function get_alphabeta(TEMP, w_full, pols_full, settings :: GeneralSettings)
     # omega are frequencies in Rydberg
     # T is in Kelvin
     
@@ -11,11 +11,12 @@ function get_alphabeta(TEMP, w_full, pols_full)
     K_to_Ry=6.336857346553283e-06
 
     n_mod = length(w_full)
-    pols, w = remove_translations(pols_full, w_full, SMALL_VALUE)
-
-    nw = zeros(n_mod - 3)
-    aw = zeros(n_mod - 3)
-    bw = zeros(n_mod - 3)
+    pols, w = remove_translations(pols_full, w_full, settings :: GeneralSettings)
+    
+    n_translations = get_n_translations(w_full,settings) ## in QuanumGaussianDynamics.jl
+    nw = zeros(n_mod - n_translations)
+    aw = zeros(n_mod - n_translations)
+    bw = zeros(n_mod - n_translations)
 
     if TEMP > SMALL_VALUE
         """
@@ -27,7 +28,7 @@ function get_alphabeta(TEMP, w_full, pols_full)
         arg = w./(TEMP.*K_to_Ry) ./ 2.0
         cotangent = coth.(arg)
     else
-        cotangent = ones(n_mod - 3)
+        cotangent = ones(n_mod - n_translations)
     end
     
     """
@@ -54,7 +55,7 @@ function get_alphabeta(TEMP, w_full, pols_full)
 end
 
 
-function get_correlators(TEMP, w_full, pols_full)
+function get_correlators(TEMP, w_full, pols_full, settings :: GeneralSettings)
     # omega are frequencies in Rydberg
     # T is in Kelvin
     
@@ -65,11 +66,12 @@ function get_correlators(TEMP, w_full, pols_full)
     K_to_Ry=6.336857346553283e-06
 
     n_mod = length(w_full)
-    pols, w = remove_translations(pols_full, w_full, SMALL_VALUE)
+    pols, w = remove_translations(pols_full, w_full, settings :: GeneralSettings)
 
-    nw = zeros(n_mod - 3)
-    aw = zeros(n_mod - 3)
-    bw = zeros(n_mod - 3)
+    n_translations = get_n_translations(w_full, settings)
+    nw = zeros(n_mod - n_translations)
+    aw = zeros(n_mod - n_translations)
+    bw = zeros(n_mod - n_translations)
 
     if TEMP > SMALL_VALUE
         """
@@ -81,7 +83,7 @@ function get_correlators(TEMP, w_full, pols_full)
         arg = w./(TEMP.*K_to_Ry) ./ 2.0
         cotangent = coth.(arg)
     else
-        cotangent = ones(n_mod - 3)
+        cotangent = ones(n_mod - n_translations)
     end
     
     """
