@@ -99,17 +99,17 @@ end
 function generalized_verlet_step!(wigner :: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}, bc0 :: Vector{T} ,part ) where {T <: AbstractFloat}
     # Solve the newton equations
     if part == 1
-        wigner.R_av .+= wigner.P_av .* dt .+ 1/2.0 * avg_for .* dt^2
-        wigner.P_av .+= 1/2.0 .* avg_for .* dt
+        wigner.R_av .+= @. wigner.P_av * dt + 1/2.0 * avg_for * dt^2
+        wigner.P_av .+= @. 1/2.0 * avg_for * dt
 
         tmp_d2v_mul = similar(d2V_dr2)
         mul!(tmp_d2v_mul, wigner.RR_corr, d2V_dr2)  # calculate <RR><d2V>
-        wigner.RR_corr .+= (wigner.RP_corr .+ wigner.RP_corr')*dt .- (tmp_d2v_mul .+ tmp_d2v_mul').*dt^2/2.0 .+ wigner.PP_corr .* dt^2
+        wigner.RR_corr .+= @. (wigner.RP_corr + wigner.RP_corr')*dt - (tmp_d2v_mul + tmp_d2v_mul')*dt^2/2.0 + wigner.PP_corr * dt^2
 
         RP_copy = copy(wigner.RP_corr)
-        wigner.RP_corr .+= 1/2.0 .* (wigner.PP_corr .- tmp_d2v_mul) .*dt
+        wigner.RP_corr .+= @. 1/2.0 * (wigner.PP_corr - tmp_d2v_mul) *dt
         mul!(tmp_d2v_mul, d2V_dr2, RP_copy)  # calculate <d2V><RP>
-        wigner.PP_corr .-= 1/2.0 .* (tmp_d2v_mul .+ tmp_d2v_mul') .* dt
+        wigner.PP_corr .-= @. 1/2.0 * (tmp_d2v_mul + tmp_d2v_mul') * dt
 
     elseif part == 2
         wigner.P_av .+= 1/2.0 .* avg_for .* dt # repeat with the new force
@@ -120,8 +120,8 @@ function generalized_verlet_step!(wigner :: WignerDistribution{T}, dt :: T, avg_
             KC1 = similar(d2V_dr2)
             mul!(KC1, d2V_dr2, C1)
 
-            dB = B0p - 1/2.0 * (KC1 .+ KC1') *dt
-            dC = C0p + 1/2.0 * B1 *dt 
+            dB = @. B0p - 1/2.0 * (KC1 + KC1') *dt
+            dC = @. C0p + 1/2.0 * B1 *dt 
 
             if rank == 0
                 println("optimization B ", norm((dB.-B1).^2))
@@ -133,12 +133,12 @@ function generalized_verlet_step!(wigner :: WignerDistribution{T}, dt :: T, avg_
         end
 
         B1 = copy(wigner.PP_corr)
+        C1 = copy(wigner.RP_corr)
 
         AK = similar(B1)
         mul!(AK, wigner.RR_corr, d2V_dr2)
-        wigner.RP_corr .-= 1/2.0 * AK * dt 
+        wigner.RP_corr .-= @. 1/2.0 * AK * dt 
 
-        C1 = copy(wigner.RP_corr)
         
         niter = 4
         for i in 1 : niter
@@ -147,7 +147,6 @@ function generalized_verlet_step!(wigner :: WignerDistribution{T}, dt :: T, avg_
 
         wigner.PP_corr .= B1
         wigner.RP_corr .= C1
-
 
         """
         KC = similar(C1)

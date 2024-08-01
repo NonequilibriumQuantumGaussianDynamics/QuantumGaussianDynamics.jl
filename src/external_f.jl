@@ -103,6 +103,16 @@ function pulse(t, A, w, t0, sig )
 
 end
 
+function gaussian1(t, A, w, t0)
+    A_Ry = A*CONV_EFIELD
+    w_Ry = w*CONV_FREQ
+    t0_Ry = t0/CONV_FS
+    sig_Ry = 1/(2*π*w_Ry)
+    
+
+    return -A_Ry * (t-t0_Ry)/sig_Ry * exp(-0.5*(t-t0_Ry)^2/sig_Ry^2 + 0.5)
+end
+
 
 function get_external_forces(t::T, efield :: ElectricField{T}, wigner :: WignerDistribution{T}) where {T <: AbstractFloat}
 

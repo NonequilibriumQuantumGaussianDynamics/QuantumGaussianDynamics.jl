@@ -1,0 +1,502 @@
+
+     Program PHONON v.7.2 starts on 23Oct2023 at 10:46:19 
+
+     This program is part of the open-source Quantum ESPRESSO suite
+     for quantum simulation of materials; please cite
+         "P. Giannozzi et al., J. Phys.:Condens. Matter 21 395502 (2009);
+         "P. Giannozzi et al., J. Phys.:Condens. Matter 29 465901 (2017);
+         "P. Giannozzi et al., J. Chem. Phys. 152 154105 (2020);
+          URL http://www.quantum-espresso.org", 
+     in publications or presentations arising from this work. More details at
+     http://www.quantum-espresso.org/quote
+
+     Parallel version (MPI), running on    48 processors
+
+     MPI processes distributed on     1 nodes
+     149876 MiB available memory on the printing compute node when the environment starts
+
+     Reading input from ph.in
+
+     Reading xml data from directory:
+
+     ./out/aiida.save/
+
+     K-points division:     npool     =       2
+     R & G space division:  proc/nbgrp/npool/nimage =      24
+     Subspace diagonalization in iterative solution of the eigenvalue problem:
+     a serial algorithm will be used
+
+     file O.pbe-n-kjpaw_psl.0.1.UPF: wavefunction(s)  2P renormalized
+
+     IMPORTANT: XC functional enforced from input :
+     Exchange-correlation= PBE
+                           (   1   4   3   4   0   0   0)
+     Any further DFT definition will be discarded
+     Please, verify this is what you really want
+
+
+     Parallelization info
+     --------------------
+     sticks:   dense  smooth     PW     G-vecs:    dense   smooth      PW
+     Min         102     102     28                 5449     5449     802
+     Max         104     104     29                 5455     5455     807
+     Sum        2469    2469    681               130803   130803   19267
+
+     Using Slab Decomposition
+
+
+     Check: negative core charge=   -0.000005
+
+     negative rho (up, down):  2.754E-01 0.000E+00
+     Reading collected, re-writing distributed wavefunctions in ./out/
+
+
+     Dynamical matrices for ( 1, 1, 1)  uniform grid of q-points
+     (   1 q-points):
+       N         xq(1)         xq(2)         xq(3) 
+       1   0.000000000   0.000000000   0.000000000
+
+     Calculation of q =    0.0000000   0.0000000   0.0000000
+
+     phonons of polyyne with QE6.0                                              
+
+     bravais-lattice index     =            0
+     lattice parameter (alat)  =      10.5215  a.u.
+     unit-cell volume          =    1654.1321 (a.u.)^3
+     number of atoms/cell      =           20
+     number of atomic types    =            3
+     kinetic-energy cut-off    =      70.0000  Ry
+     charge density cut-off    =     280.0000  Ry
+     convergence threshold     =      1.0E-14
+     beta                      =       0.7000
+     number of iterations used =            4
+     Exchange-correlation= PBE
+                           (   1   4   3   4   0   0   0)
+
+
+     celldm(1)=   10.52148  celldm(2)=    0.00000  celldm(3)=    0.00000
+     celldm(4)=    0.00000  celldm(5)=    0.00000  celldm(6)=    0.00000
+
+     crystal axes: (cart. coord. in units of alat)
+               a(1) = (  1.0000  0.0000  0.0000 )  
+               a(2) = (  0.0000  1.0000  0.0000 )  
+               a(3) = (  0.0000  0.0000  1.4202 )  
+
+     reciprocal axes: (cart. coord. in units 2 pi/alat)
+               b(1) = (  1.0000  0.0000  0.0000 )  
+               b(2) = (  0.0000  1.0000  0.0000 )  
+               b(3) = (  0.0000  0.0000  0.7041 )  
+
+
+     Atoms inside the unit cell: 
+
+     Cartesian axes
+
+     site n.  atom      mass           positions (alat units)
+        1     Sr  87.6200   tau(    1) = (    0.50000    0.00000    0.35504  )
+        2     Sr  87.6200   tau(    2) = (    0.00000    0.50000    0.35504  )
+        3     Ti  47.8670   tau(    3) = (    0.00000    0.00000    0.00000  )
+        4     Ti  47.8670   tau(    4) = (    0.50000    0.50000    0.00000  )
+        5     O   15.9994   tau(    5) = (    0.27093    0.22907    0.71008  )
+        6     O   15.9994   tau(    6) = (    0.27093    0.77093    0.00000  )
+        7     O   15.9994   tau(    7) = (    0.72907    0.22907    0.00000  )
+        8     O   15.9994   tau(    8) = (    0.22907    0.27093    0.00000  )
+        9     O   15.9994   tau(    9) = (    0.50000    0.50000    0.35504  )
+       10     O   15.9994   tau(   10) = (    0.00000    0.00000    0.35504  )
+       11     Sr  87.6200   tau(   11) = (    0.00000    0.50000    1.06513  )
+       12     Sr  87.6200   tau(   12) = (    0.50000    0.00000    1.06513  )
+       13     Ti  47.8670   tau(   13) = (    0.50000    0.50000    0.71008  )
+       14     Ti  47.8670   tau(   14) = (    0.00000    0.00000    0.71008  )
+       15     O   15.9994   tau(   15) = (    0.77093    0.72907    0.00000  )
+       16     O   15.9994   tau(   16) = (    0.77093    0.27093    0.71008  )
+       17     O   15.9994   tau(   17) = (    0.22907    0.72907    0.71008  )
+       18     O   15.9994   tau(   18) = (    0.72907    0.77093    0.71008  )
+       19     O   15.9994   tau(   19) = (    0.00000    0.00000    1.06513  )
+       20     O   15.9994   tau(   20) = (    0.50000    0.50000    1.06513  )
+
+     Computing dynamical matrix for 
+                    q = (   0.0000000   0.0000000   0.0000000 )
+
+      9 Sym.Ops. (with q -> -q+G )
+
+
+     G cutoff =  785.1489  (   5450 G-vectors)     FFT grid: ( 60, 60, 80)
+     number of k points=    54
+
+     PseudoPot. # 1 for O  read from file:
+     ./pseudo/O.pbe-n-kjpaw_psl.0.1.UPF
+     MD5 check sum: 0234752ac141de4415c5fc33072bef88
+     Pseudo is Projector augmented-wave + core cor, Zval =  6.0
+     Generated using "atomic" code by A. Dal Corso  v.5.0.99 svn rev. 10869
+     Shape of augmentation charge: BESSEL
+     Using radial grid of 1095 points,  4 beta functions with: 
+                l(1) =   0
+                l(2) =   0
+                l(3) =   1
+                l(4) =   1
+     Q(r) pseudized with 0 coefficients 
+
+
+     PseudoPot. # 2 for Sr read from file:
+     ./pseudo/Sr_pbe_v1.uspp.F.UPF
+     MD5 check sum: 6b418c05fbe9db5448babca5e47b7a5b
+     Pseudo is Ultrasoft + core correction, Zval = 10.0
+     Generated by new atomic code, or converted to UPF format
+     Using radial grid of  883 points,  6 beta functions with: 
+                l(1) =   0
+                l(2) =   0
+                l(3) =   1
+                l(4) =   1
+                l(5) =   2
+                l(6) =   2
+     Q(r) pseudized with  6 coefficients,  rinner =    1.400   1.400   1.400
+                                                       1.400   1.400
+
+     PseudoPot. # 3 for Ti read from file:
+     ./pseudo/ti_pbe_v1.4.uspp.F.UPF
+     MD5 check sum: 88a00a6731bd790ddea75d31a80cb452
+     Pseudo is Ultrasoft + core correction, Zval = 12.0
+     Generated by new atomic code, or converted to UPF format
+     Using radial grid of  851 points,  6 beta functions with: 
+                l(1) =   0
+                l(2) =   0
+                l(3) =   1
+                l(4) =   1
+                l(5) =   2
+                l(6) =   2
+     Q(r) pseudized with  6 coefficients,  rinner =    1.000   1.000   1.000
+                                                       1.000   1.000
+
+
+     Electric field:
+     Dielectric constant
+     Born effective charges in two ways 
+
+
+     Atomic displacements:
+     There are   42 irreducible representations
+
+     Representation     1      2 modes -  To be done
+
+     Representation     2      1 modes -  To be done
+
+     Representation     3      1 modes -  To be done
+
+     Representation     4      2 modes -  To be done
+
+     Representation     5      2 modes -  To be done
+
+     Representation     6      2 modes -  To be done
+
+     Representation     7      2 modes -  To be done
+
+     Representation     8      2 modes -  To be done
+
+     Representation     9      2 modes -  To be done
+
+     Representation    10      1 modes -  To be done
+
+     Representation    11      1 modes -  To be done
+
+     Representation    12      1 modes -  To be done
+
+     Representation    13      1 modes -  To be done
+
+     Representation    14      1 modes -  To be done
+
+     Representation    15      1 modes -  To be done
+
+     Representation    16      1 modes -  To be done
+
+     Representation    17      2 modes -  To be done
+
+     Representation    18      1 modes -  To be done
+
+     Representation    19      1 modes -  To be done
+
+     Representation    20      2 modes -  To be done
+
+     Representation    21      1 modes -  To be done
+
+     Representation    22      1 modes -  To be done
+
+     Representation    23      2 modes -  To be done
+
+     Representation    24      2 modes -  To be done
+
+     Representation    25      2 modes -  To be done
+
+     Representation    26      1 modes -  To be done
+
+     Representation    27      1 modes -  To be done
+
+     Representation    28      2 modes -  To be done
+
+     Representation    29      1 modes -  To be done
+
+     Representation    30      1 modes -  To be done
+
+     Representation    31      2 modes -  To be done
+
+     Representation    32      1 modes -  To be done
+
+     Representation    33      1 modes -  To be done
+
+     Representation    34      1 modes -  To be done
+
+     Representation    35      2 modes -  To be done
+
+     Representation    36      1 modes -  To be done
+
+     Representation    37      1 modes -  To be done
+
+     Representation    38      2 modes -  To be done
+
+     Representation    39      2 modes -  To be done
+
+     Representation    40      2 modes -  To be done
+
+     Representation    41      1 modes -  To be done
+
+     Representation    42      1 modes -  To be done
+
+
+
+     Alpha used in Ewald sum =   2.4000
+
+     negative rho (up, down):  2.754E-01 0.000E+00
+     PHONON       :     57.81s CPU     59.25s WALL
+
+
+     Electric Fields Calculation
+
+      iter #   1 total cpu time :   206.4 secs   av.it.:   8.5
+      thresh= 1.000E-02 alpha_mix =  0.700 |ddv_scf|^2 =  7.913E-09
+
+      iter #   2 total cpu time :   267.1 secs   av.it.:  18.2
+      thresh= 8.896E-06 alpha_mix =  0.700 |ddv_scf|^2 =  4.243E-09
+
+      iter #   3 total cpu time :   323.6 secs   av.it.:  16.7
+      thresh= 6.514E-06 alpha_mix =  0.700 |ddv_scf|^2 =  4.128E-09
+
+      iter #   4 total cpu time :   379.7 secs   av.it.:  15.8
+      thresh= 6.425E-06 alpha_mix =  0.700 |ddv_scf|^2 =  7.031E-11
+
+      iter #   5 total cpu time :   437.9 secs   av.it.:  16.8
+      thresh= 8.385E-07 alpha_mix =  0.700 |ddv_scf|^2 =  1.343E-12
+
+      iter #   6 total cpu time :   497.9 secs   av.it.:  17.4
+      thresh= 1.159E-07 alpha_mix =  0.700 |ddv_scf|^2 =  1.101E-13
+
+      iter #   7 total cpu time :   558.6 secs   av.it.:  17.7
+      thresh= 3.319E-08 alpha_mix =  0.700 |ddv_scf|^2 =  5.589E-14
+
+      iter #   8 total cpu time :   610.1 secs   av.it.:  15.1
+      thresh= 2.364E-08 alpha_mix =  0.700 |ddv_scf|^2 =  1.742E-14
+
+      iter #   9 total cpu time :   665.8 secs   av.it.:  16.3
+      thresh= 1.320E-08 alpha_mix =  0.700 |ddv_scf|^2 =  5.582E-16
+
+     End of electric fields calculation
+
+          Dielectric constant in cartesian axis 
+
+          (       6.307114889      -0.000000018       0.000000000 )
+          (       0.000000018       6.307114889       0.000000000 )
+          (       0.000000000       0.000000000       6.333114053 )
+
+          Effective charges (d Force / dE) in cartesian axis without acoustic sum rule applied (asr)
+
+           atom      1   Sr Mean Z*:        2.53342
+      Ex  (        2.51888       -0.00005        0.00000 )
+      Ey  (       -0.00005        2.51882        0.00000 )
+      Ez  (        0.00000        0.00000        2.56257 )
+           atom      2   Sr Mean Z*:        2.53342
+      Ex  (        2.51882        0.00005        0.00000 )
+      Ey  (        0.00005        2.51888        0.00000 )
+      Ez  (        0.00000        0.00000        2.56257 )
+           atom      3   Ti Mean Z*:        7.31800
+      Ex  (        7.31363        0.30255        0.00000 )
+      Ey  (       -0.30255        7.31363        0.00000 )
+      Ez  (        0.00000        0.00000        7.32674 )
+           atom      4   Ti Mean Z*:        7.31811
+      Ex  (        7.31374       -0.30255        0.00000 )
+      Ey  (        0.30255        7.31374        0.00000 )
+      Ez  (        0.00000        0.00000        7.32684 )
+           atom      5   O  Mean Z*:       -3.28672
+      Ex  (       -3.91400       -1.90431        0.00000 )
+      Ey  (       -1.90431       -3.91400        0.00000 )
+      Ez  (        0.00000        0.00000       -2.03216 )
+           atom      6   O  Mean Z*:       -3.28698
+      Ex  (       -3.91430        1.90444       -0.00000 )
+      Ey  (        1.90444       -3.91432        0.00000 )
+      Ez  (        0.00000        0.00000       -2.03233 )
+           atom      7   O  Mean Z*:       -3.28698
+      Ex  (       -3.91430        1.90444        0.00000 )
+      Ey  (        1.90444       -3.91432       -0.00000 )
+      Ez  (       -0.00000        0.00000       -2.03233 )
+           atom      8   O  Mean Z*:       -3.28698
+      Ex  (       -3.91432       -1.90444        0.00000 )
+      Ey  (       -1.90444       -3.91430        0.00000 )
+      Ez  (        0.00000        0.00000       -2.03233 )
+           atom      9   O  Mean Z*:       -3.28101
+      Ex  (       -2.00640        0.00003        0.00000 )
+      Ey  (       -0.00003       -2.00640        0.00000 )
+      Ez  (        0.00000        0.00000       -5.83023 )
+           atom     10   O  Mean Z*:       -3.28093
+      Ex  (       -2.00639       -0.00003        0.00000 )
+      Ey  (        0.00003       -2.00639        0.00000 )
+      Ez  (        0.00000        0.00000       -5.83003 )
+           atom     11   Sr Mean Z*:        2.53342
+      Ex  (        2.51882        0.00005        0.00000 )
+      Ey  (        0.00005        2.51888        0.00000 )
+      Ez  (        0.00000        0.00000        2.56257 )
+           atom     12   Sr Mean Z*:        2.53342
+      Ex  (        2.51888       -0.00005        0.00000 )
+      Ey  (       -0.00005        2.51882        0.00000 )
+      Ez  (        0.00000        0.00000        2.56257 )
+           atom     13   Ti Mean Z*:        7.31806
+      Ex  (        7.31349        0.30273        0.00000 )
+      Ey  (       -0.30273        7.31349        0.00000 )
+      Ez  (        0.00000        0.00000        7.32720 )
+           atom     14   Ti Mean Z*:        7.31796
+      Ex  (        7.31339       -0.30273        0.00000 )
+      Ey  (        0.30273        7.31339        0.00000 )
+      Ez  (        0.00000        0.00000        7.32709 )
+           atom     15   O  Mean Z*:       -3.28698
+      Ex  (       -3.91432       -1.90444        0.00000 )
+      Ey  (       -1.90444       -3.91430        0.00000 )
+      Ez  (        0.00000       -0.00000       -2.03233 )
+           atom     16   O  Mean Z*:       -3.28672
+      Ex  (       -3.91400        1.90431       -0.00000 )
+      Ey  (        1.90431       -3.91400       -0.00000 )
+      Ez  (       -0.00000        0.00000       -2.03216 )
+           atom     17   O  Mean Z*:       -3.28672
+      Ex  (       -3.91400        1.90431        0.00000 )
+      Ey  (        1.90431       -3.91400       -0.00000 )
+      Ez  (        0.00000       -0.00000       -2.03216 )
+           atom     18   O  Mean Z*:       -3.28672
+      Ex  (       -3.91400       -1.90431        0.00000 )
+      Ey  (       -1.90431       -3.91400        0.00000 )
+      Ez  (       -0.00000        0.00000       -2.03216 )
+           atom     19   O  Mean Z*:       -3.28093
+      Ex  (       -2.00639       -0.00003        0.00000 )
+      Ey  (        0.00003       -2.00639        0.00000 )
+      Ez  (        0.00000        0.00000       -5.83003 )
+           atom     20   O  Mean Z*:       -3.28101
+      Ex  (       -2.00640        0.00003        0.00000 )
+      Ey  (       -0.00003       -2.00640        0.00000 )
+      Ez  (        0.00000        0.00000       -5.83023 )
+
+          Effective charges Sum: Mean:       -0.01286
+             -0.00914       -0.00000        0.00000
+              0.00000       -0.00914        0.00000
+              0.00000       -0.00000       -0.02031
+
+          Effective charges (d Force / dE) in cartesian axis with asr applied: 
+           atom      1   Sr Mean Z*:        2.53407
+      E*x (        2.51934       -0.00005       -0.00000 )
+      E*y (       -0.00005        2.51928        0.00000 )
+      E*z (       -0.00000        0.00000        2.56359 )
+           atom      2   Sr Mean Z*:        2.53407
+      E*x (        2.51928        0.00005       -0.00000 )
+      E*y (        0.00005        2.51934        0.00000 )
+      E*z (       -0.00000        0.00000        2.56359 )
+           atom      3   Ti Mean Z*:        7.31864
+      E*x (        7.31408        0.30255       -0.00000 )
+      E*y (       -0.30255        7.31408        0.00000 )
+      E*z (       -0.00000        0.00000        7.32775 )
+           atom      4   Ti Mean Z*:        7.31875
+      E*x (        7.31420       -0.30255       -0.00000 )
+      E*y (        0.30255        7.31420        0.00000 )
+      E*z (       -0.00000        0.00000        7.32786 )
+           atom      5   O  Mean Z*:       -3.28608
+      E*x (       -3.91354       -1.90431       -0.00000 )
+      E*y (       -1.90431       -3.91354        0.00000 )
+      E*z (        0.00000        0.00000       -2.03114 )
+           atom      6   O  Mean Z*:       -3.28634
+      E*x (       -3.91384        1.90444       -0.00000 )
+      E*y (        1.90444       -3.91386        0.00000 )
+      E*z (        0.00000        0.00000       -2.03132 )
+           atom      7   O  Mean Z*:       -3.28634
+      E*x (       -3.91384        1.90444        0.00000 )
+      E*y (        1.90444       -3.91386       -0.00000 )
+      E*z (       -0.00000        0.00000       -2.03132 )
+           atom      8   O  Mean Z*:       -3.28634
+      E*x (       -3.91386       -1.90444       -0.00000 )
+      E*y (       -1.90444       -3.91384        0.00000 )
+      E*z (       -0.00000        0.00000       -2.03132 )
+           atom      9   O  Mean Z*:       -3.28036
+      E*x (       -2.00594        0.00003       -0.00000 )
+      E*y (       -0.00003       -2.00594        0.00000 )
+      E*z (       -0.00000        0.00000       -5.82921 )
+           atom     10   O  Mean Z*:       -3.28029
+      E*x (       -2.00593       -0.00003       -0.00000 )
+      E*y (        0.00003       -2.00593        0.00000 )
+      E*z (       -0.00000        0.00000       -5.82901 )
+           atom     11   Sr Mean Z*:        2.53407
+      E*x (        2.51928        0.00005       -0.00000 )
+      E*y (        0.00005        2.51934        0.00000 )
+      E*z (       -0.00000        0.00000        2.56359 )
+           atom     12   Sr Mean Z*:        2.53407
+      E*x (        2.51934       -0.00005       -0.00000 )
+      E*y (       -0.00005        2.51928        0.00000 )
+      E*z (       -0.00000        0.00000        2.56359 )
+           atom     13   Ti Mean Z*:        7.31871
+      E*x (        7.31395        0.30273       -0.00000 )
+      E*y (       -0.30273        7.31395        0.00000 )
+      E*z (       -0.00000        0.00000        7.32822 )
+           atom     14   Ti Mean Z*:        7.31860
+      E*x (        7.31384       -0.30273       -0.00000 )
+      E*y (        0.30273        7.31384        0.00000 )
+      E*z (       -0.00000        0.00000        7.32811 )
+           atom     15   O  Mean Z*:       -3.28634
+      E*x (       -3.91386       -1.90444       -0.00000 )
+      E*y (       -1.90444       -3.91384        0.00000 )
+      E*z (       -0.00000       -0.00000       -2.03132 )
+           atom     16   O  Mean Z*:       -3.28608
+      E*x (       -3.91354        1.90431       -0.00000 )
+      E*y (        1.90431       -3.91354       -0.00000 )
+      E*z (       -0.00000        0.00000       -2.03114 )
+           atom     17   O  Mean Z*:       -3.28608
+      E*x (       -3.91354        1.90431        0.00000 )
+      E*y (        1.90431       -3.91354       -0.00000 )
+      E*z (        0.00000       -0.00000       -2.03114 )
+           atom     18   O  Mean Z*:       -3.28608
+      E*x (       -3.91354       -1.90431        0.00000 )
+      E*y (       -1.90431       -3.91354        0.00000 )
+      E*z (       -0.00000        0.00000       -2.03114 )
+           atom     19   O  Mean Z*:       -3.28029
+      E*x (       -2.00593       -0.00003       -0.00000 )
+      E*y (        0.00003       -2.00593        0.00000 )
+      E*z (       -0.00000        0.00000       -5.82901 )
+           atom     20   O  Mean Z*:       -3.28036
+      E*x (       -2.00594        0.00003       -0.00000 )
+      E*y (       -0.00003       -2.00594        0.00000 )
+      E*z (       -0.00000        0.00000       -5.82921 )
+
+     Calling punch_plot_e
+     Writing on file  drho                                                                                                                                                                                                                                                            
+
+
+     Representation #   1 modes #   1   2
+
+     Self-consistent Calculation
+
+      iter #   1 total cpu time :  1479.7 secs   av.it.:   7.6
+      thresh= 1.000E-02 alpha_mix =  0.700 |ddv_scf|^2 =  4.371E-07
+
+      iter #   2 total cpu time :  1526.9 secs   av.it.:  17.9
+      thresh= 6.611E-05 alpha_mix =  0.700 |ddv_scf|^2 =  1.022E-06
+
+      iter #   3 total cpu time :  1569.1 secs   av.it.:  16.2
+      thresh= 1.011E-04 alpha_mix =  0.700 |ddv_scf|^2 =  8.110E-08
+
+      iter #   4 total cpu time :  1612.3 secs   av.it.:  16.4
+      thresh= 2.848E-05 alpha_mix =  0.700 |ddv_scf|^2 =  6.980E-10
+
+      iter #   5 total cpu time :  1650.9 secs   av.it.:  17.1
+      thresh= 2.642E-06 alpha_mix =  0.700 |ddv_scf|^2 =  5.740E-10
+
+      iter #   6 total cpu time :  1687.2 secs   av.it.:  15.9
+      thresh= 2.396E-06 alpha_mix =  0.700 |ddv_scf|^2 =  6.029E-12
