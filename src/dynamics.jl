@@ -68,7 +68,7 @@ Error, the selected algorithm $(settings.algorithm)
         # Update matrix and weights
         lambda_eigen = eigen((wigner.RR_corr))
         #println(" DEBUG λs = ", lambda_eigen.values)
-        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, settings.settings)
+        λvects, λs = remove_translations(lambda_eigen.vectors, lambda_eigen.values, settings.settings)
         wigner.λs_vect = λvects
         wigner.λs = λs
 

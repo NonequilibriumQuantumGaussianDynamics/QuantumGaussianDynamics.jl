@@ -150,7 +150,7 @@ function fake_field(nat)
    edir = [1.0,0,0]
    field_f = t -> 0
 
-   efield = QuanumGaussianDynamics.ElectricField(fun = field_f, Zeff = Zeff, edir=edir, eps = eps)
+   efield = ElectricField(fun = field_f, Zeff = Zeff, edir=edir, eps = eps)
   
    return efield
   

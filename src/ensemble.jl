@@ -454,7 +454,7 @@ function init_ensemble_from_python(py_ensemble, settings :: Dynamics{T}) where {
     dyn0 = py_ensemble.current_dyn
     TEMPERATURE = py_ensemble.T0
 
-    rho0 = QuanumGaussianDynamics.init_from_dyn(dyn0, Float64(TEMPERATURE), settings)
+    rho0 = init_from_dyn(dyn0, Float64(TEMPERATURE), settings)
     N_atoms = rho0.n_atoms
     N_modes = N_atoms*3
 
@@ -503,7 +503,7 @@ function init_ensemble_from_python(py_ensemble, settings :: Dynamics{T}) where {
        y0 = 0.0 .* get_random_y(settings.N, N_modes-3, settings )
     end
 
-    ensemble = QuanumGaussianDynamics.Ensemble(rho0 = rho0, positions = ens_positions, forces = ens_forces, stress = ens_voigt,
+    ensemble = Ensemble(rho0 = rho0, positions = ens_positions, forces = ens_forces, stress = ens_voigt,
                                                n_configs = Int(py_ensemble.N), weights = weights, sscha_forces = sscha_forces,
                                                energies = ens_energies, sscha_energies = sscha_energies,
                                                temperature = TEMPERATURE, y0 = y0, correlated = settings.correlated)

@@ -13,7 +13,7 @@ function get_alphabeta(TEMP, w_full, pols_full, settings :: GeneralSettings)
     n_mod = length(w_full)
     pols, w = remove_translations(pols_full, w_full, settings :: GeneralSettings)
     
-    n_translations = get_n_translations(w_full,settings) ## in QuanumGaussianDynamics.jl
+    n_translations = get_n_translations(w_full,settings) ## in 
     nw = zeros(n_mod - n_translations)
     aw = zeros(n_mod - n_translations)
     bw = zeros(n_mod - n_translations)

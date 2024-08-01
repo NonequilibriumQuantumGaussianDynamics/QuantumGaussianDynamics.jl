@@ -15,7 +15,6 @@ using DelimitedFiles
 @pyimport cellconstructor as CC
 @pyimport  sscha.Ensemble as  PyEnsemble
 @pyimport ase
-@pyimport quippy.potential as potential
 @pyimport DIMER.Calculator as DIMERCalc
 
 
