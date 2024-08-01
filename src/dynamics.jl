@@ -66,8 +66,9 @@ Error, the selected algorithm $(settings.algorithm)
         classic_evolution!(Rs, Ps, my_dt, tot_cl_for, 1)
 
         # Update matrix and weights
-        lambda_eigen = eigen(Symmetric(wigner.RR_corr))
-        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, THR_ACOUSTIC)
+        lambda_eigen = eigen((wigner.RR_corr))
+        #println(" DEBUG λs = ", lambda_eigen.values)
+        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, settings.settings)
         wigner.λs_vect = λvects
         wigner.λs = λs
 
@@ -119,6 +120,7 @@ Error, the selected algorithm $(settings.algorithm)
                 #println("Average momenta:")
                 #println(wigner.P_av)
                 #println()
+                ## Positions are exported in a.u. (Bohr)
                 line = "$t "                            
                 for i in 1:nat3
                     line *= "  $(wigner.R_av[i]/sqrt(wigner.masses[i])) "

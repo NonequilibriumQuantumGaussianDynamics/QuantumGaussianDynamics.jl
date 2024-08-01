@@ -47,6 +47,12 @@ Base.@kwdef mutable struct ElectricField{T <: AbstractFloat}
     eps :: Matrix{T}
 end
 
+Base.@kwdef struct GeneralSettings{T}
+    evolve_correlators :: Bool
+    ignore_small_w :: Bool
+    small_w_value :: T
+end
+
 Base.@kwdef struct Dynamics{T <: AbstractFloat}
     dt :: T   #In femtosecodns
     total_time :: T # In femtosecodns
@@ -57,6 +63,9 @@ Base.@kwdef struct Dynamics{T <: AbstractFloat}
     seed :: Int64
     N :: Int64
     correlated :: Bool
+    
+    # Settings
+    settings :: GeneralSettings
 
     # Save the data each
     save_filename :: String 
@@ -64,10 +73,6 @@ Base.@kwdef struct Dynamics{T <: AbstractFloat}
     save_each :: Int64
 end
 
-Base.@kwdef struct GeneralSettings{T <: AbstractFloat}
-    ciao :: T
-    evolve_correlators :: Bool
-end
 
 """
 Info about the wigner distribution
@@ -79,8 +84,8 @@ Base.@kwdef mutable struct WignerDistribution{T<: AbstractFloat}
     R_av    :: Vector{T}
     P_av    :: Vector{T}
     masses  :: Vector{T}
-    n_atoms :: Int32
-    n_modes :: Int32
+    n_atoms :: Int
+    n_modes :: Int
     #RR_corr :: Symmetric{T, Matrix{T}}
     #PP_corr :: Symmetric{T, Matrix{T}}
     RR_corr :: Matrix{T}
@@ -91,6 +96,8 @@ Base.@kwdef mutable struct WignerDistribution{T<: AbstractFloat}
     alpha :: Matrix{T}
     beta :: Matrix{T}
     gamma   :: Matrix{T}
+    
+    settings :: GeneralSettings
 
     # Eigenvalues and eigenvectors of the current Y matrix 
     λs :: Vector{T}
@@ -111,7 +118,7 @@ Base.@kwdef mutable struct Ensemble{T <: AbstractFloat}
     stress :: Matrix{T} # Stress in eV/A^3
     sscha_energies :: Vector{T} 
     sscha_forces :: Matrix{T}
-    n_configs :: Int32
+    n_configs :: Int
     weights :: Vector{T}
     temperature :: T
     correlated :: Bool
@@ -137,12 +144,47 @@ function remove_translations(vectors, values, thr)
 #       got $(sum(.!not_trans_mask)) instead.
 #"""
 
+    
+    new_values = values[ not_trans_mask ]
+    new_vectors = vectors[:, not_trans_mask]
+
+
+    return new_vectors, new_values
+end
+function remove_translations(vectors, values)
+
+#    if sum(.!not_trans_mask) != 3
+#        println("WARNING")
+#        println("the expected number of acustic modes is 3
+                #       got $(sum(.!not_trans_mask)) instead")
+#        println(values[:3])
+#    end
+    #@assert sum(.!not_trans_mask) == 3   """
+#Error, the expected number of acustic modes is 3
+#       got $(sum(.!not_trans_mask)) instead.
+#"""
+
     #new_values = values[ not_trans_mask ]
     #new_vectors = vectors[:, not_trans_mask]
     new_values = values[4:end]
     new_vectors = vectors[:,4:end]
 
     return new_vectors, new_values
+end
+# == multiple dispatch  == #
+function remove_translations(vectors, values, settings :: GeneralSettings) 
+	if settings.ignore_small_w
+		return remove_translations(vectors, values, settings.small_w_value)
+	end
+	
+	return remove_translations(vectors, values)
+end
+#function get_n_translations(w_total :: Vector{T<: AbstractFloat}, settings :: GeneralSettings)
+function get_n_translations(w_total, settings:: GeneralSettings)
+	if settings.ignore_small_w
+		return length(w_total[w_total .< settings.small_w_value])
+	end
+	return 3
 end
 
 
@@ -159,12 +201,12 @@ function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T 
     
     super_struct = dyn.structure.generate_supercell(dyn.GetSupercell())
     N_modes = super_struct.N_atoms * 3
-    N_atoms = Int32(super_struct.N_atoms)
+    N_atoms = Int(super_struct.N_atoms)
 
     w, pols = dyn.DiagonalizeSupercell() #frequencies are in Ry
     
-    alpha, beta = QuanumGaussianDynamics.get_alphabeta(Float64(TEMPERATURE), w, pols)
-    RR_corr, PP_corr = QuanumGaussianDynamics.get_correlators(Float64(TEMPERATURE), w, pols)
+    alpha, beta = QuanumGaussianDynamics.get_alphabeta(Float64(TEMPERATURE), w, pols, settings.settings)
+    RR_corr, PP_corr = QuanumGaussianDynamics.get_correlators(Float64(TEMPERATURE), w, pols, settings.settings)
     gamma = zeros(N_modes, N_modes) #already rescaled (tilde)
     RP_corr = zeros(N_modes, N_modes) #already rescaled (tilde)
     R_av = super_struct.coords * CONV_BOHR #units
@@ -183,12 +225,12 @@ function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T 
     # Diagonalize alpha
     if settings.evolve_correlators == false
         lambda_eigen = eigen(alpha)
-        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, THR_ACOUSTIC) #NO NEEDED WITH ALPHAS
+	λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, settings.settings) #NO NEEDED WITH ALPHAS
     else
         lambda_eigen = eigen(RR_corr)
         #println("RR_Coror")
         #display(RR_corr)
-        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, THR_ACOUSTIC) #NO NEEDED WITH ALPHAS       
+        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, settings.settings) #NO NEEDED WITH ALPHAS       
     end
 
     # Cell
@@ -196,9 +238,9 @@ function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T 
     atoms = super_struct.atoms
 
     # Initialize
-    rho = QuanumGaussianDynamics.WignerDistribution(R_av  = R_av, P_av = P_av, n_atoms = N_atoms, masses = mass_array, n_modes = Int32(N_modes), 
+    rho = QuanumGaussianDynamics.WignerDistribution(R_av  = R_av, P_av = P_av, n_atoms = Int(N_atoms), masses = mass_array, n_modes = Int(N_modes), 
                                                 alpha = alpha, beta = beta, gamma = gamma, RR_corr = RR_corr, PP_corr = PP_corr, RP_corr = RP_corr, 
-                                                λs_vect = λvects, λs = λs, evolve_correlators = settings.evolve_correlators, cell = cell, atoms = atoms)
+                                                λs_vect = λvects, λs = λs, evolve_correlators = settings.evolve_correlators, cell = cell, atoms = atoms, settings = settings.settings)
     return rho
 end
 

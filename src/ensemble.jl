@@ -256,9 +256,11 @@ Update the weights of the ensemble according with the new wigner distribution
 """
 function update_weights!(ensemble:: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
 
-    # Check the lenght
+    # Check the length
 
     if length(wigner_distribution.λs) != length(ensemble.rho0.λs)
+    	println("nw wigner = "* string(length(wigner_distribution.λs)) *" , nw rho0 = "* string(length(ensemble.rho0.λs)) ) #debug 1d
+    	println("Translations are mixing with other modes?? Try with smaller dt for continuity and make sure to initialize rho with init_from_dyn")
         error("Different length of the eigenvalues vectors")
     end
  
@@ -502,7 +504,7 @@ function init_ensemble_from_python(py_ensemble, settings :: Dynamics{T}) where {
     end
 
     ensemble = QuanumGaussianDynamics.Ensemble(rho0 = rho0, positions = ens_positions, forces = ens_forces, stress = ens_voigt,
-                                               n_configs = Int32(py_ensemble.N), weights = weights, sscha_forces = sscha_forces,
+                                               n_configs = Int(py_ensemble.N), weights = weights, sscha_forces = sscha_forces,
                                                energies = ens_energies, sscha_energies = sscha_energies,
                                                temperature = TEMPERATURE, y0 = y0, correlated = settings.correlated)
 
