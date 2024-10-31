@@ -113,6 +113,27 @@ function gaussian1(t, A, w, t0)
     return -A_Ry * (t-t0_Ry)/sig_Ry * exp(-0.5*(t-t0_Ry)^2/sig_Ry^2 + 0.5)
 end
 
+@doc raw"""
+    single_cycle_pulse(time :: Real, A :: Quantity, σ :: Quantity, t0 :: Quantity)
+
+The standard single cycle pulse function obtained as the second derivative of a Gaussian function
+
+$$
+E(t) = -A \frac{t-t_0}{\sigma^2} \exp\left(-\frac{(t-t_0)^2}{2\sigma^2}\right)
+$$
+
+where $A$ is the electric field amplitude (Compatible with V/m units),
+σ is the time duration of the pulse (Compatible with fs units) and $t_0$ is the peak intensity of the pulse (Compatible with fs units).
+"""
+function single_cycle_pulse(t :: Real, A :: Quantity, σ :: Quantity, t0 :: Quantity)
+    # Convert to Hartree atomic units and rescale energy to mHa
+    A = ustrip(auconvert(A)) * 1000 # Ha to mHa
+    σ = ustrip(auconvert(σ)) / 1000
+    t0 = ustrip(auconvert(t0)) / 1000
+
+
+end
+
 
 function get_external_forces(t::T, efield :: ElectricField{T}, wigner :: WignerDistribution{T}) where {T <: AbstractFloat}
 

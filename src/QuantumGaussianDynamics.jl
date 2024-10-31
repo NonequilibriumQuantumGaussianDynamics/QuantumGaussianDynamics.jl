@@ -48,10 +48,12 @@ Base.@kwdef mutable struct ElectricField{T <: AbstractFloat}
 end
 
 Base.@kwdef struct GeneralSettings{T}
-    evolve_correlators :: Bool
+    #evolve_correlators :: Bool
     ignore_small_w :: Bool
     small_w_value :: T
 end
+GeneralSettings() = GeneralSettings(false, 1e-8)
+
 
 Base.@kwdef struct Dynamics{T <: AbstractFloat}
     dt :: T   #In femtosecodns
