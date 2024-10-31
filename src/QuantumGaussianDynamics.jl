@@ -1,4 +1,4 @@
-module QuanumGaussianDynamics
+module QuantumGaussianDynamics
 
 using LinearAlgebra
 using Random
@@ -193,6 +193,7 @@ Impose the ASE projecting out the translations
 """
 function apply_ASR!(matrix :: Matrix{T}, masses :: Vector{T}) where {T <: AbstractFloat}
     mass_array = zeros(T, size(matrix, 1))
+    error("Not implemented")
 end
 
 function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T <: AbstractFloat}
@@ -205,8 +206,8 @@ function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T 
 
     w, pols = dyn.DiagonalizeSupercell() #frequencies are in Ry
     
-    alpha, beta = QuanumGaussianDynamics.get_alphabeta(Float64(TEMPERATURE), w, pols, settings.settings)
-    RR_corr, PP_corr = QuanumGaussianDynamics.get_correlators(Float64(TEMPERATURE), w, pols, settings.settings)
+    alpha, beta = get_alphabeta(Float64(TEMPERATURE), w, pols, settings.settings)
+    RR_corr, PP_corr = get_correlators(Float64(TEMPERATURE), w, pols, settings.settings)
     gamma = zeros(N_modes, N_modes) #already rescaled (tilde)
     RP_corr = zeros(N_modes, N_modes) #already rescaled (tilde)
     R_av = super_struct.coords * CONV_BOHR #units
@@ -225,12 +226,12 @@ function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T 
     # Diagonalize alpha
     if settings.evolve_correlators == false
         lambda_eigen = eigen(alpha)
-	λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, settings.settings) #NO NEEDED WITH ALPHAS
+        λvects, λs = remove_translations(lambda_eigen.vectors, lambda_eigen.values, settings.settings) #NO NEEDED WITH ALPHAS
     else
         lambda_eigen = eigen(RR_corr)
         #println("RR_Coror")
         #display(RR_corr)
-        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, settings.settings) #NO NEEDED WITH ALPHAS       
+        λvects, λs = remove_translations(lambda_eigen.vectors, lambda_eigen.values, settings.settings) #NO NEEDED WITH ALPHAS       
     end
 
     # Cell
@@ -238,9 +239,9 @@ function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T 
     atoms = super_struct.atoms
 
     # Initialize
-    rho = QuanumGaussianDynamics.WignerDistribution(R_av  = R_av, P_av = P_av, n_atoms = Int(N_atoms), masses = mass_array, n_modes = Int(N_modes), 
-                                                alpha = alpha, beta = beta, gamma = gamma, RR_corr = RR_corr, PP_corr = PP_corr, RP_corr = RP_corr, 
-                                                λs_vect = λvects, λs = λs, evolve_correlators = settings.evolve_correlators, cell = cell, atoms = atoms, settings = settings.settings)
+    rho = WignerDistribution(R_av  = R_av, P_av = P_av, n_atoms = Int(N_atoms), masses = mass_array, n_modes = Int(N_modes), 
+                             alpha = alpha, beta = beta, gamma = gamma, RR_corr = RR_corr, PP_corr = PP_corr, RP_corr = RP_corr, 
+                             λs_vect = λvects, λs = λs, evolve_correlators = settings.evolve_correlators, cell = cell, atoms = atoms, settings = settings.settings)
     return rho
 end
 
@@ -251,4 +252,4 @@ include("calculator.jl")
 include("dynamics.jl")
 include("external_f.jl")
 
-end # module QuanumGaussianDynamics
+end # module QuantumGaussianDynamics
