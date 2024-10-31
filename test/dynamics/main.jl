@@ -3,8 +3,8 @@ push!(LOAD_PATH, "/home/flibbi/programs/sscha/QuantumGaussianDynamics.jl")   # N
 
 using MPI
 using Test
-import QuanumGaussianDynamics
-using QuanumGaussianDynamics.QuanumGaussianDynamics
+import QuantumGaussianDynamics
+using QuantumGaussianDynamics.QuantumGaussianDynamics
 
 using PyCall
 using LinearAlgebra
@@ -30,37 +30,37 @@ MPI.Init()
     dyn.ForcePositiveDefinite()
 
     method = "semi-implicit-verlet" # use this one
-    settings = QuanumGaussianDynamics.Dynamics(dt = 0.1, total_time = 10.0, algorithm = method, kong_liu_ratio = 1.0, 
+    settings = QuantumGaussianDynamics.Dynamics(dt = 0.1, total_time = 10.0, algorithm = method, kong_liu_ratio = 1.0, 
                                                verbose = true,  evolve_correlators = true, save_filename = method, 
                                               save_correlators = true, save_each = 1, N=100,seed=1254, correlated = true)
-    rho = QuanumGaussianDynamics.init_from_dyn(dyn, Float64(TEMPERATURE), settings)
-    ensemble = QuanumGaussianDynamics.init_ensemble_from_python(py_ensemble, settings)
+    rho = QuantumGaussianDynamics.init_from_dyn(dyn, Float64(TEMPERATURE), settings)
+    ensemble = QuantumGaussianDynamics.init_ensemble_from_python(py_ensemble, settings)
 
     # Initialization
     dv_dr = zeros(rho.n_atoms*3)
     d2v_dr2 = zeros(rho.n_atoms*3,rho.n_atoms*3)
-    QuanumGaussianDynamics.get_averages!(dv_dr, d2v_dr2, ensemble, rho)
+    QuantumGaussianDynamics.get_averages!(dv_dr, d2v_dr2, ensemble, rho)
 
     # Specify here the ASE calculator
     calculator = emt.EMT()
-    crystal = QuanumGaussianDynamics.init_calculator(calculator, rho, ase.Atoms)
+    crystal = QuantumGaussianDynamics.init_calculator(calculator, rho, ase.Atoms)
 
 
     # Electric field
     # If you do not want to apply any field, use fake_field, like this. Otherwise, prepare a fake ph.out to read the effective charges and the dielectric constant
-    efield = QuanumGaussianDynamics.fake_field(rho.n_atoms)
+    efield = QuantumGaussianDynamics.fake_field(rho.n_atoms)
 
     # Displacement from equilbrium, optional
     rho.P_av[1] += 0.01 #sqrt(Ry)
 
     # Some calculation
-    QuanumGaussianDynamics.generate_ensemble!(settings.N,ensemble, rho)
-    QuanumGaussianDynamics.calculate_ensemble!(ensemble, crystal)
-    QuanumGaussianDynamics.get_average_forces(ensemble)
-    QuanumGaussianDynamics.get_classic_forces(rho,crystal)
+    QuantumGaussianDynamics.generate_ensemble!(settings.N,ensemble, rho)
+    QuantumGaussianDynamics.calculate_ensemble!(ensemble, crystal)
+    QuantumGaussianDynamics.get_average_forces(ensemble)
+    QuantumGaussianDynamics.get_classic_forces(rho,crystal)
 
     # Run!
-    QuanumGaussianDynamics.integrate!(rho, ensemble, settings, crystal, efield )
+    QuantumGaussianDynamics.integrate!(rho, ensemble, settings, crystal, efield )
 
     data = readdlm(method*"0.1-10.0-100.pos")
     ref = readdlm("../../examples/H2/semi-implicit-verlet0.1-10.0-100.pos")
