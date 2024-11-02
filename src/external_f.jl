@@ -207,9 +207,6 @@ function get_IR_electric_field(py_dyn :: PyObject, pol_dir :: AbstractVector{T},
     Zeff = zeros(T, 3*nat_sc, 3)
     eps = zeros(T, 3, 3)
 
-    println("py_dyn.effective_charges ", py_dyn.effective_charges)
-
-
     for k in 1:3
         for i in 1:nat_sc
             i_uc = (i - 1) % nat + 1
