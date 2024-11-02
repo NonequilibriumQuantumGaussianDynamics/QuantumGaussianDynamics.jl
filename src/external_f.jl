@@ -143,12 +143,14 @@ function get_external_forces(t::T, efield :: ElectricField{T}, wigner :: WignerD
     # t must be in Rydberg units
     # efield.fun must be a function of t only
 
-    if abs(norm(efield.edir)-1) > SMALL_VALUE
-        error("Electric field direction must have norm 1")
+    efield_norm=norm(efield.edir)
+    if abs(efield_norm -1) > SMALL_VALUE
+        error("Electric field polarization must have norm 1, found $efield_norm")
     end
     for i in 1:3
-        @views if abs(sum(efield.Zeff[:,i])) > 1e-4
-            error("Must enforce sum rule for effective charges")
+        efield_asr_violation = abs(sum(efield.Zeff[:,i])) 
+        @views if efield_asr_violation > 1e-4
+            error("Must enforce sum rule for effective charges: violated by $efield_asr_violation on component $i")
         end
     end
 
