@@ -10,6 +10,8 @@ using Optim
 using OptimizationOptimJL
 using ForwardDiff
 
+using Unitful, UnitfulAtomic
+
 # Init MPI
 include("parallel.jl")
 
@@ -47,15 +49,49 @@ Base.@kwdef mutable struct ElectricField{T <: AbstractFloat}
     eps :: Matrix{T}
 end
 
-Base.@kwdef struct GeneralSettings{T}
+struct GeneralSettings{T}
     #evolve_correlators :: Bool
     ignore_small_w :: Bool
     small_w_value :: T
 end
-GeneralSettings() = GeneralSettings(false, 1e-8)
+GeneralSettings(; ignore_small_w=false,
+               small_w_value=1e-8) = GeneralSettings(ignore_small_w, small_w_value)
 
 
-Base.@kwdef struct Dynamics{T <: AbstractFloat}
+@doc raw"""
+    Dynamics(dt:: Quantity, 
+        total_time:: Quantity, 
+        N :: Int;
+        algorithm:: String = "generalized-verlet",
+        kong_liu_ratio:: AbstractFloat = 1.0,
+        verbose:: Bool = true,
+        evolve_correlators:: Bool = true,
+        seed:: Int = 0,
+        evolve_correlated:: Bool = true,
+        settings:: GeneralSettings = GeneralSettings(),
+        save_filename:: String = "dynamics",
+        save_correlators:: Bool = false,
+        save_each:: Int=100)
+
+
+The settings for the simulation. dt and total_time are in femtoseconds, or generic
+time units if Unitful is used. 
+
+- `dt` is the time step [either in femtoseconds or generic time units]
+- `total_time` is the total simulation time [either in femtoseconds or generic time units]
+- `N` is the number of atoms in the system
+- `algorithm` is the integration algorithm to use. Either "generalized-verlet" or "semi-implicit-verlet"
+- `kong_liu_ratio` is the ratio exploits the importance sampling.
+- `verbose` is a flag to print out information during the simulation
+- `evolve_correlators` is a flag to evolve the correlators. If false, neglects bubble self-energy.
+- `seed` is the seed for the random number generator
+- `evolve_correlated` is a flag to extract correlated ensembles between steps. This improves the convergence of the ensemble.
+- `settings` is a structure with general settings about the constrains on some modes.
+- `save_filename` is the name of the file where to save the data
+- `save_correlators` is a flag to save the correlators information
+- `save_each` is the number of steps between each save of the data
+"""
+struct Dynamics{T <: AbstractFloat}
     dt :: T   #In femtosecodns
     total_time :: T # In femtosecodns
     algorithm :: String
@@ -74,6 +110,7 @@ Base.@kwdef struct Dynamics{T <: AbstractFloat}
     save_correlators :: Bool 
     save_each :: Int64
 end
+Dynamics(dt, total_time, N; algorithm="generalized-verlet", kong_liu_ratio=1.0, verbose=true, evolve_correlators=true, seed=0, correlated=true, settings=GeneralSettings(), save_filename="dynamics", save_correlators=false, save_each=100) = Dynamics(dt, total_time, algorithm, kong_liu_ratio, verbose, evolve_correlators, seed, N, correlated, settings, save_filename, save_correlators, save_each)
 
 
 """
@@ -253,5 +290,7 @@ include("phonons.jl")
 include("calculator.jl")
 include("dynamics.jl")
 include("external_f.jl")
+
+include("UnitfulInterface.jl")
 
 end # module QuantumGaussianDynamics

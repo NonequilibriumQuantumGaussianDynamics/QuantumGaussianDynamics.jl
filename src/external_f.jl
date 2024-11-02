@@ -131,7 +131,10 @@ function single_cycle_pulse(t :: Real, A :: Quantity, σ :: Quantity, t0 :: Quan
     σ = ustrip(auconvert(σ)) / 1000
     t0 = ustrip(auconvert(t0)) / 1000
 
-
+    single_cycle_pulse(t, A, σ, t0)
+end
+function single_cycle_pulse(t :: Real, A :: Real, σ :: Real, t0 :: Real)
+    -A * (t - t0) / σ^2 * exp(-0.5 * (t - t0)^2 / σ^2)
 end
 
 
@@ -144,12 +147,12 @@ function get_external_forces(t::T, efield :: ElectricField{T}, wigner :: WignerD
         error("Electric field direction must have norm 1")
     end
     for i in 1:3
-        if abs(sum(efield.Zeff[:,i])) > 1e-4
+        @views if abs(sum(efield.Zeff[:,i])) > 1e-4
             error("Must enforce sum rule for effective charges")
         end
     end
 
-    nat = Int32(length(efield.Zeff[:,1])/3.0)
+    @views nat = size(efield.Zeff, 1) ÷ 3
     forces = Vector{T}(undef, 3*nat)
 
     for i in 1:nat
@@ -164,7 +167,7 @@ function get_external_forces(t::T, efield :: ElectricField{T}, wigner :: WignerD
     return forces
 end
 
-function fake_field(nat)
+function fake_field(nat) :: ElectricField
 
    Zeff = zeros(3*nat, 3)
    eps = [1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0]
@@ -175,4 +178,49 @@ function fake_field(nat)
   
    return efield
   
+end
+
+
+@doc raw"""
+    get_IR_electric_field(py_dyn :: PyObject, pol_dir :: AbstractVector, e_function :: Function) :: ElectricField
+
+Return the ElectricField object for the dynamics.
+This object describes the light-matter interaction and how the system is driven by the external field in 
+the IR regime.
+The light-matter coupling of this field occurs through the effective charges and the dielectric constant of the system, i.e. the polarization of the system.
+
+TODO: 
+We need to add also the k-vector. This can be used to add the proper LO-TO splitting to the dynamical matrix.
+
+# Arguments
+
+- `py_dyn::PyObject`: The Python cellconstructor Phonons object, containing effective charges and dielectric constant of the system
+- `pol_dir::AbstractVector`: The polarization direction of the electric field.
+- `e_function::Function`: The function that describes the electric field as a function of time.
+"""
+function get_IR_electric_field(py_dyn :: PyObject, pol_dir :: AbstractVector{T}, e_function :: Function) :: ElectricField{T} where T
+    scell_size = py_dyn.GetSupercell()
+
+    nat = py_dyn.structure.N_atoms
+    nat_sc = nat * scell_size[1] * scell_size[2] * scell_size[3] 
+
+    Zeff = zeros(T, 3*nat_sc, 3)
+    eps = zeros(T, 3, 3)
+
+    println("py_dyn.effective_charges ", py_dyn.effective_charges)
+
+
+    for k in 1:3
+        for i in 1:nat_sc
+            i_uc = (i - 1) % nat + 1
+            for j in 1:3
+                Zeff[3*(i-1)+j, k] = py_dyn.effective_charges[i_uc, k, j]
+            end
+        end
+        for j in 1:3
+            eps[j, k] = py_dyn.dielectric_tensor[k, j]
+        end
+    end
+
+    ElectricField(fun = e_function, Zeff = Zeff, edir = pol_dir, eps = eps)
 end

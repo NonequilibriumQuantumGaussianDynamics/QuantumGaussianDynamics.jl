@@ -364,7 +364,7 @@ function get_average_stress(ensemble :: Ensemble{T}, wigner :: WignerDistributio
    n_atoms = wigner.n_atoms
    du = similar(ensemble.positions)
    for i in 1: n_atoms * 3
-        delta = ensemble.positions[i,:] .- wigner.R_av[i]
+        @views delta = ensemble.positions[i,:] .- wigner.R_av[i]
         delta .*= ensemble.weights
         du[i,:] .=  delta
    end
@@ -372,15 +372,15 @@ function get_average_stress(ensemble :: Ensemble{T}, wigner :: WignerDistributio
    f_shape = reshape(ensemble.forces,(3,n_atoms,ensemble.n_configs))
    du = reshape(du,(3,n_atoms,ensemble.n_configs))
 
-   sxx = sum(f_shape[1,:,:].*du[1,:,:]) / Nw
-   syy = sum(f_shape[2,:,:].*du[2,:,:]) / Nw
-   szz = sum(f_shape[3,:,:].*du[3,:,:]) / Nw
-   syz = sum(f_shape[2,:,:].*du[3,:,:]) / Nw
-   sxz = sum(f_shape[1,:,:].*du[3,:,:]) / Nw
-   sxy = sum(f_shape[1,:,:].*du[2,:,:]) / Nw
-   szy = sum(f_shape[3,:,:].*du[2,:,:]) / Nw
-   szx = sum(f_shape[3,:,:].*du[1,:,:]) / Nw
-   syx = sum(f_shape[2,:,:].*du[1,:,:]) / Nw
+   @views sxx = sum(f_shape[1,:,:].*du[1,:,:]) / Nw
+   @views syy = sum(f_shape[2,:,:].*du[2,:,:]) / Nw
+   @views szz = sum(f_shape[3,:,:].*du[3,:,:]) / Nw
+   @views syz = sum(f_shape[2,:,:].*du[3,:,:]) / Nw
+   @views sxz = sum(f_shape[1,:,:].*du[3,:,:]) / Nw
+   @views sxy = sum(f_shape[1,:,:].*du[2,:,:]) / Nw
+   @views szy = sum(f_shape[3,:,:].*du[2,:,:]) / Nw
+   @views szx = sum(f_shape[3,:,:].*du[1,:,:]) / Nw
+   @views syx = sum(f_shape[2,:,:].*du[1,:,:]) / Nw
 
    Vol = det(wigner.cell)
 

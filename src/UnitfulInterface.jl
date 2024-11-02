@@ -15,7 +15,7 @@ function Dynamics(dt:: Quantity,
         save_each:: Int=100)
 
     return Dynamics(ustrip(uconvert(u"fs", dt)), 
-                    ustrip(uconvert(total_time)), 
+                    ustrip(uconvert(u"fs", total_time)), 
                     N;
                     algorithm=algorithm, 
                     kong_liu_ratio=kong_liu_ratio, 
