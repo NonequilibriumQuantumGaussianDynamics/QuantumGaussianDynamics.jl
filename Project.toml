@@ -4,6 +4,7 @@ authors = ["Francesco Libbi <libbi@g.harvard.edu>", "Lorenzo Monacelli <lorenzo.
 version = "0.1.0"
 
 [deps]
+AtomicSymmetries = "7e24f7a5-8a44-4f91-9a93-7ee03df51e54"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
