@@ -53,7 +53,8 @@ function write_file(file,line)
 end
 
     
-function init_file(filename)
+
+function init_file(filename) #TODO: TYPE INSTABILITY HERE
     if MPI.Initialized()
         comm = MPI.COMM_WORLD
         rank = MPI.Comm_rank(comm)

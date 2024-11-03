@@ -1,4 +1,4 @@
-function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, settings :: Dynamics{T}, crystal, efield :: ElectricField{T}) where {T <: AbstractFloat}
+function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, settings :: Dynamics{T}, crystal, efield :: ElectricField{T}; symmetry_group :: Symmetries{T} = get_empty_symmetry_group(T)) where T
     
     index :: Int32 = 0
     t :: T = 0
@@ -32,6 +32,14 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
 
     tot_for = avg_for .+ ext_for
     tot_cl_for = cl_for .+ ext_for
+    
+    # Impose symmetries
+    if !isempty(symmetry_group)
+        symmetry_group.symmetrize_vector!(tot_for)
+        symmetry_group.symmetrize_vector!(tot_cl_for)
+        symmetry_group.symmetrize_fc!(d2v_dr2)
+    end
+
 
     # Integrate
     while t < settings.total_time
@@ -84,6 +92,7 @@ Error, the selected algorithm $(settings.algorithm)
         end
 
         # Get the average derivatives
+        # TODO: Too many allocating functions
         get_averages!(avg_for, d2v_dr2, ensemble, wigner)
         total_energy = get_total_energy(ensemble, wigner)
         avg_stress = get_average_stress(ensemble, wigner)
@@ -93,6 +102,14 @@ Error, the selected algorithm $(settings.algorithm)
 
         tot_for = avg_for .+ ext_for
         tot_cl_for = cl_for .+ ext_for
+
+        # Impose symmetries
+        if !isempty(symmetry_group)
+            symmetry_group.symmetrize_vector!(tot_for)
+            symmetry_group.symmetrize_vector!(tot_cl_for)
+            symmetry_group.symmetrize_fc!(d2v_dr2)
+        end
+
 
         if "semi-implicit-verlet" == lowercase(settings.algorithm)
             semi_implicit_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
