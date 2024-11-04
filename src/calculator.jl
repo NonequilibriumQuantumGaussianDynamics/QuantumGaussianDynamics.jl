@@ -79,7 +79,7 @@ calculator!(forces :: AbstractVector{T}, stress :: AbstractVector{T}, positions 
 
 where forces and stress are in-place modified, while the energy is returned
 """
-function compute_configuration!(forces :: AbstractVector{T}, stress :: AbstractVector{T}, calculator :: PyObject, positions :: AbstractVector{T}, masses; cache=nothing, n_dims = 3) :: T
+function compute_configuration!(forces :: AbstractVector{T}, stress :: AbstractVector{T}, calculator :: PyObject, positions :: AbstractVector{T}, masses; cache=nothing, n_dims = 3) :: T where T
     nat = length(forces) ÷ 3
     if cache == nothing
         cache = zeros(T, 3, nat)
@@ -98,7 +98,7 @@ function compute_configuration!(forces :: AbstractVector{T}, stress :: AbstractV
 
     return energy
 end
-function compute_configuration!(forces :: AbstractVector{T}, stress :: AbstractVector{T}, calculator :: Function, positions :: AbstractVector{T}, masses; cache=nothing, n_dims = 3) :: T
+function compute_configuration!(forces :: AbstractVector{T}, stress :: AbstractVector{T}, calculator :: Function, positions :: AbstractVector{T}, masses; cache=nothing, n_dims = 3) :: T where T
     nat = length(forces) ÷ n_dims
 
     if cache == nothing

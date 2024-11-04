@@ -1,90 +1,99 @@
 
 function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: AbstractFloat}
 
+    rank = 0
+    root = 0
+    sizep = 1
     if MPI.Initialized()
         comm = MPI.COMM_WORLD
         rank = MPI.Comm_rank(comm)
         sizep = MPI.Comm_size(comm)
-        root = 0 
     end
 
 
-    if MPI.Initialized() == false
-        for i in 1 : ensemble.n_configs
-            # coords  = get_ase_positions(ensemble.positions[:,i] , ensemble.rho0.masses)
-            # crystal.positions = coords
-            # energy = crystal.get_potential_energy()
-            @views energy = compute_configuration!(ensemble.forces[:,i], ensemble.stress[:,i], crystal, ensemble.positions[:,i], ensemble.rho0.masses)
-            # forces = crystal.get_forces()
-            # stress = crystal.get_stress()
+    # if MPI.Initialized() == false
+    #     for i in 1 : ensemble.n_configs
+    #         # coords  = get_ase_positions(ensemble.positions[:,i] , ensemble.rho0.masses)
+    #         # crystal.positions = coords
+    #         # energy = crystal.get_potential_energy()
+    #         @views energy = compute_configuration!(ensemble.forces[:,i], ensemble.stress[:,i], crystal, ensemble.positions[:,i], ensemble.rho0.masses)
+    #         # forces = crystal.get_forces()
+    #         # stress = crystal.get_stress()
 
-            # forces = reshape(permutedims(forces), Int64(ensemble.rho0.n_modes))
-            # forces = forces ./ sqrt.(ensemble.rho0.masses) .* CONV_RY ./CONV_BOHR
+    #         # forces = reshape(permutedims(forces), Int64(ensemble.rho0.n_modes))
+    #         # forces = forces ./ sqrt.(ensemble.rho0.masses) .* CONV_RY ./CONV_BOHR
 
-            ensemble.energies[i] = energy # * CONV_RY
-            # ensemble.forces[:,i] .= forces
-            # ensemble.stress[:,i] .= stress
+    #         ensemble.energies[i] = energy # * CONV_RY
+    #         # ensemble.forces[:,i] .= forces
+    #         # ensemble.stress[:,i] .= stress
 
-            if rank==0
-                println("0 Calculating configuration $i out of $(ensemble.n_configs) $(energy * CONV_RY)", )
-            elseif rank==1
-                println("1 Calculating configuration $i out of $(ensemble.n_configs) $(energy * CONV_RY)")
-            end
-            
-            """
-            println("old, ", ensemble.energies[i])
-            println("new, ", energy * CONV_RY)
+    #         if rank==0
+    #             println("0 Calculating configuration $i out of $(ensemble.n_configs) $(energy * CONV_RY)", )
+    #         elseif rank==1
+    #             println("1 Calculating configuration $i out of $(ensemble.n_configs) $(energy * CONV_RY)")
+    #         end
+    #         
+    #         """
+    #         println("old, ", ensemble.energies[i])
+    #         println("new, ", energy * CONV_RY)
 
-            println("old, ", ensemble.forces[:,i])
-            println("new, ", forces)
-            """
+    #         println("old, ", ensemble.forces[:,i])
+    #         println("new, ", forces)
+    #         """
+    #     end
+    # else
+    start_per_proc, end_per_proc = parallel_force_distribute(ensemble.n_configs)
+    nconf_proc = end_per_proc[rank+1] - start_per_proc[rank+1] + 1
+    energy_vect = Vector{Float64}(undef,nconf_proc)
+    force_array = Matrix{Float64}(undef,Int64(ensemble.rho0.n_modes),nconf_proc)
+    stress_array = Matrix{Float64}(undef,6,nconf_proc)
+
+    #for i in 1 : ensemble.n_configs
+
+    for i in start_per_proc[rank+1]: end_per_proc[rank+1]
+        if rank == 0
+            println("Calculating configuration $i out of $(ensemble.n_configs)")
         end
-    else
-        start_per_proc, end_per_proc = parallel_force_distribute(ensemble.n_configs)
-        nconf_proc = end_per_proc[rank+1] - start_per_proc[rank+1] + 1
-        energy_vect = Vector{Float64}(undef,nconf_proc)
-        force_array = Matrix{Float64}(undef,Int64(ensemble.rho0.n_modes),nconf_proc)
-        stress_array = Matrix{Float64}(undef,6,nconf_proc)
+        # coords  = get_ase_positions(ensemble.positions[:,i] , ensemble.rho0.masses)
+        # crystal.positions = coords
+        # energy = crystal.get_potential_energy()
+        # forces = crystal.get_forces()
+        # stress = crystal.get_stress()
 
-        #for i in 1 : ensemble.n_configs
+        # forces = reshape(permutedims(forces), Int64(ensemble.rho0.n_modes))
+        # forces = forces ./ sqrt.(ensemble.rho0.masses) .* CONV_RY ./CONV_BOHR
 
-        for i in start_per_proc[rank+1]: end_per_proc[rank+1]
-            if rank == 0
-                println("Calculating configuration $i out of $(ensemble.n_configs)")
-            end
-            coords  = get_ase_positions(ensemble.positions[:,i] , ensemble.rho0.masses)
-            crystal.positions = coords
-            energy = crystal.get_potential_energy()
-            forces = crystal.get_forces()
-            stress = crystal.get_stress()
+        ind = i - start_per_proc[rank+1] + 1
+        @views energy_vect[ind] = compute_configuration!(force_array[:,ind], stress_array[:,ind], crystal, ensemble.positions[:,i], ensemble.rho0.masses)
 
-            forces = reshape(permutedims(forces), Int64(ensemble.rho0.n_modes))
-            forces = forces ./ sqrt.(ensemble.rho0.masses) .* CONV_RY ./CONV_BOHR
-
-            ind = i - start_per_proc[rank+1] + 1
-            energy_vect[ind] = energy * CONV_RY
-            force_array[:,ind] .= forces
-            stress_array[:,ind] .= stress
-            
-        end
-        energy_length = Vector{Int32}(undef, sizep)
-        force_length = Vector{Int32}(undef, sizep)
-        stress_length = Vector{Int32}(undef, sizep)
-        for i in 1:sizep
-            energy_length[i] = end_per_proc[i] - start_per_proc[i] + 1
-            force_length[i] = (end_per_proc[i] - start_per_proc[i] + 1)*Int32(ensemble.rho0.n_modes)
-            stress_length[i] = (end_per_proc[i] - start_per_proc[i] + 1) *6
-        end
+        # energy_vect[ind] = energy * CONV_RY
+        # force_array[:,ind] .= forces
+        # stress_array[:,ind] .= stress
+        
+    end
+    energy_length = Vector{Int32}(undef, sizep)
+    force_length = Vector{Int32}(undef, sizep)
+    stress_length = Vector{Int32}(undef, sizep)
+    for i in 1:sizep
+        energy_length[i] = end_per_proc[i] - start_per_proc[i] + 1
+        force_length[i] = (end_per_proc[i] - start_per_proc[i] + 1)*Int32(ensemble.rho0.n_modes)
+        stress_length[i] = (end_per_proc[i] - start_per_proc[i] + 1) *6
+    end
+    if MPI.Initialized()
         tot_energies = MPI.Allgatherv(energy_vect,energy_length, comm)
         tot_forces = MPI.Allgatherv(force_array,force_length, comm)
         tot_stress = MPI.Allgatherv(stress_array, stress_length, comm)
         tot_forces = reshape(tot_forces,(Int32(ensemble.rho0.n_modes),ensemble.n_configs))
         tot_stress = reshape(tot_stress,(6,ensemble.n_configs))
-
-        ensemble.energies .= tot_energies
-        ensemble.forces .= tot_forces
-        ensemble.stress .= tot_stress
+    else
+        tot_energies = energy_vect
+        tot_forces = force_array
+        tot_stress = stress_array
     end
+
+    ensemble.energies .= tot_energies
+    ensemble.forces .= tot_forces
+    ensemble.stress .= tot_stress
     """
     check_energy = ensemble.energies .- tot_energies
     check_forces = ensemble.forces .- tot_forces
@@ -104,15 +113,18 @@ Return the forces on the average position of the wigner distribution
 function get_classic_forces(wigner_distribution:: WignerDistribution{T}, crystal) where {T }
 
         #println("Calculating configuration $i out of $(ensemble.n_configs)")
-        coords  = get_ase_positions(wigner_distribution.R_av , wigner_distribution.masses)
-        crystal.positions = coords
-        energy = crystal.get_potential_energy()
-        forces = crystal.get_forces()
+        forces = zeros(T, wigner_distribution.n_modes)
+        stress = zeros(T, (n_dims * (n_dims+1)) ÷ 2)
+        compute_configuration!(forces, stress, crystal, wigner_distribution.R_av, wigner_distribution.masses)
+        # coords  = get_ase_positions(wigner_distribution.R_av , wigner_distribution.masses)
+        # crystal.positions = coords
+        # energy = crystal.get_potential_energy()
+        # forces = crystal.get_forces()
 
-        forces = reshape(permutedims(forces), Int64(wigner_distribution.n_modes))
-        #println("Classic forces (eV/A)")
-        #println(forces)
-        forces = forces ./ sqrt.(wigner_distribution.masses) .* CONV_RY ./CONV_BOHR
+        # forces = reshape(permutedims(forces), Int64(wigner_distribution.n_modes))
+        # #println("Classic forces (eV/A)")
+        # #println(forces)
+        # forces = forces ./ sqrt.(wigner_distribution.masses) .* CONV_RY ./CONV_BOHR
 
         #println("Classic forces Ry/Bohr/sqrt(m)")
         #println(forces)
@@ -122,13 +134,19 @@ end
 function get_classic_ef(Rs:: Vector{T}, wigner_distribution:: WignerDistribution{T},  crystal) where {T <: AbstractFloat}
 
         #println("Calculating configuration $i out of $(ensemble.n_configs)")
-        coords  = get_ase_positions(Rs , wigner_distribution.masses)
-        crystal.positions = coords
-        energy = crystal.get_potential_energy()
-        energy *= CONV_RY
-        forces = crystal.get_forces()
-        forces = reshape(permutedims(forces), Int64(wigner_distribution.n_modes))
-        forces = forces ./ sqrt.(wigner_distribution.masses) .* CONV_RY ./CONV_BOHR
+        n_dims = get_ndims(wigner_distribution)
+        forces = zeros(T, wigner_distribution.n_modes)
+        stress = zeros(T, (n_dims * (n_dims+1)) ÷ 2)
+        energy = compute_configuration!(forces, stress, crystal, Rs, wigner_distribution.masses)
+
+
+        # coords  = get_ase_positions(Rs , wigner_distribution.masses)
+        # crystal.positions = coords
+        # energy = crystal.get_potential_energy()
+        # energy *= CONV_RY
+        # forces = crystal.get_forces()
+        # forces = reshape(permutedims(forces), Int64(wigner_distribution.n_modes))
+        # forces = forces ./ sqrt.(wigner_distribution.masses) .* CONV_RY ./CONV_BOHR
 
         return energy, forces
 end
@@ -147,8 +165,9 @@ function get_random_y(N, N_modes, settings :: Dynamics{T}) where {T <: AbstractF
         if mod(N,2) !=0
             error("Error, evenodd allowed only with an even number of random structures")
         end
-        N2 = Int64(N/2.0)
-        ymu_i = randn(T, (N_modes, N2))
+        N2 = N ÷ 2
+        println("N2 ", N2, "N_modes ", N_modes)
+        ymu_i = randn(T, N_modes, N2)
         if MPI.Initialized()
             # So that all the processors work with the same random numbers
             MPI.Bcast!(ymu_i, 0, MPI.COMM_WORLD)
@@ -176,7 +195,7 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
         if mod(N,2) !=0 
             error("Error, evenodd allowed only with an even number of random structures")
         end
-        N2 = Int64(N/2.0)
+        N2 = N ÷ 2
         if ensemble.correlated
             sqrt_RR = wigner_distribution.λs_vect * Diagonal(sqrt.(wigner_distribution.λs)) * wigner_distribution.λs_vect'
 
@@ -186,6 +205,7 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
                 ensemble.positions .+= wigner_distribution.R_av
             else
                 new_positions = Matrix{T}(undef, wigner_distribution.n_modes, N)
+                println(size(new_positions), size(sqrt_RR), size(ensemble.y0))
                 @views mul!(new_positions[:,1:N2], sqrt_RR , ensemble.y0)
                 @views new_positions[:,N2+1:end] .= -new_positions[:,1:N2]
                 new_positions[:,:] .+= wigner_distribution.R_av

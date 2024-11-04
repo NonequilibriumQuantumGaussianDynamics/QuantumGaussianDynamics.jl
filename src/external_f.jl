@@ -142,38 +142,41 @@ function get_external_forces(t::T, efield :: ElectricField{T}, wigner :: WignerD
 
     # t must be in Rydberg units
     # efield.fun must be a function of t only
+    n_dims = get_ndims(wigner)
 
     efield_norm=norm(efield.edir)
     if abs(efield_norm -1) > SMALL_VALUE
         error("Electric field polarization must have norm 1, found $efield_norm")
     end
-    for i in 1:3
+    for i in 1:n_dims
         efield_asr_violation = abs(sum(efield.Zeff[:,i])) 
         @views if efield_asr_violation > 1e-4
             error("Must enforce sum rule for effective charges: violated by $efield_asr_violation on component $i")
         end
     end
 
-    @views nat = size(efield.Zeff, 1) ÷ 3
-    forces = Vector{T}(undef, 3*nat)
+    nat = size(efield.Zeff, 1) ÷ n_dims
+    forces = Vector{T}(undef, n_dims*nat)
 
     for i in 1:nat
-        start = 3*(i-1) +1
+        start = n_dims*(i-1) +1
         fin = start+2
 
         epsE = inv(efield.eps)*efield.edir
         ZepsE  = efield.Zeff[start:fin,:]  * epsE
-        forces[start:fin] .= ZepsE .* sqrt(2) ./sqrt(wigner.masses[3*(i-1)+1]).* efield.fun(t)
-
+        forces[start:fin] .= ZepsE .* sqrt(2) ./sqrt(wigner.masses[n_dims*(i-1)+1]).* efield.fun(t)
     end
     return forces
 end
 
-function fake_field(nat) :: ElectricField
+function fake_field(nat; ndims = 3, type = Float64) :: ElectricField
 
-   Zeff = zeros(3*nat, 3)
-   eps = [1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0]
-   edir = [1.0,0,0]
+   Zeff = zeros(type, ndims*nat, ndims)
+   eps = Matrix{type}(I, ndims, ndims)
+   #[1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0]
+   edir = zeros(type, ndims)
+   edir[1] = 1.0
+   #[1.0,0,0]
    field_f = t -> 0
 
    efield = ElectricField(fun = field_f, Zeff = Zeff, edir=edir, eps = eps)
@@ -205,18 +208,19 @@ function get_IR_electric_field(py_dyn :: PyObject, pol_dir :: AbstractVector{T},
 
     nat = py_dyn.structure.N_atoms
     nat_sc = nat * scell_size[1] * scell_size[2] * scell_size[3] 
+    n_dims = length(pol_dir)
 
-    Zeff = zeros(T, 3*nat_sc, 3)
-    eps = zeros(T, 3, 3)
+    Zeff = zeros(T, n_dims*nat_sc, n_dims)
+    eps = zeros(T, n_dims, n_dims)
 
-    for k in 1:3
+    for k in 1:n_dims
         for i in 1:nat_sc
             i_uc = (i - 1) % nat + 1
-            for j in 1:3
-                Zeff[3*(i-1)+j, k] = py_dyn.effective_charges[i_uc, k, j]
+            for j in 1:n_dims
+                Zeff[n_dims*(i-1)+j, k] = py_dyn.effective_charges[i_uc, k, j]
             end
         end
-        for j in 1:3
+        for j in 1:n_dims
             eps[j, k] = py_dyn.dielectric_tensor[k, j]
         end
     end

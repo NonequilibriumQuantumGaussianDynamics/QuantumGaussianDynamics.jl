@@ -1,14 +1,16 @@
 
 
 function parallel_force_distribute(nconf)
+    rank = 0
+    size = 1
+    root = 0
     if MPI.Initialized()
         comm = MPI.COMM_WORLD
         rank = MPI.Comm_rank(comm)
         size = MPI.Comm_size(comm)
-        root = 0
     end
     
-    av_point = Int32(floor(nconf/size))
+    av_point = Int32(nconf ÷ size)
     rest = mod(nconf,size) 
 
     start_per_proc = Vector{Int32}(undef,size)
@@ -28,7 +30,10 @@ function parallel_force_distribute(nconf)
             rest -= 1
         end
     end
-    MPI.Barrier(comm)
+
+    if MPI.Initialized()
+        MPI.Barrier(comm)
+    end
     if rank == root
         println("start", start_per_proc)
         println("end", end_per_proc)

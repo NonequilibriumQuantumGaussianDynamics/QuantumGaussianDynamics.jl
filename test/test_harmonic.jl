@@ -19,18 +19,25 @@ end
 
 
 function test_harmonic()
-    wigner_dist = WignerDistribution(1; n_dims=1)
-    ensemble = QuantumGaussianDynamics.Ensemble(wigner_dist; n_configs=100, temperature=0.0u"K")
 
     algorithm = "generalized-verlet"
     dt = 0.1u"fs"
-    total_time = 100u"fs"
+    total_time = 100.0u"fs"
     N_configs = 1000
     settings = QuantumGaussianDynamics.Dynamics(dt, total_time, N_configs;
                                                 algorithm = algorithm)
 
-    efield = QuantumGaussianDynamics.fake_field(1)
+    wigner_dist = WignerDistribution(1; n_dims=1)
+    ensemble = QuantumGaussianDynamics.Ensemble(wigner_dist, settings; n_configs=100, temperature=0.0u"K")
+    efield = QuantumGaussianDynamics.fake_field(1; ndims=1)
 
     QuantumGaussianDynamics.generate_ensemble!(N_configs, ensemble, wigner_dist)
     QuantumGaussianDynamics.calculate_ensemble!(ensemble, harmonic_potential!)
+
+    QuantumGaussianDynamics.integrate!(wigner_dist, ensemble, settings, harmonic_potential!, efield)
+end
+
+
+if abspath(PROGRAM_FILE) == @__FILE__
+    test_harmonic()
 end

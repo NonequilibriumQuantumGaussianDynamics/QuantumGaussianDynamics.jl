@@ -123,7 +123,7 @@ struct Dynamics{T <: AbstractFloat}
     save_correlators :: Bool 
     save_each :: Int64
 end
-Dynamics(dt, total_time, N; algorithm="generalized-verlet", kong_liu_ratio=1.0, verbose=true, evolve_correlators=true, seed=0, correlated=true, settings=GeneralSettings(), save_filename="dynamics", save_correlators=false, save_each=100) = Dynamics(dt, total_time, algorithm, kong_liu_ratio, verbose, evolve_correlators, seed, N, correlated, settings, save_filename, save_correlators, save_each)
+Dynamics(dt, total_time, N :: Int; algorithm="generalized-verlet", kong_liu_ratio=1.0, verbose=true, evolve_correlators=true, seed=0, correlated=true, settings=GeneralSettings(), save_filename="dynamics", save_correlators=false, save_each=100) = Dynamics(dt, total_time, algorithm, kong_liu_ratio, verbose, evolve_correlators, seed, N, correlated, settings, save_filename, save_correlators, save_each)
 
 
 @doc raw"""
@@ -207,6 +207,9 @@ function WignerDistribution(n_atoms; type = Float64, n_dims=3) :: WignerDistribu
                        cell = Matrix{type}(I, n_dims, n_dims), 
                        atoms = ["H" for i in 1:n_atoms])
 end
+get_ndims(rho :: WignerDistribution) = rho.n_modes ÷ rho.n_atoms
+
+
 
 Base.@kwdef mutable struct Ensemble{T <: AbstractFloat}
     rho0 :: WignerDistribution{T}
@@ -227,14 +230,24 @@ Base.@kwdef mutable struct Ensemble{T <: AbstractFloat}
 
     #unit_cell :: Matrix{T}
 end 
-function Ensemble(wigner_dist :: WignerDistribution{T}; n_configs :: Int =1; temperature :: Union{Quantity, T} = ) :: Ensemble{T}
+function Ensemble(wigner_dist :: WignerDistribution{T}, settings :: Dynamics; n_configs :: Int =1, temperature :: Union{Quantity, T} = T(0.0)) :: Ensemble{T} where T
     n_modes = wigner_dist.n_modes
     n_atoms = wigner_dist.n_atoms
     n_dims = n_modes ÷ n_atoms
 
     # Convert the temperature
     if temperature isa Quantity
-        temperture = ustrip(uconvert(u"K", temperature))
+        temperature = T(ustrip(uconvert(u"K", temperature)))
+    end
+
+    n_modes_y = n_modes
+    if !settings.correlated 
+        n_modes_y -= get_n_translations(wigner_dist.λs, settings.settings)
+    end
+
+    y0 = get_random_y(settings.N, n_modes_y, settings)
+    if !settings.correlated
+        y0 .*= 0
     end
 
     Ensemble(rho0 = wigner_dist,
@@ -246,9 +259,9 @@ function Ensemble(wigner_dist :: WignerDistribution{T}; n_configs :: Int =1; tem
              sscha_forces = zeros(T, n_modes, n_configs),
              n_configs = n_configs,
              weights = ones(T, n_configs),
-             temperature = temperature
+             temperature = temperature,
              correlated = true,
-             y0 = zeros(T, n_modes, n_configs))
+             y0 = y0)
 end
 
 
@@ -379,5 +392,8 @@ include("dynamics.jl")
 include("external_f.jl")
 
 include("UnitfulInterface.jl")
+
+
+export WignerDistribution
 
 end # module QuantumGaussianDynamics
