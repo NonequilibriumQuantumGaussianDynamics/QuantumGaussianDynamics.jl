@@ -126,8 +126,38 @@ end
 Dynamics(dt, total_time, N; algorithm="generalized-verlet", kong_liu_ratio=1.0, verbose=true, evolve_correlators=true, seed=0, correlated=true, settings=GeneralSettings(), save_filename="dynamics", save_correlators=false, save_each=100) = Dynamics(dt, total_time, algorithm, kong_liu_ratio, verbose, evolve_correlators, seed, N, correlated, settings, save_filename, save_correlators, save_each)
 
 
-"""
-Info about the wigner distribution
+@doc raw"""
+The WignerDistribution.
+
+It can be initialized either via a cellconstructor Phonon object using the
+method ``init_from_dyn``. Alternatively, one can initialize a generic one with the field
+
+    WignerDistribution(n_atoms; type = Float64, n_dims=3)
+
+The structure contains the following fields:
+
+    Base.@kwdef mutable struct WignerDistribution{T<: AbstractFloat}
+        R_av    :: Vector{T}
+        P_av    :: Vector{T}
+        masses  :: Vector{T}
+        n_atoms :: Int
+        n_modes :: Int
+        RR_corr :: Matrix{T}
+        PP_corr :: Matrix{T}
+        RP_corr :: Matrix{T}
+        alpha :: Matrix{T}
+        beta :: Matrix{T}
+        gamma   :: Matrix{T}
+        
+        settings :: GeneralSettings
+        λs :: Vector{T}
+        λs_vect :: Matrix{T}
+        evolve_correlators :: Bool
+        cell :: Matrix{T}
+        atoms :: Vector{String}
+    end
+
+
 
 Note that all the variable here are with a tilde (mass rescaled)
 So that we can use linear-algebra on them quickly.
@@ -158,6 +188,25 @@ Base.@kwdef mutable struct WignerDistribution{T<: AbstractFloat}
     cell :: Matrix{T}
     atoms :: Vector{String}
 end
+function WignerDistribution(n_atoms; type = Float64, n_dims=3) :: WignerDistribution{type}
+    WignerDistribution(R_av = zeros(type, n_atoms*n_dims), 
+                       P_av = zeros(type, n_atoms*n_dims), 
+                       masses = zeros(type, n_atoms), 
+                       n_atoms = n_atoms, 
+                       n_modes = n_atoms*n_dims, 
+                       RR_corr = zeros(type, n_atoms*n_dims, n_atoms*n_dims), 
+                       PP_corr = zeros(type, n_atoms*n_dims, n_atoms*n_dims), 
+                       RP_corr = zeros(type, n_atoms*n_dims, n_atoms*n_dims), 
+                       alpha = zeros(type, n_atoms*n_dims, n_atoms*n_dims), 
+                       beta = zeros(type, n_atoms*n_dims, n_atoms*n_dims), 
+                       gamma = zeros(type, n_atoms*n_dims, n_atoms*n_dims), 
+                       λs = zeros(type, n_atoms*n_dims), 
+                       λs_vect = zeros(type, n_atoms*n_dims, n_atoms*n_dims), 
+                       evolve_correlators = true, 
+                       settings = GeneralSettings(), 
+                       cell = Matrix{type}(I, n_dims, n_dims), 
+                       atoms = ["H" for i in 1:n_atoms])
+end
 
 Base.@kwdef mutable struct Ensemble{T <: AbstractFloat}
     rho0 :: WignerDistribution{T}
@@ -178,6 +227,31 @@ Base.@kwdef mutable struct Ensemble{T <: AbstractFloat}
 
     #unit_cell :: Matrix{T}
 end 
+function Ensemble(wigner_dist :: WignerDistribution{T}; n_configs :: Int =1; temperature :: Union{Quantity, T} = ) :: Ensemble{T}
+    n_modes = wigner_dist.n_modes
+    n_atoms = wigner_dist.n_atoms
+    n_dims = n_modes ÷ n_atoms
+
+    # Convert the temperature
+    if temperature isa Quantity
+        temperture = ustrip(uconvert(u"K", temperature))
+    end
+
+    Ensemble(rho0 = wigner_dist,
+             positions = zeros(T, n_modes, n_configs),
+             energies = zeros(T, n_configs),
+             forces = zeros(T, n_modes, n_configs),
+             stress = zeros(T, (n_dims * (n_dims+1))÷2, n_configs),
+             sscha_energies = zeros(T, n_configs),
+             sscha_forces = zeros(T, n_modes, n_configs),
+             n_configs = n_configs,
+             weights = ones(T, n_configs),
+             temperature = temperature
+             correlated = true,
+             y0 = zeros(T, n_modes, n_configs))
+end
+
+
 
 """
 Remove acoustic sum rule from eigenvalue and eigenvectors

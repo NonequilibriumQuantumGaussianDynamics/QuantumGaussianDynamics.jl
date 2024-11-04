@@ -11,18 +11,19 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
 
     if MPI.Initialized() == false
         for i in 1 : ensemble.n_configs
-            coords  = get_ase_positions(ensemble.positions[:,i] , ensemble.rho0.masses)
-            crystal.positions = coords
-            energy = crystal.get_potential_energy()
-            forces = crystal.get_forces()
-            stress = crystal.get_stress()
+            # coords  = get_ase_positions(ensemble.positions[:,i] , ensemble.rho0.masses)
+            # crystal.positions = coords
+            # energy = crystal.get_potential_energy()
+            @views energy = compute_configuration!(ensemble.forces[:,i], ensemble.stress[:,i], crystal, ensemble.positions[:,i], ensemble.rho0.masses)
+            # forces = crystal.get_forces()
+            # stress = crystal.get_stress()
 
-            forces = reshape(permutedims(forces), Int64(ensemble.rho0.n_modes))
-            forces = forces ./ sqrt.(ensemble.rho0.masses) .* CONV_RY ./CONV_BOHR
+            # forces = reshape(permutedims(forces), Int64(ensemble.rho0.n_modes))
+            # forces = forces ./ sqrt.(ensemble.rho0.masses) .* CONV_RY ./CONV_BOHR
 
-            ensemble.energies[i] = energy * CONV_RY
-            ensemble.forces[:,i] .= forces
-            ensemble.stress[:,i] .= stress
+            ensemble.energies[i] = energy # * CONV_RY
+            # ensemble.forces[:,i] .= forces
+            # ensemble.stress[:,i] .= stress
 
             if rank==0
                 println("0 Calculating configuration $i out of $(ensemble.n_configs) $(energy * CONV_RY)", )
@@ -95,7 +96,12 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
 
 end
 
-function get_classic_forces(wigner_distribution:: WignerDistribution{T}, crystal) where {T <: AbstractFloat}
+@doc raw"""
+    get_classic_forces(wigner_distribution:: WignerDistribution{T}, crystal) where {T}
+
+Return the forces on the average position of the wigner distribution
+"""
+function get_classic_forces(wigner_distribution:: WignerDistribution{T}, crystal) where {T }
 
         #println("Calculating configuration $i out of $(ensemble.n_configs)")
         coords  = get_ase_positions(wigner_distribution.R_av , wigner_distribution.masses)
