@@ -304,8 +304,9 @@ function update_weights!(ensemble:: Ensemble{T}, wigner_distribution :: WignerDi
     #wigner_distribution.λs .= λs 
     #wigner_distribution.λs_vect .= λs_vect
 
-    delta_new = zeros(T, wigner_distribution.n_atoms * 3)
-    delta_old = zeros(T, wigner_distribution.n_atoms * 3)
+    n_dims = get_ndims(wigner_distribution)
+    delta_new = zeros(T, wigner_distribution.n_atoms * n_dims)
+    delta_old = zeros(T, wigner_distribution.n_atoms * n_dims)
     u_new = zeros(T, length(wigner_distribution.λs))
     u_old = zeros(T, length(wigner_distribution.λs))
 
@@ -327,7 +328,7 @@ function update_weights!(ensemble:: Ensemble{T}, wigner_distribution :: WignerDi
     else
         @views for i = 1:ensemble.n_configs
             delta_new .=  ensemble.positions[:, i] .- wigner_distribution.R_av
-            delta_old .=  ensemble.positions[:, i] .- ensemble.rho0.R_av
+            @views delta_old .=  ensemble.positions[:, i] .- ensemble.rho0.R_av
             #println("delta ", wigner_distribution.R_av .-ensemble.rho0.R_av )
 
             u_new .= wigner_distribution.λs_vect' * delta_new 
@@ -378,30 +379,54 @@ function get_average_stress(ensemble :: Ensemble{T}, wigner :: WignerDistributio
    avg_str ./= Nw
 
    n_atoms = wigner.n_atoms
+   n_dims = get_ndims(wigner)
    du = similar(ensemble.positions)
-   for i in 1: n_atoms * 3
+   for i in 1: n_atoms * n_dims
         @views delta = ensemble.positions[i,:] .- wigner.R_av[i]
         delta .*= ensemble.weights
         du[i,:] .=  delta
    end
 
-   f_shape = reshape(ensemble.forces,(3,n_atoms,ensemble.n_configs))
-   du = reshape(du,(3,n_atoms,ensemble.n_configs))
+   f_shape = reshape(ensemble.forces,(n_dims,n_atoms,ensemble.n_configs))
+   du = reshape(du,(n_dims,n_atoms,ensemble.n_configs))
 
-   @views sxx = sum(f_shape[1,:,:].*du[1,:,:]) / Nw
-   @views syy = sum(f_shape[2,:,:].*du[2,:,:]) / Nw
-   @views szz = sum(f_shape[3,:,:].*du[3,:,:]) / Nw
-   @views syz = sum(f_shape[2,:,:].*du[3,:,:]) / Nw
-   @views sxz = sum(f_shape[1,:,:].*du[3,:,:]) / Nw
-   @views sxy = sum(f_shape[1,:,:].*du[2,:,:]) / Nw
-   @views szy = sum(f_shape[3,:,:].*du[2,:,:]) / Nw
-   @views szx = sum(f_shape[3,:,:].*du[1,:,:]) / Nw
-   @views syx = sum(f_shape[2,:,:].*du[1,:,:]) / Nw
+   stress_matrix = zeros(T, n_dims, n_dims)
+   for i in 1:n_dims
+       for j in 1:n_dims 
+           @views stress_matrix[i, j] = sum(f_shape[i,:,:].*du[j,:,:]) / Nw
+       end
+   end
+   # @views sxx = sum(f_shape[1,:,:].*du[1,:,:]) / Nw
+   # @views syy = sum(f_shape[2,:,:].*du[2,:,:]) / Nw
+   # @views szz = sum(f_shape[3,:,:].*du[3,:,:]) / Nw
+   # @views syz = sum(f_shape[2,:,:].*du[3,:,:]) / Nw
+   # @views sxz = sum(f_shape[1,:,:].*du[3,:,:]) / Nw
+   # @views sxy = sum(f_shape[1,:,:].*du[2,:,:]) / Nw
+   # @views szy = sum(f_shape[3,:,:].*du[2,:,:]) / Nw
+   # @views szx = sum(f_shape[3,:,:].*du[1,:,:]) / Nw
+   # @views syx = sum(f_shape[2,:,:].*du[1,:,:]) / Nw
+   #
+
+   delta_str = zeros(T, (n_dims * (n_dims+1))÷2)
+   for i in 1:n_dims
+       delta_str[i] = 2stress_matrix[i,i]
+   end
+   count = n_dims+1
+   for j in n_dims:-1:2
+       for k in j-1:-1:1
+           delta_str[count] = stress_matrix[j,k] + stress_matrix[k,j]
+           count += 1
+       end
+   end
 
    Vol = det(wigner.cell)
 
-   delta_str =  [2*sxx, 2*syy, 2*szz, syz+szy, sxz+szx, sxy+syx]
-   delta_str .*= (1) / 2.0 /Vol /CONV_RY *CONV_BOHR^3
+   #delta_str =  [2*sxx, 2*syy, 2*szz, syz+szy, sxz+szx, sxy+syx]
+   # TODO: Check the units
+   delta_str .*= (1) / 2.0 /Vol# /CONV_RY *CONV_BOHR^3
+
+
+   # TODO: Impose symmetries
 
    return avg_str.+delta_str
 

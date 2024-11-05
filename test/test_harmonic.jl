@@ -28,6 +28,16 @@ function test_harmonic()
                                                 algorithm = algorithm)
 
     wigner_dist = WignerDistribution(1; n_dims=1)
+    
+    # Generate a good initial distribution
+    wigner_dist.RR_corr .= 1/(2ω)
+    wigner_dist.PP_corr .= ω/2
+    wigner_dist.RP_corr .= 0.0
+    wigner_dist.R_av .= 0.0
+    wigner_dist.P_av .= 0.0
+    wigner_dist.masses .= [mass]
+    QuantumGaussianDynamics.update!(wigner_dist, settings)
+
     ensemble = QuantumGaussianDynamics.Ensemble(wigner_dist, settings; n_configs=100, temperature=0.0u"K")
     efield = QuantumGaussianDynamics.fake_field(1; ndims=1)
 

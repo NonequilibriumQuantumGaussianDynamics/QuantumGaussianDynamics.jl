@@ -124,6 +124,7 @@ struct Dynamics{T <: AbstractFloat}
     save_each :: Int64
 end
 Dynamics(dt, total_time, N :: Int; algorithm="generalized-verlet", kong_liu_ratio=1.0, verbose=true, evolve_correlators=true, seed=0, correlated=true, settings=GeneralSettings(), save_filename="dynamics", save_correlators=false, save_each=100) = Dynamics(dt, total_time, algorithm, kong_liu_ratio, verbose, evolve_correlators, seed, N, correlated, settings, save_filename, save_correlators, save_each)
+get_general_settings(x :: Dynamics) = x.settings
 
 
 @doc raw"""
@@ -394,6 +395,6 @@ include("external_f.jl")
 include("UnitfulInterface.jl")
 
 
-export WignerDistribution
+export WignerDistribution, get_general_settings
 
 end # module QuantumGaussianDynamics

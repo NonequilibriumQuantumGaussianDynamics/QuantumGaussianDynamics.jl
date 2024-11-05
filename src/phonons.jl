@@ -153,6 +153,18 @@ function displace_along_mode!(mod, eta, wigner, dyn)
 end
 
 
+function update!(wigner :: WignerDistribution, settings :: GeneralSettings)
+    println("RR corr = ", wigner.RR_corr)
+    lambda_eigen = eigen((wigner.RR_corr))
+    #println(" DEBUG λs = ", lambda_eigen.values)
+    λvects, λs = remove_translations(lambda_eigen.vectors, lambda_eigen.values, settings)
+    wigner.λs_vect = λvects
+    wigner.λs = λs
+end
+function update!(wigner :: WignerDistribution, settings :: Dynamics)
+    update!(wigner, get_general_settings(settings))
+end
+
 
     
 

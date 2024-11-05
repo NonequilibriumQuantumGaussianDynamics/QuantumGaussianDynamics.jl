@@ -80,14 +80,10 @@ Error, the selected algorithm $(settings.algorithm)
         # Classic integration (part 1)
         classic_evolution!(Rs, Ps, my_dt, tot_cl_for, 1)
 
-        # Update matrix and weights
-        lambda_eigen = eigen((wigner.RR_corr))
-        #println(" DEBUG λs = ", lambda_eigen.values)
-        λvects, λs = remove_translations(lambda_eigen.vectors, lambda_eigen.values, settings.settings)
-        wigner.λs_vect = λvects
-        wigner.λs = λs
+        # Update the eigenvalues of the Wigner matrix
+        update!(wigner, get_general_settings(settings))
 
-
+        # Update the stochastic weights
         update_weights!(ensemble, wigner)
         kl = get_kong_liu(ensemble)
         if rank == 0
