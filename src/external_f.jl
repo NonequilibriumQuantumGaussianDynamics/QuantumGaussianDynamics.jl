@@ -144,6 +144,10 @@ function get_external_forces(t::T, efield :: ElectricField{T}, wigner :: WignerD
     # efield.fun must be a function of t only
     n_dims = get_ndims(wigner)
 
+    # Check consistency of the electric field
+    n_dims_field = length(efield.edir)
+    @assert n_dims == n_dims_field "Electric field polarization must have the same number of dimensions as the system. ($n_dims != $n_dims_field)"
+
     efield_norm=norm(efield.edir)
     if abs(efield_norm -1) > SMALL_VALUE
         error("Electric field polarization must have norm 1, found $efield_norm")
@@ -160,10 +164,10 @@ function get_external_forces(t::T, efield :: ElectricField{T}, wigner :: WignerD
 
     for i in 1:nat
         start = n_dims*(i-1) +1
-        fin = start+2
+        fin = start+n_dims-1
 
         epsE = inv(efield.eps)*efield.edir
-        ZepsE  = efield.Zeff[start:fin,:]  * epsE
+        @views ZepsE  = efield.Zeff[start:fin,:]  * epsE
         forces[start:fin] .= ZepsE .* sqrt(2) ./sqrt(wigner.masses[n_dims*(i-1)+1]).* efield.fun(t)
     end
     return forces

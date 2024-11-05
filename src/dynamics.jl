@@ -4,7 +4,7 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
     t :: T = 0
     my_dt = settings.dt / CONV_FS # Convert to Rydberg units
 
-    nat3 = wigner.n_atoms* 3
+    nat3 = wigner.n_atoms * get_ndims(wigner)
 
     avg_for = zeros(T, nat3)
     d2v_dr2 = zeros(T, (nat3, nat3))
@@ -13,7 +13,14 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
     Ps = deepcopy(wigner.P_av)
 
     name = settings.save_filename*"$(settings.dt)-$(settings.total_time)-$(settings.N)"
-    rank  = MPI.Comm_rank(MPI.COMM_WORLD)
+
+    rank = 0
+    size = 1
+    if MPI.Initialized()
+        rank = MPI.Comm_rank(MPI.COMM_WORLD)
+        size = MPI.Comm_size(MPI.COMM_WORLD)
+    end
+
     file0 = init_file(name*".pos")
     file1 = init_file(name*".rho")
     file2 = init_file(name*".for")

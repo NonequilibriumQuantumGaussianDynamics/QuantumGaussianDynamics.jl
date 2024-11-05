@@ -113,6 +113,7 @@ Return the forces on the average position of the wigner distribution
 function get_classic_forces(wigner_distribution:: WignerDistribution{T}, crystal) where {T }
 
         #println("Calculating configuration $i out of $(ensemble.n_configs)")
+        n_dims = get_ndims(wigner_distribution)
         forces = zeros(T, wigner_distribution.n_modes)
         stress = zeros(T, (n_dims * (n_dims+1)) ÷ 2)
         compute_configuration!(forces, stress, crystal, wigner_distribution.R_av, wigner_distribution.masses)
@@ -366,17 +367,6 @@ function get_average_forces(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
    #avg_for ./= Float64(ensemble.n_configs)
    #avg_for ./= T(ensemble.n_configs)
    avg_for ./= sum(ensemble.weights)
-   """
-   comm = MPI.COMM_WORLD
-   rank = MPI.Comm_rank(comm)
-   if rank==0
-   println("forces ")
-   println(avg_for .* sqrt.(ensemble.rho0.masses) )
-   println("norm ")
-   println(norm(avg_for .* sqrt.(ensemble.rho0.masses)))
-   error()
-   end
-   """
    #println(avg_for .* sqrt.(ensemble.rho0.masses) .* CONV_BOHR ./CONV_RY)
 
 end
@@ -428,23 +418,29 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
     avg_for .= ensemble.forces * ensemble.weights
     avg_for ./= sum(ensemble.weights)
 
-    comm = MPI.COMM_WORLD
-    rank = MPI.Comm_rank(comm)
+    rank = 0 
+    psize = 1
+    if MPI.Initialized()
+        comm = MPI.COMM_WORLD
+        rank = MPI.Comm_rank(comm)
+        psize = MPI.Comm_size(comm)
+    end
+
     if rank==0
-    println("forces ")
-    println(avg_for[1,1]*sqrt(ensemble.rho0.masses[1]))
-    #display(avg_for .* sqrt.(ensemble.rho0.masses) )
-    println("norm ")
-    println(norm(avg_for .* sqrt.(ensemble.rho0.masses)))
-    println("max ")
-    println(maximum(avg_for .* sqrt.(ensemble.rho0.masses)))
+        println("forces ")
+        println(avg_for[1,1]*sqrt(ensemble.rho0.masses[1]))
+        #display(avg_for .* sqrt.(ensemble.rho0.masses) )
+        println("norm ")
+        println(norm(avg_for .* sqrt.(ensemble.rho0.masses)))
+        println("max ")
+        println(maximum(avg_for .* sqrt.(ensemble.rho0.masses)))
     end
 
     #t0 = time()
     delta = Vector{T}(undef, ensemble.n_configs)
     d2v_dr2_tmp = Matrix{T}(undef, length(wigner_distribution.λs), wigner_distribution.n_modes)
 
-    for i in 1: wigner_distribution.n_atoms * 3
+    for i in 1: wigner_distribution.n_modes
         delta .= ensemble.positions[i,:] .- wigner_distribution.R_av[i]
         delta .*= ensemble.weights
         d2v_dr2[i,:] .=  (ensemble.forces)  * delta   
@@ -454,6 +450,7 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
     #t1 = time()
     #println("time = ", t1-t0)
 
+    println(size(d2v_dr2_tmp), size(wigner_distribution.λs_vect), size(d2v_dr2))
     mul!(d2v_dr2_tmp, wigner_distribution.λs_vect' , d2v_dr2)
 
     d2v_dr2_tmp .= d2v_dr2_tmp ./ wigner_distribution.λs

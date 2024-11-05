@@ -43,17 +43,17 @@ end
 
 
 function write_file(file,line)
-    comm = MPI.COMM_WORLD
-    rank = MPI.Comm_rank(comm)
+    rank = 0
+    size = 1
+    if MPI.Initialized()
+        comm = MPI.COMM_WORLD
+        rank = MPI.Comm_rank(comm)
+        size = MPI.Comm_size(comm)
+    end
 
-    if MPI.Initialized() == false
-        write(file, line)
+    if rank == 0
+        write(file, line) 
         flush(file)
-    else
-        if rank == 0
-            write(file, line) 
-            flush(file)
-        end
     end
 end
 
