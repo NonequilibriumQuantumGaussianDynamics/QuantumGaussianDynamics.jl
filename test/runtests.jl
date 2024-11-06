@@ -6,3 +6,8 @@ using QuantumGaussianDynamics
     include("test_rr_corr.jl")
     test_corr_rr_generate()
 end
+
+@testset "1D harmonic oscillator" begin 
+    include("test_harmonic.jl")
+    test_harmonic()
+end
