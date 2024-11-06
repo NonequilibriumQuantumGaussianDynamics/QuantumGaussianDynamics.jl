@@ -110,12 +110,14 @@ function generalized_verlet_step!(wigner :: WignerDistribution{T}, dt :: T, avg_
         wigner.P_av .+= @. 1/2.0 * avg_for * dt
 
         tmp_d2v_mul = similar(d2V_dr2)
-        println("RR corr ", wigner.RR_corr)
-        println("d2V_dr2 ", d2V_dr2)
+        # println("RR corr ", wigner.RR_corr)
+        # println("RP corr ", wigner.RP_corr)
+        # println("PP corr ", wigner.PP_corr)
+        # println("d2V_dr2 ", d2V_dr2)
         mul!(tmp_d2v_mul, wigner.RR_corr, d2V_dr2)  # calculate <RR><d2V>
-        println("tmp_d2v_mul ", tmp_d2v_mul)
+        # println("tmp_d2v_mul ", tmp_d2v_mul)
         wigner.RR_corr .+= @. (wigner.RP_corr + wigner.RP_corr')*dt - (tmp_d2v_mul + tmp_d2v_mul')*dt^2/2.0 + wigner.PP_corr * dt^2
-        println("RR corr ", wigner.RR_corr)
+        # println("RR corr ", wigner.RR_corr)
 
         RP_copy = copy(wigner.RP_corr)
         wigner.RP_corr .+= @. 1/2.0 * (wigner.PP_corr - tmp_d2v_mul) *dt

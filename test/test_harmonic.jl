@@ -14,7 +14,6 @@ function harmonic_potential!(forces, stress, positions)
         forces[i] = -mass * ω^2 * (positions[i] - x0)
         energy += 0.5 * mass * ω^2 * (positions[i] - x0)^2
     end
-    println("pos: $positions ; computed forces: ", forces)
     return energy
 end
 
@@ -22,9 +21,9 @@ end
 function test_harmonic()
 
     algorithm = "generalized-verlet"
-    dt = 0.1u"fs"
-    total_time = 100.0u"fs"
-    N_configs = 1000
+    dt = 0.01u"fs"
+    total_time = 10.0u"fs"
+    N_configs = 10000
 
     # We do not want ASR to be imposed
     settings = QuantumGaussianDynamics.Dynamics(dt, total_time, N_configs;
@@ -36,7 +35,7 @@ function test_harmonic()
     
     # Generate a good initial distribution
     wigner_dist.RR_corr .= 1/(2ω)
-    wigner_dist.PP_corr .= ω/2
+    wigner_dist.PP_corr .= ω^2 * wigner_dist.RR_corr
     wigner_dist.RP_corr .= 0.0
     wigner_dist.R_av .= 0.0
     wigner_dist.P_av .= 0.0
@@ -49,9 +48,9 @@ function test_harmonic()
     QuantumGaussianDynamics.generate_ensemble!(N_configs, ensemble, wigner_dist)
     QuantumGaussianDynamics.calculate_ensemble!(ensemble, harmonic_potential!)
 
-    # Check if the <x^2> coincides with the expected value
-
     QuantumGaussianDynamics.integrate!(wigner_dist, ensemble, settings, harmonic_potential!, efield)
+
+    @test wigner_dist.RR_corr[1,1] ≈ 1/(2ω) rtol = 1e-2
 end
 
 

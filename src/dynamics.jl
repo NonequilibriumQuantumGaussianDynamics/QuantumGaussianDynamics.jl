@@ -96,6 +96,7 @@ Error, the selected algorithm $(settings.algorithm)
 
         println("R_av ", wigner.R_av)
         println("P_av ", wigner.P_av)
+        println("dt = $my_dt - dt^2 = $(my_dt^2)")
 
         # Update the eigenvalues of the Wigner matrix
         update!(wigner, get_general_settings(settings))

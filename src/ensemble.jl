@@ -42,19 +42,22 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
     #         """
     #     end
     # else
+
+    n_dim = get_ndims(ensemble.rho0)
+    n_stress = (n_dim * (n_dim+1)) ÷ 2
+
     start_per_proc, end_per_proc = parallel_force_distribute(ensemble.n_configs)
     nconf_proc = end_per_proc[rank+1] - start_per_proc[rank+1] + 1
     energy_vect = Vector{Float64}(undef,nconf_proc)
     force_array = Matrix{Float64}(undef,Int64(ensemble.rho0.n_modes),nconf_proc)
-    stress_array = Matrix{Float64}(undef,6,nconf_proc)
+    stress_array = Matrix{Float64}(undef, n_stress,nconf_proc)
 
     #for i in 1 : ensemble.n_configs
 
     for i in start_per_proc[rank+1]: end_per_proc[rank+1]
-        if rank == 0
-            println("Calculating configuration $i out of $(ensemble.n_configs)")
-            println("positions ", ensemble.positions[:,i])
-        end
+        # if rank == 0
+        #     println("Calculating configuration $i out of $(ensemble.n_configs)")
+        # end
         # coords  = get_ase_positions(ensemble.positions[:,i] , ensemble.rho0.masses)
         # crystal.positions = coords
         # energy = crystal.get_potential_energy()
@@ -65,7 +68,6 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
         # forces = forces ./ sqrt.(ensemble.rho0.masses) .* CONV_RY ./CONV_BOHR
 
         ind = i - start_per_proc[rank+1] + 1
-        println("i = $i; ind = $ind ")
         @views energy_vect[ind] = compute_configuration!(force_array[:,ind], stress_array[:,ind], crystal, ensemble.positions[:,ind], ensemble.rho0.masses; n_dims = get_ndims(ensemble.rho0))
 
         # energy_vect[ind] = energy * CONV_RY
@@ -79,14 +81,14 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
     for i in 1:sizep
         energy_length[i] = end_per_proc[i] - start_per_proc[i] + 1
         force_length[i] = (end_per_proc[i] - start_per_proc[i] + 1)*Int32(ensemble.rho0.n_modes)
-        stress_length[i] = (end_per_proc[i] - start_per_proc[i] + 1) *6
+        stress_length[i] = (end_per_proc[i] - start_per_proc[i] + 1) *n_stress
     end
     if MPI.Initialized()
         tot_energies = MPI.Allgatherv(energy_vect,energy_length, comm)
         tot_forces = MPI.Allgatherv(force_array,force_length, comm)
         tot_stress = MPI.Allgatherv(stress_array, stress_length, comm)
         tot_forces = reshape(tot_forces,(Int32(ensemble.rho0.n_modes),ensemble.n_configs))
-        tot_stress = reshape(tot_stress,(6,ensemble.n_configs))
+        tot_stress = reshape(tot_stress,(n_stress,ensemble.n_configs))
     else
         tot_energies = energy_vect
         tot_forces = force_array
@@ -95,6 +97,7 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
 
     ensemble.energies .= tot_energies
     ensemble.forces .= tot_forces
+    println(size(tot_stress), size(ensemble.stress))
     ensemble.stress .= tot_stress
     """
     check_energy = ensemble.energies .- tot_energies
@@ -271,10 +274,12 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
         ensemble.energies .= 0 
         ensemble.sscha_energies .= 0
     else
+        n_dims = get_ndims(wigner_distribution)
+        n_stress = (n_dims * (n_dims+1)) ÷ 2
         ensemble.weights = ones(T, N)
         ensemble.rho0 = deepcopy(wigner_distribution)
         ensemble.forces  = zeros(T, (wigner_distribution.n_modes, N))
-        ensemble.stress  = zeros(T, (6, N))
+        ensemble.stress  = zeros(T, (n_stress, N))
         ensemble.sscha_forces = zeros(T, (wigner_distribution.n_modes, N))
         ensemble.energies = zeros(T, N)
         ensemble.sscha_energies = zeros(T, N)
@@ -466,10 +471,10 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
     end
 
     if rank==0
-        println("weights ", ensemble.weights)
-        println("forces ", ensemble.forces)
-        println("positions ", ensemble.positions)
-        println("y0 ", ensemble.y0)
+        # println("weights ", ensemble.weights)
+        # println("forces ", ensemble.forces)
+        # println("positions ", ensemble.positions)
+        # println("y0 ", ensemble.y0)
         println("avg forces ", avg_for)
         println("forces ")
         println(avg_for[1,1]*sqrt(ensemble.rho0.masses[1]))
