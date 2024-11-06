@@ -62,13 +62,25 @@ Base.@kwdef mutable struct ElectricField{T <: AbstractFloat}
     eps :: Matrix{T}
 end
 
-struct GeneralSettings{T}
+abstract type GeneralSettings end
+mutable struct ASR{T} <: GeneralSettings
     #evolve_correlators :: Bool
     ignore_small_w :: Bool
     small_w_value :: T
+    n_dims :: Int   
 end
-GeneralSettings(; ignore_small_w=false,
-               small_w_value=1e-8) = GeneralSettings(ignore_small_w, small_w_value)
+ASR(; ignore_small_w=false,
+   small_w_value=1e-8, n_dims=3) = GeneralSettings(ignore_small_w, small_w_value, n_dims)
+
+@doc raw"""
+    NoASR()
+
+A settings to avoid alltogether the ASR.
+"""
+struct NoASR <: GeneralSettings
+    n_dims :: Int
+end 
+NoASR() = NoASR(3)
 
 
 @doc raw"""
@@ -81,7 +93,7 @@ GeneralSettings(; ignore_small_w=false,
         evolve_correlators:: Bool = true,
         seed:: Int = 0,
         evolve_correlated:: Bool = true,
-        settings:: GeneralSettings = GeneralSettings(),
+        settings:: GeneralSettings = ASR(),
         save_filename:: String = "dynamics",
         save_correlators:: Bool = false,
         save_each:: Int=100)
@@ -123,7 +135,7 @@ struct Dynamics{T <: AbstractFloat}
     save_correlators :: Bool 
     save_each :: Int64
 end
-Dynamics(dt, total_time, N :: Int; algorithm="generalized-verlet", kong_liu_ratio=1.0, verbose=true, evolve_correlators=true, seed=0, correlated=true, settings=GeneralSettings(), save_filename="dynamics", save_correlators=false, save_each=100) = Dynamics(dt, total_time, algorithm, kong_liu_ratio, verbose, evolve_correlators, seed, N, correlated, settings, save_filename, save_correlators, save_each)
+Dynamics(dt, total_time, N :: Int; algorithm="generalized-verlet", kong_liu_ratio=1.0, verbose=true, evolve_correlators=true, seed=0, correlated=true, settings=ASR(;n_dims = 3), save_filename="dynamics", save_correlators=false, save_each=100) = Dynamics(dt, total_time, algorithm, kong_liu_ratio, verbose, evolve_correlators, seed, N, correlated, settings, save_filename, save_correlators, save_each)
 get_general_settings(x :: Dynamics) = x.settings
 
 
@@ -180,7 +192,7 @@ Base.@kwdef mutable struct WignerDistribution{T<: AbstractFloat}
     beta :: Matrix{T}
     gamma   :: Matrix{T}
     
-    settings :: GeneralSettings
+    # settings :: GeneralSettings
 
     # Eigenvalues and eigenvectors of the current Y matrix 
     λs :: Vector{T}
@@ -204,7 +216,7 @@ function WignerDistribution(n_atoms; type = Float64, n_dims=3) :: WignerDistribu
                        λs = zeros(type, n_atoms*n_dims), 
                        λs_vect = zeros(type, n_atoms*n_dims, n_atoms*n_dims), 
                        evolve_correlators = true, 
-                       settings = GeneralSettings(), 
+                       #settings = ASR(;n_dims = n_dims), 
                        cell = Matrix{type}(I, n_dims, n_dims), 
                        atoms = ["H" for i in 1:n_atoms])
 end
@@ -247,9 +259,9 @@ function Ensemble(wigner_dist :: WignerDistribution{T}, settings :: Dynamics; n_
     end
 
     y0 = get_random_y(settings.N, n_modes_y, settings)
-    if !settings.correlated
-        y0 .*= 0
-    end
+    # if !settings.correlated
+    #     y0 .*= 0
+    # end
 
     Ensemble(rho0 = wigner_dist,
              positions = zeros(T, n_modes, n_configs),
@@ -291,7 +303,7 @@ function remove_translations(vectors, values, thr)
 
     return new_vectors, new_values
 end
-function remove_translations(vectors, values)
+function remove_translations(vectors, values; ndims=3)
 
 #    if sum(.!not_trans_mask) != 3
 #        println("WARNING")
@@ -306,8 +318,8 @@ function remove_translations(vectors, values)
 
     #new_values = values[ not_trans_mask ]
     #new_vectors = vectors[:, not_trans_mask]
-    new_values = values[4:end]
-    new_vectors = vectors[:,4:end]
+    new_values = values[ndims+1:end]
+    new_vectors = vectors[:,ndims+1:end]
 
     return new_vectors, new_values
 end
@@ -317,15 +329,19 @@ function remove_translations(vectors, values, settings :: GeneralSettings)
 		return remove_translations(vectors, values, settings.small_w_value)
 	end
 	
-	return remove_translations(vectors, values)
+	return remove_translations(vectors, values; ndims = settings.n_dims)
 end
+remove_translations(vect, val, settings :: NoASR) = (vect, val)
+
 #function get_n_translations(w_total :: Vector{T<: AbstractFloat}, settings :: GeneralSettings)
-function get_n_translations(w_total, settings:: GeneralSettings)
+function get_n_translations(w_total, settings:: GeneralSettings) :: Int
 	if settings.ignore_small_w
 		return length(w_total[w_total .< settings.small_w_value])
 	end
-	return 3
+	return settings.n_dims
 end
+get_n_translations(w_total, settings :: NoASR) = 0
+
 
 
 """
@@ -395,6 +411,7 @@ include("external_f.jl")
 include("UnitfulInterface.jl")
 
 
-export WignerDistribution, get_general_settings
+export WignerDistribution, get_general_settings,
+       NoASR, ASR
 
 end # module QuantumGaussianDynamics

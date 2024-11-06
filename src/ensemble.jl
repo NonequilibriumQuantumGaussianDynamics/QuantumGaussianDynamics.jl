@@ -53,6 +53,7 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
     for i in start_per_proc[rank+1]: end_per_proc[rank+1]
         if rank == 0
             println("Calculating configuration $i out of $(ensemble.n_configs)")
+            println("positions ", ensemble.positions[:,i])
         end
         # coords  = get_ase_positions(ensemble.positions[:,i] , ensemble.rho0.masses)
         # crystal.positions = coords
@@ -64,7 +65,8 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
         # forces = forces ./ sqrt.(ensemble.rho0.masses) .* CONV_RY ./CONV_BOHR
 
         ind = i - start_per_proc[rank+1] + 1
-        @views energy_vect[ind] = compute_configuration!(force_array[:,ind], stress_array[:,ind], crystal, ensemble.positions[:,i], ensemble.rho0.masses)
+        println("i = $i; ind = $ind ")
+        @views energy_vect[ind] = compute_configuration!(force_array[:,ind], stress_array[:,ind], crystal, ensemble.positions[:,ind], ensemble.rho0.masses; n_dims = get_ndims(ensemble.rho0))
 
         # energy_vect[ind] = energy * CONV_RY
         # force_array[:,ind] .= forces
@@ -200,17 +202,20 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
         if ensemble.correlated
             sqrt_RR = wigner_distribution.λs_vect * Diagonal(sqrt.(wigner_distribution.λs)) * wigner_distribution.λs_vect'
 
+            println("Generating √RR = ", sqrt_RR)
+            println("λ = ", wigner_distribution.λs)
+            println("eigen vect λ = ", wigner_distribution.λs_vect)
             if old_N==N
                 @views mul!(ensemble.positions[:,1:N2], sqrt_RR , ensemble.y0)
                 @views ensemble.positions[:,N2+1:end] .= .-ensemble.positions[:,1:N2]
                 ensemble.positions .+= wigner_distribution.R_av
             else
-                new_positions = Matrix{T}(undef, wigner_distribution.n_modes, N)
-                println(size(new_positions), size(sqrt_RR), size(ensemble.y0))
-                @views mul!(new_positions[:,1:N2], sqrt_RR , ensemble.y0)
-                @views new_positions[:,N2+1:end] .= -new_positions[:,1:N2]
-                new_positions[:,:] .+= wigner_distribution.R_av
-                ensemble.positions = new_positions
+                ensemble.positions = Matrix{T}(undef, wigner_distribution.n_modes, N)
+                #println(size(new_positions), size(sqrt_RR), size(ensemble.y0))
+                @views mul!(ensemble.positions[:,1:N2], sqrt_RR , ensemble.y0)
+                @views ensemble.positions[:,N2+1:end] .= -ensemble.positions[:,1:N2]
+                ensemble.positions .+= wigner_distribution.R_av
+                #ensemble.positions = new_positions
             end
         else
             ymu_i = randn(T, (N_modes, N2))
@@ -433,13 +438,22 @@ function get_average_stress(ensemble :: Ensemble{T}, wigner :: WignerDistributio
 end
 
 
-"""
-Evaluate the average force and d2v_dr2 from the ensemble and the wigner distribution.
+@doc raw"""
+    get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
 
+Evaluate the average force and d2v_dr2 from the ensemble and the wigner distribution.
 The weights on the ensemble should have been already updated.
+
+The averages are computed with the function
+
+$$
+\left<\frac{d^2V}{dR_adR_b}\right> = -\sum_c\Psi^{-1}_{ac} \left<(R_c - R^{(0)}_c)f_b\right> \right>
+$$
+
+TODO: Improve the stochastic accuracy using f - f_scha instead of just f, and adding back the analytical quantity.
+Which is exactly the Φ matrix.
 """
 function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
-
     avg_for .= ensemble.forces * ensemble.weights
     avg_for ./= sum(ensemble.weights)
 
@@ -452,6 +466,11 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
     end
 
     if rank==0
+        println("weights ", ensemble.weights)
+        println("forces ", ensemble.forces)
+        println("positions ", ensemble.positions)
+        println("y0 ", ensemble.y0)
+        println("avg forces ", avg_for)
         println("forces ")
         println(avg_for[1,1]*sqrt(ensemble.rho0.masses[1]))
         #display(avg_for .* sqrt.(ensemble.rho0.masses) )
@@ -466,7 +485,7 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
     d2v_dr2_tmp = Matrix{T}(undef, length(wigner_distribution.λs), wigner_distribution.n_modes)
 
     for i in 1: wigner_distribution.n_modes
-        delta .= ensemble.positions[i,:] .- wigner_distribution.R_av[i]
+        @views delta .= ensemble.positions[i,:] .- wigner_distribution.R_av[i]
         delta .*= ensemble.weights
         d2v_dr2[i,:] .=  (ensemble.forces)  * delta   
     end
@@ -475,14 +494,27 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
     #t1 = time()
     #println("time = ", t1-t0)
 
-    println(size(d2v_dr2_tmp), size(wigner_distribution.λs_vect), size(d2v_dr2))
+    println("<uf> = ", d2v_dr2)
+
+    # Compute the Ψ^{-1} multiplication : Ψ^{-1} * <u f>
+    # This is performed exploiting the spectal decomposition of Ψ in the λ eigenvalues
+
+    #println(size(d2v_dr2_tmp), size(wigner_distribution.λs_vect), size(d2v_dr2))
     mul!(d2v_dr2_tmp, wigner_distribution.λs_vect' , d2v_dr2)
 
-    d2v_dr2_tmp .= d2v_dr2_tmp ./ wigner_distribution.λs
-
+    # The following is quite difficult to understand. Probably good but not given.
+    # d2v_dr2_tmp .= d2v_dr2_tmp ./ wigner_distribution.λs
+    # We rewrite in this way which is easier to understand
+    @simd for i in 1:wigner_distribution.n_modes
+        d2v_dr2_tmp[:, i] ./= wigner_distribution.λs
+    end
+    
     mul!(d2v_dr2, wigner_distribution.λs_vect , d2v_dr2_tmp)
 
+    println("Y <uf>", d2v_dr2)
 
+
+    # Impose hermitianity
     d2v_dr2 .+= d2v_dr2'
     d2v_dr2 ./= (-2.0)
     #println("fc ")

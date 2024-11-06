@@ -39,6 +39,12 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
 
     tot_for = avg_for .+ ext_for
     tot_cl_for = cl_for .+ ext_for
+
+    println("Forces ", tot_for)
+    println("Classic forces ", tot_cl_for)
+    println("External forces ", ext_for)
+    println("D2V_DR2 ", d2v_dr2)
+
     
     # Impose symmetries
     if !isempty(symmetry_group)
@@ -46,6 +52,14 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
         symmetry_group.symmetrize_vector!(tot_cl_for)
         symmetry_group.symmetrize_fc!(d2v_dr2)
     end
+
+    println("After symmetries")
+    println("Forces ", tot_for)
+    println("Classic forces ", tot_cl_for)
+    println("External forces ", ext_for)
+    println("D2V_DR2 ", d2v_dr2)
+
+
 
 
     # Integrate
@@ -80,6 +94,9 @@ Error, the selected algorithm $(settings.algorithm)
         # Classic integration (part 1)
         classic_evolution!(Rs, Ps, my_dt, tot_cl_for, 1)
 
+        println("R_av ", wigner.R_av)
+        println("P_av ", wigner.P_av)
+
         # Update the eigenvalues of the Wigner matrix
         update!(wigner, get_general_settings(settings))
 
@@ -106,6 +123,7 @@ Error, the selected algorithm $(settings.algorithm)
         tot_for = avg_for .+ ext_for
         tot_cl_for = cl_for .+ ext_for
 
+        
         # Impose symmetries
         if !isempty(symmetry_group)
             symmetry_group.symmetrize_vector!(tot_for)
@@ -149,7 +167,7 @@ Error, the selected algorithm $(settings.algorithm)
                     line *= "  $(wigner.P_av[i]*sqrt(wigner.masses[i])) "
                 end
                 if rank==0
-                    println("Total energy ", total_energy)
+                    println("! $t $(wigner.R_av) $(wigner.P_av) $(wigner.masses) $total_energy")
                 end
                 line *= " $total_energy"
                 line *= "\n"
@@ -211,7 +229,7 @@ Error, the selected algorithm $(settings.algorithm)
 
 
                 line = ""
-                for i in 1:6
+                for i in 1:nat3 * (nat3+1) ÷ 2
                     line *= " $(avg_stress[i]) "
                 end
                 line *= "\n"

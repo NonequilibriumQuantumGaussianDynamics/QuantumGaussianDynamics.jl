@@ -98,7 +98,7 @@ function compute_configuration!(forces :: AbstractVector{T}, stress :: AbstractV
 
     return energy
 end
-function compute_configuration!(forces :: AbstractVector{T}, stress :: AbstractVector{T}, calculator :: Function, positions :: AbstractVector{T}, masses; cache=nothing, n_dims = 3) :: T where T
+function compute_configuration!(forces :: AbstractVector{T}, stress :: AbstractVector{T}, calculator! :: Function, positions :: AbstractVector{T}, masses; cache=nothing, n_dims = 3) :: T where T
     nat = length(forces) ÷ n_dims
 
     if cache == nothing
@@ -110,6 +110,6 @@ function compute_configuration!(forces :: AbstractVector{T}, stress :: AbstractV
         cache[i] /= sqrt(masses[i])
     end
 
-    return calculator(forces, stress, cache)
+    return calculator!(forces, stress, cache)
 end
 
