@@ -12,15 +12,60 @@ function harmonic_calculator!(forces, stress, positions)
     energy = 0 
     stress .= 0.0
     ω = [ω1, ω2, ω3]
-    @simd for i in 1:3
-        pos = positions[i] * aunit(u"m")
-        forces[i] = -ustrip(auconvert(mass * ω[i]^2 * pos))
-        energy += 0.5 * ustrip(auconvert(mass * ω[i]^2 * pos^2))
+    k = ustrip.(auconvert.(mass * ω.^2))
+    @simd for i in 1:length(positions)
+        forces[i] = -k[i] * positions[i]
+        energy += 0.5 * k[i] * positions[i]^2
     end
     return energy
 end
 
 @pyimport ase
+
+
+function test_compute_force_ase()
+    # Import a local python module
+    pushfirst!(PyVector(pyimport("sys")."path"), @__DIR__)
+    ase_calc_module = pyimport("test_ase_calculator")
+
+    # Convert the force constant in ASE units
+    k1 = uconvert(u"eV/Å^2", ω1^2 * mass)
+    k2 = uconvert(u"eV/Å^2", ω2^2 * mass)
+    k3 = uconvert(u"eV/Å^2", ω3^2 * mass)
+
+
+    py_calc = ase_calc_module.Harmonic3D(ustrip(k1), 
+                                         ustrip(k2), 
+                                         ustrip(k3))
+
+    wigner = WignerDistribution(1; n_dims=3)
+
+    wigner.masses .= ustrip(auconvert(mass))
+    wigner.atoms .= "H"
+
+    calculator = QuantumGaussianDynamics.init_calculator(py_calc, wigner, ase.Atoms)
+
+    # Get a random position
+    pos = ustrip(auconvert(1.0u"Å"))
+    positions = [pos, pos, pos] .* √(ustrip(auconvert(mass)))
+    forces_ase = zeros(Float64, 3)
+    forces_jl = similar(forces_ase)
+    stress = zeros(Float64, 6)
+
+    energy_ase = QuantumGaussianDynamics.compute_configuration!(forces_ase, stress, calculator, positions, wigner.masses)
+    energy_jl = QuantumGaussianDynamics.compute_configuration!(forces_jl, stress, harmonic_calculator!, positions, wigner.masses)
+
+    println("Energy ASE: ", energy_ase)
+    println("Forces ASE: ", forces_ase)
+    println("Energy JL: ", energy_jl)
+    println("Forces JL: ", forces_jl)
+
+    @test energy_ase ≈ energy_jl rtol = 1e-4
+    for i in 1:3
+        @test forces_ase[i] ≈ forces_jl[i] rtol = 1e-4
+    end
+end
+
 
 function test_ase_calculator_harmonic()
     # Import a local python module
@@ -46,7 +91,9 @@ function test_ase_calculator_harmonic()
     settings = QuantumGaussianDynamics.Dynamics(dt, total_time, N_configs;
                                                 algorithm = algorithm,
                                                 settings = NoASR(),
-                                                save_filename="python_ase")
+                                                save_filename="python_ase",
+                                                save_each=1)
+                                               
 
 
     wigner = WignerDistribution(1; n_dims=3)
@@ -94,7 +141,8 @@ function test_julia_harmonic3d()
     settings = QuantumGaussianDynamics.Dynamics(dt, total_time, N_configs;
                                                 algorithm = algorithm,
                                                 settings = NoASR(),
-                                                save_filename = "julia")
+                                                save_filename = "julia",
+                                                save_each=1)
 
 
     wigner = WignerDistribution(1; n_dims=3)
@@ -131,6 +179,8 @@ end
 
 
 if abspath(PROGRAM_FILE) == @__FILE__
+    test_compute_force_ase()
+
     wj = test_julia_harmonic3d()
     wp = test_ase_calculator_harmonic()
 

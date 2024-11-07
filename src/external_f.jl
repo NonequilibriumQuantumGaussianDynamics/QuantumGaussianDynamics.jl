@@ -127,9 +127,9 @@ where $A$ is the electric field amplitude (Compatible with V/m units),
 """
 function single_cycle_pulse(t :: Real, A :: Quantity, σ :: Quantity, t0 :: Quantity)
     # Convert to Hartree atomic units and rescale energy to mHa
-    A = ustrip(auconvert(A)) * 1000 # Ha to mHa
-    σ = ustrip(auconvert(σ)) / 1000
-    t0 = ustrip(auconvert(t0)) / 1000
+    A = ustrip(auconvert(A)) 
+    σ = ustrip(auconvert(σ)) 
+    t0 = ustrip(auconvert(t0))
 
     single_cycle_pulse(t, A, σ, t0)
 end

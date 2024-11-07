@@ -20,18 +20,20 @@ include("parallel.jl")
 """
 Some guide on the units
 
-We adopt Hartree atomic units, where the energy is expressed in mHa (convenient for phonons).
-Therefore each derived units (like forces and times) are appropriately rescaled.
+We adopt Ha atomic units
+Note the following units are all in Hartree. 
 """
 
 const SMALL_VALUE :: Float64 = 1e-8
 const THR_ACOUSTIC :: Float64 = 1e-1
-const CONV_FS :: Float64 = 0.048377687 # to femtoseconds
-const CONV_RY :: Float64 = 0.0734985857 # eV to Ry
+const CONV_FS :: Float64 = 0.02418884326576744 #0.048377687 # to femtoseconds
+const CONV_RY :: Float64 = 0.036749322175518594 # 0.0734985857 # eV to Ry
 const CONV_BOHR :: Float64 = 1.8897261246257702 # Angstrom to Bohr
-const CONV_MASS :: Float64 = 911.444175 # amu to kg
-const CONV_EFIELD :: Float64 = 2.7502067*1e-7 #kVcm to E_Ry
-const CONV_FREQ :: Float64 = 4.83776857*1e-5 #THz to w_Ry
+const CONV_MASS :: Float64 = 1822.888486217313 # 2*911.444175 # amu to me
+const CONV_EFIELD :: Float64 = 1.9446903811416696e-7# 2.7502067*1e-7 #kVcm to E_Ry
+const CONV_FREQ :: Float64 = 2.418884326576744e-5# 4.83776857*1e-5 #THz to frequency in ν_Ha
+# NOTE: CONV_FREQ does not incorporate a 2π factor which is expicitly
+# inside the file external_f to go into a ω.
 
 export SMALL_VALUE
 export CONV_FS
