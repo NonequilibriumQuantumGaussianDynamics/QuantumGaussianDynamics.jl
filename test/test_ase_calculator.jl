@@ -185,9 +185,9 @@ if abspath(PROGRAM_FILE) == @__FILE__
     wp = test_ase_calculator_harmonic()
 
     for i in 1:3
-        @test wj.RR_corr[i,i] ≈ wp.RR_corr[i,i] rtol = 1e-1
-        @test wj.R_av[i] ≈ wp.R_av[i] rtol = 1e-1
-        @test wj.P_av[i] ≈ wp.P_av[i] rtol = 1e-1
+        @test wj.RR_corr[i,i] ≈ wp.RR_corr[i,i] rtol = 5e-2
+        @test wj.R_av[i] ≈ wp.R_av[i] rtol = 5e-2
+        @test wj.P_av[i] ≈ wp.P_av[i] rtol = 5e-2
     end
 end
 
