@@ -5,7 +5,7 @@ using Unitful, UnitfulAtomic
 
 const x0 = 0.1
 const ω = 1.0
-const mass = 1.0
+const mass = 2.0
 
 function harmonic_potential!(forces, stress, positions)
     energy = 0 

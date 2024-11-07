@@ -2,7 +2,7 @@ using Test
 using QuantumGaussianDynamics
 using Unitful, UnitfulAtomic
 
-const mass = 1.0
+const mass = 2.0
 const ω = 2.0
 const x0 = 0.5
 
@@ -59,8 +59,8 @@ function test_corr_rr_generate()
     d2v_dr2 = zeros(Float64, 1, 1)
     QuantumGaussianDynamics.get_averages!(avg_for, d2v_dr2, ensemble, wigner_dist)
 
-
-    @test d2v_dr2[1,1] ≈ mass * ω^2  rtol = 5e-2
+    # It is mass-rescaled so it does not account for the mass dependency
+    @test d2v_dr2[1,1] ≈ ω^2  rtol = 5e-2
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__

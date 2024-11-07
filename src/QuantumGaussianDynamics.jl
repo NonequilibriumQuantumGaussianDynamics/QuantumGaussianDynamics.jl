@@ -70,7 +70,7 @@ mutable struct ASR{T} <: GeneralSettings
     n_dims :: Int   
 end
 ASR(; ignore_small_w=false,
-   small_w_value=1e-8, n_dims=3) = GeneralSettings(ignore_small_w, small_w_value, n_dims)
+   small_w_value=1e-8, n_dims=3) = ASR(ignore_small_w, small_w_value, n_dims)
 
 @doc raw"""
     NoASR()
@@ -204,7 +204,7 @@ end
 function WignerDistribution(n_atoms; type = Float64, n_dims=3) :: WignerDistribution{type}
     WignerDistribution(R_av = zeros(type, n_atoms*n_dims), 
                        P_av = zeros(type, n_atoms*n_dims), 
-                       masses = zeros(type, n_atoms), 
+                       masses = zeros(type, n_atoms*n_dims), 
                        n_atoms = n_atoms, 
                        n_modes = n_atoms*n_dims, 
                        RR_corr = zeros(type, n_atoms*n_dims, n_atoms*n_dims), 
@@ -397,7 +397,7 @@ function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T 
     # Initialize
     rho = WignerDistribution(R_av  = R_av, P_av = P_av, n_atoms = Int(N_atoms), masses = mass_array, n_modes = Int(N_modes), 
                              alpha = alpha, beta = beta, gamma = gamma, RR_corr = RR_corr, PP_corr = PP_corr, RP_corr = RP_corr, 
-                             λs_vect = λvects, λs = λs, evolve_correlators = settings.evolve_correlators, cell = cell, atoms = atoms, settings = settings.settings)
+                             λs_vect = λvects, λs = λs, evolve_correlators = settings.evolve_correlators, cell = cell, atoms = atoms)
     return rho
 end
 

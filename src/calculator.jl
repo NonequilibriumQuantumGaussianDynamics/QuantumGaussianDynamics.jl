@@ -32,7 +32,7 @@ function get_ase_positions!(ase_pos :: AbstractMatrix{T}, pos :: AbstractVector{
         end
     end
     # new_pos = permutedims(reshape(pos ./ sqrt.(masses), 3, N_atoms)) ./ CONV_BOHR
-    return new_pos
+    #return new_pos
 end
 function get_ase_positions(pos :: AbstractVector{T}, masses :: AbstractVector{U}) :: Matrix{T} where {T,U} 
     N_atoms = length(masses)÷3
@@ -82,7 +82,7 @@ where forces and stress are in-place modified, while the energy is returned
 function compute_configuration!(forces :: AbstractVector{T}, stress :: AbstractVector{T}, calculator :: PyObject, positions :: AbstractVector{T}, masses; cache=nothing, n_dims = 3) :: T where T
     nat = length(forces) ÷ 3
     if cache == nothing
-        cache = zeros(T, 3, nat)
+        cache = zeros(T, nat, 3)
     end
 
     @assert n_dims == 3 "Only 3D is supported for an ASE calculator"
@@ -107,9 +107,17 @@ function compute_configuration!(forces :: AbstractVector{T}, stress :: AbstractV
 
     cache .= positions
     @simd for i in 1:length(cache)
+        #atomic_index = (i-1) ÷ n_dims + 1
         cache[i] /= sqrt(masses[i])
     end
 
-    return calculator!(forces, stress, cache)
+    energy = calculator!(forces, stress, cache)
+
+    # Divide by the sqrt of the masses
+    @simd for i in 1:length(forces)
+        forces[i] /= sqrt(masses[i])
+    end
+
+    energy
 end
 

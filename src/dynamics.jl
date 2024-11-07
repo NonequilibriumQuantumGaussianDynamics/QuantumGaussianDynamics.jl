@@ -4,7 +4,8 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
     t :: T = 0
     my_dt = settings.dt / CONV_FS # Convert to Rydberg units
 
-    nat3 = wigner.n_atoms * get_ndims(wigner)
+    n_dims = get_ndims(wigner)
+    nat3 = wigner.n_atoms * n_dims
 
     avg_for = zeros(T, nat3)
     d2v_dr2 = zeros(T, (nat3, nat3))
@@ -108,7 +109,8 @@ Error, the selected algorithm $(settings.algorithm)
             println("KL ratio ", kl/T(ensemble.n_configs))
         end
         if kl < settings.kong_liu_ratio*ensemble.n_configs
-            generate_ensemble!(settings.N,ensemble, wigner)
+            generate_ensemble!(ensemble, wigner)
+            println("N dim before calculate ensemble ", get_ndims(ensemble.rho0))
             calculate_ensemble!(ensemble, crystal)
         end
 
@@ -230,7 +232,7 @@ Error, the selected algorithm $(settings.algorithm)
 
 
                 line = ""
-                for i in 1:nat3 * (nat3+1) ÷ 2
+                for i in 1:(n_dims * (n_dims+1)) ÷ 2
                     line *= " $(avg_stress[i]) "
                 end
                 line *= "\n"

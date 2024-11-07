@@ -1,11 +1,6 @@
 t0 = time()
-push!(LOAD_PATH, "/home/flibbi/programs/sscha/QuantumGaussianDynamics.jl")   # Needed for finding the installation of the code
-println(LOAD_PATH)
 
-using MPI
-MPI.Init()
-import QuantumGaussianDynamics
-using QuantumGaussianDynamics.QuantumGaussianDynamics
+using QuantumGaussianDynamics
 
 using PyCall
 using LinearAlgebra
@@ -20,10 +15,10 @@ using DelimitedFiles
 
 # Load the dyn corresponding to the equilibrium structure of a SSCHA calculation
 TEMPERATURE = 0.0 
-sscha_path = "./"
-dyn = PH.Phonons.(sscha_path * "final_result", 1)
+sscha_path = @__DIR__
+dyn = PH.Phonons.(joinpath(sscha_path, "final_result"), 1)
 py_ensemble = PyEnsemble.Ensemble(dyn, TEMPERATURE)
-py_ensemble.load_bin(sscha_path * "sscha_ensemble", 1)
+py_ensemble.load_bin(joinpath(sscha_path, "sscha_ensemble"), 1)
 dyn.Symmetrize()
 dyn.ForcePositiveDefinite()
 
@@ -41,10 +36,11 @@ N: number of configurations
 seed: seed for the calculations. If you do not want to specify any seed, use seed=0
 correlated: whether the dynamics is correlated or not. 
 """
-method = "semi-implicit-verlet" # use this one
-settings = QuantumGaussianDynamics.Dynamics(dt = 0.1, total_time = 10.0, algorithm = method, kong_liu_ratio = 1.0, 
+#method = "semi-implicit-verlet" # use this one
+method = "generalized-verlet"
+settings = QuantumGaussianDynamics.Dynamics(0.1, 10.0, 100; algorithm = method, kong_liu_ratio = 1.0, 
                                            verbose = true,  evolve_correlators = true, save_filename = method, 
-                                          save_correlators = true, save_each = 1, N=100,seed=1254, correlated = true)
+                                          save_correlators = true, save_each = 1, seed=1254, correlated = true)
 rho = QuantumGaussianDynamics.init_from_dyn(dyn, Float64(TEMPERATURE), settings)
 ensemble = QuantumGaussianDynamics.init_ensemble_from_python(py_ensemble, settings)
 

@@ -68,7 +68,7 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
         # forces = forces ./ sqrt.(ensemble.rho0.masses) .* CONV_RY ./CONV_BOHR
 
         ind = i - start_per_proc[rank+1] + 1
-        @views energy_vect[ind] = compute_configuration!(force_array[:,ind], stress_array[:,ind], crystal, ensemble.positions[:,ind], ensemble.rho0.masses; n_dims = get_ndims(ensemble.rho0))
+        @views energy_vect[ind] = compute_configuration!(force_array[:,ind], stress_array[:,ind], crystal, ensemble.positions[:,ind], ensemble.rho0.masses; n_dims= n_dim)
 
         # energy_vect[ind] = energy * CONV_RY
         # force_array[:,ind] .= forces
@@ -121,7 +121,7 @@ function get_classic_forces(wigner_distribution:: WignerDistribution{T}, crystal
         n_dims = get_ndims(wigner_distribution)
         forces = zeros(T, wigner_distribution.n_modes)
         stress = zeros(T, (n_dims * (n_dims+1)) ÷ 2)
-        compute_configuration!(forces, stress, crystal, wigner_distribution.R_av, wigner_distribution.masses)
+        compute_configuration!(forces, stress, crystal, wigner_distribution.R_av, wigner_distribution.masses; n_dims= n_dims)
         # coords  = get_ase_positions(wigner_distribution.R_av , wigner_distribution.masses)
         # crystal.positions = coords
         # energy = crystal.get_potential_energy()
@@ -143,7 +143,7 @@ function get_classic_ef(Rs:: Vector{T}, wigner_distribution:: WignerDistribution
         n_dims = get_ndims(wigner_distribution)
         forces = zeros(T, wigner_distribution.n_modes)
         stress = zeros(T, (n_dims * (n_dims+1)) ÷ 2)
-        energy = compute_configuration!(forces, stress, crystal, Rs, wigner_distribution.masses)
+        energy = compute_configuration!(forces, stress, crystal, Rs, wigner_distribution.masses; n_dims= n_dims)
 
 
         # coords  = get_ase_positions(Rs , wigner_distribution.masses)
@@ -189,6 +189,15 @@ function get_random_y(N, N_modes, settings :: Dynamics{T}) where {T <: AbstractF
 end
 
 
+@doc raw"""
+    generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
+    generate_ensemble!(ensemble:: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
+
+
+Generate the ensemble configuration. If N is provided and different from the
+number of configurations specified inside the ensemble, 
+all the ensemble variables are re-initialized and allocated.
+"""
 function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
     
     old_N = copy(ensemble.n_configs)
@@ -265,6 +274,7 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
     end
     
     # reset the ensemble
+    println("n dim of wigner ", get_ndims(wigner_distribution))
     if old_N==N
         ensemble.weights .= 1.0
         ensemble.rho0 = deepcopy(wigner_distribution)
@@ -284,7 +294,11 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
         ensemble.energies = zeros(T, N)
         ensemble.sscha_energies = zeros(T, N)
     end
+    println("N dim of ensemble ", get_ndims(ensemble.rho0))
 
+end
+function generate_ensemble!(ensemble:: Ensemble{T}, wigner_distribution :: WignerDistribution{T}; kwargs...) where {T <: AbstractFloat}
+    generate_ensemble!(ensemble.n_configs, ensemble, wigner_distribution; kwargs...)
 end
 
 
