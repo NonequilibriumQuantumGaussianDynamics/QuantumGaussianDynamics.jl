@@ -6,21 +6,30 @@ equation of motion of the Time-Dependent Self-Consistent Harmonic Approximation.
 
 The code is written in julia to achieve high performance.
 
+## Installation
+To use it, you must activate the environment and install the dependencies.
 
-# Activate and add dependencies
-open Julia shell
-enter the package mode (type ])
-activate the packacge (activate . )
-add the dependency (add LinearAlgebra)
+```bash
+julia --project=/path/to/QuantumGaussianDynamics
+```
 
+Then instantiate the environment and install the dependencies.
 
-# Install on a new machine
-julia
+```julia
 using Pkg
-#Pkg.activate("path/QuantumGaussianDynamics.jl")
-#Pkg.instantiate()
-Pkg.add(PackageSpec(path="path/QuantumGaussianDynamics.jl"))
+Pkg.instantiate()
+```
 
-# Also install cellconstructor and sscha
-pip install Cellconstructor
+This will create a file named ``Manifest.toml`` contaning the current state of the environment.
+
+To employ the ASE interface for the calculators, you must install the following python packages:
+```bash
+pip install ase
+pip install cellconstructor
 pip install python-sscha
+```
+
+
+# TODO
+
+- [ ] Implement a test with a fully anharmonic SSCHA calculator.
