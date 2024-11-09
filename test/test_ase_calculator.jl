@@ -19,6 +19,22 @@ function harmonic_calculator!(forces, stress, positions)
     end
     return energy
 end
+function harmonic_calculator_asr!(forces, stress, positions)
+    energy = 0 
+    stress .= 0.0
+    ω = [ω1, ω2, ω3]
+    k = ustrip.(auconvert.(mass * ω.^2))
+
+    δcoords = positions[1:3] .- positions[4:end]
+
+    @simd for i in 1:3
+        δ = positions[i] - positions[i+3]
+        forces[i] = -k[i] * δ
+        forces[i+3] = -forces[i]
+        energy += 0.5 * k[i] * δ^2
+    end
+    return energy
+end
 
 @pyimport ase
 
@@ -168,6 +184,71 @@ function test_julia_harmonic3d()
     efield = QuantumGaussianDynamics.fake_field(1)
 
     QuantumGaussianDynamics.integrate!(wigner, ensemble, settings, harmonic_calculator!, efield)
+
+    @test wigner.RR_corr[1,1] ≈ ustrip(auconvert(1/(2ω1))) rtol = 1e-1
+    @test wigner.RR_corr[2,2] ≈ ustrip(auconvert(1/(2ω2))) rtol = 1e-1
+    @test wigner.RR_corr[3,3] ≈ ustrip(auconvert(1/(2ω3))) rtol = 1e-1
+
+    return wigner
+end
+
+
+
+function test_asr_harmonic_py()
+    # Import a local python module
+    pushfirst!(PyVector(pyimport("sys")."path"), @__DIR__)
+    ase_calc_module = pyimport("test_ase_calculator")
+
+    # Convert the force constant in ASE units
+    k1 = uconvert(u"eV/Å^2", ω1^2 * mass)
+    k2 = uconvert(u"eV/Å^2", ω2^2 * mass)
+    k3 = uconvert(u"eV/Å^2", ω3^2 * mass)
+
+    # Initialize the calculator
+    py_calc = ase_calc_module.Harmonic3D_ASR(ustrip(k1), 
+                                             ustrip(k2), 
+                                             ustrip(k3))
+
+    algorithm = "generalized-verlet"
+    dt = 0.5u"fs"
+    total_time = 0.1u"ps"
+    N_configs = 1000
+
+
+    settings = QuantumGaussianDynamics.Dynamics(dt, total_time, N_configs;
+                                                algorithm = algorithm,
+                                                settings = NoASR(),
+                                                save_filename="python_ase",
+                                                save_each=1)
+                                               
+
+
+    wigner = WignerDistribution(2; n_dims=3)
+
+    wigner.RR_corr[1,1] = ustrip(auconvert(1/(2ω1)))
+    wigner.RR_corr[2,2] = ustrip(auconvert(1/(2ω2)))
+    wigner.RR_corr[3,3] = ustrip(auconvert(1/(2ω3)))
+    wigner.PP_corr[1,1] = ustrip(auconvert(ω1/2))
+    wigner.PP_corr[2,2] = ustrip(auconvert(ω2/2))
+    wigner.PP_corr[3,3] = ustrip(auconvert(ω3/2))
+
+    wigner.R_av .= ustrip(auconvert(0.1u"Å"))
+
+    wigner.masses .= ustrip(auconvert(mass))
+    wigner.atoms .= "H"
+
+    calculator = QuantumGaussianDynamics.init_calculator(py_calc, wigner, ase.Atoms)
+
+
+    QuantumGaussianDynamics.update!(wigner, settings)
+    ensemble = QuantumGaussianDynamics.Ensemble(wigner, settings; n_configs=N_configs, temperature=0.0u"K")
+
+    QuantumGaussianDynamics.generate_ensemble!(ensemble, wigner)
+    QuantumGaussianDynamics.calculate_ensemble!(ensemble, calculator)
+
+    efield = QuantumGaussianDynamics.fake_field(1)
+
+    QuantumGaussianDynamics.integrate!(wigner, ensemble, settings, calculator, efield)
 
     @test wigner.RR_corr[1,1] ≈ ustrip(auconvert(1/(2ω1))) rtol = 1e-1
     @test wigner.RR_corr[2,2] ≈ ustrip(auconvert(1/(2ω2))) rtol = 1e-1

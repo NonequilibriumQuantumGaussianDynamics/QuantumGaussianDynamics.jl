@@ -1,5 +1,11 @@
 
 
+@doc raw"""
+    get_alphabeta(TEMP, w_full, pols_full, settings :: GeneralSettings)
+
+
+Return the α and β parameters from the frequencies
+"""
 function get_alphabeta(TEMP, w_full, pols_full, settings :: GeneralSettings)
     # omega are frequencies in Rydberg
     # T is in Kelvin
@@ -55,18 +61,32 @@ function get_alphabeta(TEMP, w_full, pols_full, settings :: GeneralSettings)
 end
 
 
-function get_correlators(TEMP, w_full, pols_full, settings :: GeneralSettings)
-    # omega are frequencies in Rydberg
-    # T is in Kelvin
-    
+@doc raw"""
+    get_correlators(TEMP, w_full, pols_full, settings :: GeneralSettings)
+
+Convert the frequencies and polarization vector into the
+mass-rescaled correlator matrices.
+
+# Arguments
+- `TEMP`: Temperature in Kelvin (or Unitful Quantity, internally converted in Kelvin)
+- `w_full`: Pulsations in hartree atomic units (ħω)
+- `pols_full`: Polarization vectors (unitless)
+- `settings`: GeneralSettings object
+
+# Returns
+- `RR_corr`: Mass-rescaled RR correlator matrix
+- `PP_corr`: Mass-rescaled PP correlator matrix
+"""
+function get_correlators(TEMP, w_full :: AbstractVector{T}, pols_full :: AbstractMatrix{T}, settings :: GeneralSettings) where {T}
     if TEMP<0
         error("Temperature must be >= 0, got instead $T")
     end
     
-    K_to_Ry=6.336857346553283e-06
+    # K_to_Ry=6.336857346553283e-06
+    kT = TEMP * CONV_K
 
     n_mod = length(w_full)
-    pols, w = remove_translations(pols_full, w_full, settings :: GeneralSettings)
+    pols, w = remove_translations(pols_full, w_full, settings)
 
     n_translations = get_n_translations(w_full, settings)
     nw = zeros(n_mod - n_translations)
@@ -80,7 +100,7 @@ function get_correlators(TEMP, w_full, pols_full, settings :: GeneralSettings)
         nw .= 1 ./(exp.(arg).-1)
         nw[nw .< SMALL_VALUE] .= 0.0
         """
-        arg = w./(TEMP.*K_to_Ry) ./ 2.0
+        arg = w./kT ./ 2.0
         cotangent = coth.(arg)
     else
         cotangent = ones(n_mod - n_translations)
@@ -102,13 +122,9 @@ function get_correlators(TEMP, w_full, pols_full, settings :: GeneralSettings)
     RR_corr .= (RR_corr .+ RR_corr')./2.0
     PP_corr .= (PP_corr .+ PP_corr')./2.0
     return RR_corr, PP_corr
-
-
-
-    #alpha = zeros(n_mod, n_mod)
-    #beta = zeros(n_mod, n_mod)
-
-    
+end
+function get_correlators(temperature :: Quantity, w_full :: AbstractVector{T}, pols_full :: AbstractMatrix{T}, settings :: GeneralSettings) where {T}
+    return get_correlators(ustrip(uconvert(u"K", temperature)), w_full, pols_full, settings)
 end
 
 

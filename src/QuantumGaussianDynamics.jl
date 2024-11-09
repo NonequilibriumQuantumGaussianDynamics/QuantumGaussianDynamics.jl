@@ -11,6 +11,7 @@ using OptimizationOptimJL
 using ForwardDiff
 
 using Unitful, UnitfulAtomic
+using PhysicalConstants
 
 using AtomicSymmetries
 
@@ -32,6 +33,7 @@ const CONV_BOHR :: Float64 = 1.8897261246257702 # Angstrom to Bohr
 const CONV_MASS :: Float64 = 1822.888486217313 # 2*911.444175 # amu to me
 const CONV_EFIELD :: Float64 = 1.9446903811416696e-7# 2.7502067*1e-7 #kVcm to E_Ry
 const CONV_FREQ :: Float64 = 2.418884326576744e-5# 4.83776857*1e-5 #THz to frequency in ν_Ha
+const CONV_K :: Float64 = 3.1668115634438576e-6 
 # NOTE: CONV_FREQ does not incorporate a 2π factor which is expicitly
 # inside the file external_f to go into a ω.
 
@@ -354,30 +356,54 @@ function apply_ASR!(matrix :: Matrix{T}, masses :: Vector{T}) where {T <: Abstra
     error("Not implemented")
 end
 
-function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T <: AbstractFloat}
+@doc raw"""
+    init_from_dyn(dyn :: PyObject, TEMPERATURE :: T, settings :: Dynamics{T}) :: WignerDistribution{T} where {T <: AbstractFloat}
+    init_from_dyn(dyn :: PyObject, TEMPERATURE :: Quantity, settings :: Dynamics{T}) :: WignerDistribution{T} where {T <: AbstractFloat}
+
+
+Initialize a WignerDistribution from a python dynamical matrix.
+
+# Parameters
+
+- `dyn` : PyObject
+    The python dynamical matrix
+- `TEMPERATURE` : T or Quantity
+    The temperature of the system (If float, in kelvin)
+- `settings` : Dynamics{T}
+    The settings of the dynamics.
+"""
+function init_from_dyn(dyn :: PyObject, TEMPERATURE :: T, settings :: Dynamics{T}) :: WignerDistribution{T} where {T <: AbstractFloat}
 
     # Initialize the WignerDistribution structure starting from a dynamical matrix
     
     super_struct = dyn.structure.generate_supercell(dyn.GetSupercell())
-    N_modes = super_struct.N_atoms * 3
+    N_modes = Int(super_struct.N_atoms) * 3
     N_atoms = Int(super_struct.N_atoms)
 
     w, pols = dyn.DiagonalizeSupercell() #frequencies are in Ry
+
+    # Convert the frequencies to Ha atomic units
+    w ./= 2
     
-    alpha, beta = get_alphabeta(Float64(TEMPERATURE), w, pols, settings.settings)
-    RR_corr, PP_corr = get_correlators(Float64(TEMPERATURE), w, pols, settings.settings)
+    alpha, beta = get_alphabeta(TEMPERATURE, w, pols, get_general_settings(settings))
+    RR_corr, PP_corr = get_correlators(TEMPERATURE, w, pols, get_general_settings(settings))
+
     gamma = zeros(N_modes, N_modes) #already rescaled (tilde)
+
     RP_corr = zeros(N_modes, N_modes) #already rescaled (tilde)
-    R_av = super_struct.coords * CONV_BOHR #units
-    P_av = zeros(N_atoms, 3)
+    R_av = zeros(T, N_atoms * 3)
+    P_av = zeros(T, N_atoms * 3)
 
-    # Reshape
-    R_av = reshape(permutedims(R_av), N_modes)
-    P_av = reshape(permutedims(P_av), N_modes)
+    R_av .= reshape(super_struct.coords, :)
+    R_av .*= CONV_BOHR # Å to Bohr
 
-    # Rescale
-    masses = super_struct.get_masses_array() # already in Rydberg units
+    # Get the masses and convert them into atomic units (from Ry)
+    masses = super_struct.get_masses_array() 
+    masses *= 2
+
     mass_array = reshape(repeat(masses',3,1), N_modes)
+
+    # Prepare the mass-rescaled quantities
     R_av = R_av.*sqrt.(mass_array)
     P_av = P_av./sqrt.(mass_array)
 
@@ -387,8 +413,6 @@ function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T 
         λvects, λs = remove_translations(lambda_eigen.vectors, lambda_eigen.values, settings.settings) #NO NEEDED WITH ALPHAS
     else
         lambda_eigen = eigen(RR_corr)
-        #println("RR_Coror")
-        #display(RR_corr)
         λvects, λs = remove_translations(lambda_eigen.vectors, lambda_eigen.values, settings.settings) #NO NEEDED WITH ALPHAS       
     end
 
@@ -396,8 +420,8 @@ function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T 
     cell = super_struct.unit_cell .*CONV_BOHR
     atoms = super_struct.atoms
 
-    # Initialize
-    rho = WignerDistribution(R_av  = R_av, P_av = P_av, n_atoms = Int(N_atoms), masses = mass_array, n_modes = Int(N_modes), 
+    # Initialize the WignerDistribution
+    rho = WignerDistribution(R_av  = R_av, P_av = P_av, n_atoms = N_atoms, masses = mass_array, n_modes = N_modes, 
                              alpha = alpha, beta = beta, gamma = gamma, RR_corr = RR_corr, PP_corr = PP_corr, RP_corr = RP_corr, 
                              λs_vect = λvects, λs = λs, evolve_correlators = settings.evolve_correlators, cell = cell, atoms = atoms)
     return rho
