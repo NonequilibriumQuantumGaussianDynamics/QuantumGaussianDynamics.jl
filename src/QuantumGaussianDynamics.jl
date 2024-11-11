@@ -205,7 +205,7 @@ Base.@kwdef mutable struct WignerDistribution{T<: AbstractFloat}
     cell :: Matrix{T}
     atoms :: Vector{String}
 end
-function WignerDistribution(n_atoms; type = Float64, n_dims=3) :: WignerDistribution{type}
+function WignerDistribution(n_atoms; type = Float64, n_dims=3, n_modes=n_atoms*n_dims) :: WignerDistribution{type}
     WignerDistribution(R_av = zeros(type, n_atoms*n_dims), 
                        P_av = zeros(type, n_atoms*n_dims), 
                        masses = zeros(type, n_atoms*n_dims), 
@@ -217,8 +217,8 @@ function WignerDistribution(n_atoms; type = Float64, n_dims=3) :: WignerDistribu
                        alpha = zeros(type, n_atoms*n_dims, n_atoms*n_dims), 
                        beta = zeros(type, n_atoms*n_dims, n_atoms*n_dims), 
                        gamma = zeros(type, n_atoms*n_dims, n_atoms*n_dims), 
-                       λs = zeros(type, n_atoms*n_dims), 
-                       λs_vect = zeros(type, n_atoms*n_dims, n_atoms*n_dims), 
+                       λs = zeros(type, n_modes), 
+                       λs_vect = zeros(type, n_atoms*n_dims, n_modes), 
                        evolve_correlators = true, 
                        #settings = ASR(;n_dims = n_dims), 
                        cell = Matrix{type}(I, n_dims, n_dims), 
@@ -345,6 +345,7 @@ function get_n_translations(w_total, settings:: GeneralSettings) :: Int
 	return settings.n_dims
 end
 get_n_translations(w_total, settings :: NoASR) = 0
+get_n_translations(settings:: NoASR) = 0
 
 
 
@@ -380,10 +381,10 @@ function init_from_dyn(dyn :: PyObject, TEMPERATURE :: T, settings :: Dynamics{T
     N_modes = Int(super_struct.N_atoms) * 3
     N_atoms = Int(super_struct.N_atoms)
 
-    w, pols = dyn.DiagonalizeSupercell() #frequencies are in Ry
+    _w_, pols = dyn.DiagonalizeSupercell() #frequencies are in Ry
 
     # Convert the frequencies to Ha atomic units
-    w ./= 2
+    w = ustrip.(auconvert.(_w_ * u"Ry"))
     
     alpha, beta = get_alphabeta(TEMPERATURE, w, pols, get_general_settings(settings))
     RR_corr, PP_corr = get_correlators(TEMPERATURE, w, pols, get_general_settings(settings))
@@ -394,7 +395,7 @@ function init_from_dyn(dyn :: PyObject, TEMPERATURE :: T, settings :: Dynamics{T
     R_av = zeros(T, N_atoms * 3)
     P_av = zeros(T, N_atoms * 3)
 
-    R_av .= reshape(super_struct.coords, :)
+    R_av .= reshape(super_struct.coords', :)
     R_av .*= CONV_BOHR # Å to Bohr
 
     # Get the masses and convert them into atomic units (from Ry)
@@ -410,10 +411,10 @@ function init_from_dyn(dyn :: PyObject, TEMPERATURE :: T, settings :: Dynamics{T
     # Diagonalize alpha
     if settings.evolve_correlators == false
         lambda_eigen = eigen(alpha)
-        λvects, λs = remove_translations(lambda_eigen.vectors, lambda_eigen.values, settings.settings) #NO NEEDED WITH ALPHAS
+        λvects, λs = remove_translations(lambda_eigen.vectors, lambda_eigen.values, get_general_settings(settings)) #NO NEEDED WITH ALPHAS
     else
         lambda_eigen = eigen(RR_corr)
-        λvects, λs = remove_translations(lambda_eigen.vectors, lambda_eigen.values, settings.settings) #NO NEEDED WITH ALPHAS       
+        λvects, λs = remove_translations(lambda_eigen.vectors, lambda_eigen.values, get_general_settings(settings)) #NO NEEDED WITH ALPHAS       
     end
 
     # Cell
@@ -421,9 +422,25 @@ function init_from_dyn(dyn :: PyObject, TEMPERATURE :: T, settings :: Dynamics{T
     atoms = super_struct.atoms
 
     # Initialize the WignerDistribution
-    rho = WignerDistribution(R_av  = R_av, P_av = P_av, n_atoms = N_atoms, masses = mass_array, n_modes = N_modes, 
-                             alpha = alpha, beta = beta, gamma = gamma, RR_corr = RR_corr, PP_corr = PP_corr, RP_corr = RP_corr, 
-                             λs_vect = λvects, λs = λs, evolve_correlators = settings.evolve_correlators, cell = cell, atoms = atoms)
+    rho = WignerDistribution(N_atoms; n_dims=3, n_modes=length(λs))
+    rho.R_av .= R_av
+    rho.P_av .= P_av
+    rho.RR_corr .= RR_corr
+    rho.PP_corr .= PP_corr
+    rho.masses .= mass_array
+
+    rho.alpha .= alpha
+    rho.beta .= beta
+    rho.gamma .= gamma
+    rho.evolve_correlators = settings.evolve_correlators
+    rho.cell .= cell
+    rho.atoms .= atoms
+
+    #rho = WignerDistribution(R_av  = R_av, P_av = P_av, n_atoms = N_atoms, masses = mass_array, n_modes = N_modes, 
+    #                         alpha = alpha, beta = beta, gamma = gamma, RR_corr = RR_corr, PP_corr = PP_corr, RP_corr = RP_corr, 
+    #                         λs_vect = λvects, λs = λs, evolve_correlators = settings.evolve_correlators, cell = cell, atoms = atoms)
+
+    update!(rho, settings)
     return rho
 end
 

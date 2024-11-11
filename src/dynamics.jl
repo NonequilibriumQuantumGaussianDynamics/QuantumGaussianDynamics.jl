@@ -97,6 +97,9 @@ Error, the selected algorithm $(settings.algorithm)
 
         println("R_av ", wigner.R_av)
         println("P_av ", wigner.P_av)
+        println("RR_corr ", wigner.RR_corr)
+        println("PP_corr ", wigner.PP_corr)
+        println("RP_corr ", wigner.RP_corr)
         println("dt = $my_dt - dt^2 = $(my_dt^2)")
 
         # Update the eigenvalues of the Wigner matrix
@@ -110,7 +113,7 @@ Error, the selected algorithm $(settings.algorithm)
         end
         if kl < settings.kong_liu_ratio*ensemble.n_configs
             generate_ensemble!(ensemble, wigner)
-            println("N dim before calculate ensemble ", get_ndims(ensemble.rho0))
+            #println("N dim before calculate ensemble ", get_ndims(ensemble.rho0))
             calculate_ensemble!(ensemble, crystal)
         end
 

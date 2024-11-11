@@ -110,7 +110,7 @@ function get_correlators(TEMP, w_full :: AbstractVector{T}, pols_full :: Abstrac
     aw .= 2 .* w ./(2.0 .* nw .+ 1)
     bw .= 2 ./(2.0 .* nw .+ 1) ./ w
     """
-    aw .= (cotangent) ./ 2 ./ w
+    aw .= (cotangent) ./ (2w)
     bw .= (cotangent) ./ 2 .* w
 
     pols_mod = pols .* aw'
