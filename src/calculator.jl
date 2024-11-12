@@ -87,10 +87,17 @@ function compute_configuration!(forces :: AbstractVector{T}, stress :: AbstractV
 
     @assert n_dims == 3 "Only 3D is supported for an ASE calculator"
 
+
     get_ase_positions!(cache, positions, masses)
-    calculator.positions = cache
+    calculator.set_positions(cache)
     energy = calculator.get_potential_energy() * CONV_RY
-    forces .= reshape(calculator.get_forces(), :)
+    for i in 1:nat
+        for j in 1:3
+            index = (i-1)*3 + j
+            forces[index] = calculator.get_forces()[i, j] 
+        end
+    end
+    #forces .= reshape(calculator.get_forces()', :)
     forces ./= sqrt.(masses)
     forces .*= CONV_RY / CONV_BOHR
     stress .= calculator.get_stress() * CONV_RY / CONV_BOHR^3

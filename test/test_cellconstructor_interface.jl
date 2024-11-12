@@ -41,9 +41,9 @@ function test_dyn_scha_converged()
     calc_py_module = pyimport("test_ase_calculator")
     ATOMS_py = pyimport("ase.atoms")
 
-    dt = .2u"fs"
-    total_t = 10.0u"fs"
-    N_configs = 2000
+    dt = 1.0u"fs"
+    total_t = 100.0u"fs"
+    N_configs = 20
     algorithm = "generalized-verlet"
     temperature = 0.0u"K"
 
@@ -96,14 +96,33 @@ function test_dyn_scha_converged()
 
     # Generate the ensemble
     QuantumGaussianDynamics.generate_ensemble!(ensemble, wigner)
+    # Test the two calculators give the same results
     QuantumGaussianDynamics.calculate_ensemble!(ensemble, calc_jl!)
+    forces_py = copy(ensemble.forces)
+    energies_py = copy(ensemble.energies)
+    QuantumGaussianDynamics.calculate_ensemble!(ensemble, calc_jl)
+    for i in 1:N_configs
+        # println("Coords config $i:")
+        # println(reshape(ensemble.positions[:, i], 3, :)' ./ sqrt(wigner.masses[1]))
+        # println("Force py:")
+        # println(reshape(forces_py[:, i], 3, :)' .* sqrt(wigner.masses[1]))
+        # println("Force jl:")
+        # println(reshape(ensemble.forces[:, i], 3, :)' .* sqrt(wigner.masses[1]))
+        # println("energy py: $(energies_py[i]) ; energy jl: $(ensemble.energies[i])")
+        for j in 1:get_nmodes(wigner)
+            # jat = (j-1)÷3 + 1
+            # jcoord = (j-1)%3 + 1
+            # println("Config $i, atom $jat, coord $jcoord")
+            @test forces_py[j, i] ≈ ensemble.forces[j, i] rtol = 1e-6
+        end
+    end
     
     # Save the starting values 
     starting_RR_corr = copy(wigner.RR_corr)
     starting_R_pos = copy(wigner.R_av)
 
     # Integrate the equation of motion (run the dynamics)
-    QuantumGaussianDynamics.integrate!(wigner, ensemble, settings, calc_jl!, efield)
+    QuantumGaussianDynamics.integrate!(wigner, ensemble, settings, calc_jl, efield)
 
     # Check that the final values are the same as the initial ones
     n_dims = size(wigner.RR_corr, 1)

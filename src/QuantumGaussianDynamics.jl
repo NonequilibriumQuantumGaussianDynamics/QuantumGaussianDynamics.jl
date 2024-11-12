@@ -228,6 +228,8 @@ get_ndims(rho :: WignerDistribution) = rho.n_modes ÷ rho.n_atoms
 get_nmodes(rho :: WignerDistribution) = rho.n_modes
 get_natoms(rho :: WignerDistribution) = rho.n_atoms
 
+export get_ndims, get_nmodes, get_natoms
+
 
 
 Base.@kwdef mutable struct Ensemble{T <: AbstractFloat}
