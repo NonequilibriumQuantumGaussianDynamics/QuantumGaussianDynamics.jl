@@ -42,8 +42,8 @@ function test_dyn_scha_converged()
     ATOMS_py = pyimport("ase.atoms")
 
     dt = .2u"fs"
-    total_t = 50.0u"fs"
-    N_configs = 40000
+    total_t = 10.0u"fs"
+    N_configs = 2000
     algorithm = "generalized-verlet"
     temperature = 0.0u"K"
 

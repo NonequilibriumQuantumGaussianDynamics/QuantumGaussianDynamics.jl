@@ -503,17 +503,28 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
     delta = Vector{T}(undef, ensemble.n_configs)
     d2v_dr2_tmp = Matrix{T}(undef, length(wigner_distribution.λs), wigner_distribution.n_modes)
 
+    # Get the force constant matrix (TODO: Memory non efficient)
+    Φ = get_Φ(wigner_distribution, ensemble.temperature)
+    δr = copy(ensemble.positions)
+    for i in 1:ensemble.n_configs
+        δr[:, i] .-= wigner_distribution.R_av
+    end
+    ensemble.sscha_forces .= Φ * δr
+    ensemble.sscha_forces .*= -1
+
     for i in 1: wigner_distribution.n_modes
         @views delta .= ensemble.positions[i,:] .- wigner_distribution.R_av[i]
         delta .*= ensemble.weights
         d2v_dr2[i,:] .=  (ensemble.forces)  * delta   
+        d2v_dr2[i, :] .-= ensemble.sscha_forces * delta
     end
-
     d2v_dr2 ./= sum(ensemble.weights)
+
+
     #t1 = time()
     #println("time = ", t1-t0)
 
-    println("<uf> = ", d2v_dr2)
+    println("<u Δf> = ", d2v_dr2)
 
     # Compute the Ψ^{-1} multiplication : Ψ^{-1} * <u f>
     # This is performed exploiting the spectal decomposition of Ψ in the λ eigenvalues
@@ -530,7 +541,13 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
     
     mul!(d2v_dr2, wigner_distribution.λs_vect , d2v_dr2_tmp)
 
+    # Add back the Φ
+    println("Y <u Δf>", d2v_dr2)
+
+    d2v_dr2 .-= Φ
+
     println("Y <uf>", d2v_dr2)
+    println("Φ ", Φ)
 
 
     # Impose hermitianity

@@ -225,6 +225,8 @@ function WignerDistribution(n_atoms; type = Float64, n_dims=3, n_modes=n_atoms*n
                        atoms = ["H" for i in 1:n_atoms])
 end
 get_ndims(rho :: WignerDistribution) = rho.n_modes ÷ rho.n_atoms
+get_nmodes(rho :: WignerDistribution) = rho.n_modes
+get_natoms(rho :: WignerDistribution) = rho.n_atoms
 
 
 
