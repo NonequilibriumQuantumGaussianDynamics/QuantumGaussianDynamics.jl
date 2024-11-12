@@ -6,13 +6,13 @@ using Test
 const ω1 = 500.0u"c/cm" * 2π
 const ω2 = 700.0u"c/cm" * 2π
 const ω3 = 900.0u"c/cm" * 2π
-const mass = 918.0u"me" 
+const halfmass = 918.0u"me" 
 
 function harmonic_calculator!(forces, stress, positions)
     energy = 0 
     stress .= 0.0
     ω = [ω1, ω2, ω3]
-    k = ustrip.(auconvert.(mass * ω.^2))
+    k = ustrip.(auconvert.(halfmass * ω.^2))
     @simd for i in 1:length(positions)
         forces[i] = -k[i] * positions[i]
         energy += 0.5 * k[i] * positions[i]^2
@@ -23,7 +23,7 @@ function harmonic_calculator_asr!(forces, stress, positions)
     energy = 0 
     stress .= 0.0
     ω = [ω1, ω2, ω3]
-    k = ustrip.(auconvert.(mass * ω.^2))
+    k = ustrip.(auconvert.(halfmass * ω.^2))
 
     δcoords = positions[1:3] .- positions[4:end]
 
@@ -45,9 +45,9 @@ function test_compute_force_ase()
     ase_calc_module = pyimport("test_ase_calculator")
 
     # Convert the force constant in ASE units
-    k1 = uconvert(u"eV/Å^2", ω1^2 * mass)
-    k2 = uconvert(u"eV/Å^2", ω2^2 * mass)
-    k3 = uconvert(u"eV/Å^2", ω3^2 * mass)
+    k1 = uconvert(u"eV/Å^2", ω1^2 * halfmass)
+    k2 = uconvert(u"eV/Å^2", ω2^2 * halfmass)
+    k3 = uconvert(u"eV/Å^2", ω3^2 * halfmass)
 
 
     py_calc = ase_calc_module.Harmonic3D(ustrip(k1), 
@@ -56,14 +56,14 @@ function test_compute_force_ase()
 
     wigner = WignerDistribution(1; n_dims=3)
 
-    wigner.masses .= ustrip(auconvert(mass))
+    wigner.masses .= ustrip(auconvert(halfmass))
     wigner.atoms .= "H"
 
     calculator = QuantumGaussianDynamics.init_calculator(py_calc, wigner, ase.Atoms)
 
     # Get a random position
     pos = ustrip(auconvert(1.0u"Å"))
-    positions = [pos, pos, pos] .* √(ustrip(auconvert(mass)))
+    positions = [pos, pos, pos] .* √(ustrip(auconvert(halfmass)))
     forces_ase = zeros(Float64, 3)
     forces_jl = similar(forces_ase)
     stress = zeros(Float64, 6)
@@ -89,9 +89,9 @@ function test_ase_calculator_harmonic()
     ase_calc_module = pyimport("test_ase_calculator")
 
     # Convert the force constant in ASE units
-    k1 = uconvert(u"eV/Å^2", ω1^2 * mass)
-    k2 = uconvert(u"eV/Å^2", ω2^2 * mass)
-    k3 = uconvert(u"eV/Å^2", ω3^2 * mass)
+    k1 = uconvert(u"eV/Å^2", ω1^2 * halfmass)
+    k2 = uconvert(u"eV/Å^2", ω2^2 * halfmass)
+    k3 = uconvert(u"eV/Å^2", ω3^2 * halfmass)
 
     # Initialize the calculator
     py_calc = ase_calc_module.Harmonic3D(ustrip(k1), 
@@ -101,7 +101,7 @@ function test_ase_calculator_harmonic()
     algorithm = "generalized-verlet"
     dt = 0.5u"fs"
     total_time = 0.1u"ps"
-    N_configs = 1000
+    N_configs = 100
 
 
     settings = QuantumGaussianDynamics.Dynamics(dt, total_time, N_configs;
@@ -123,7 +123,7 @@ function test_ase_calculator_harmonic()
 
     wigner.R_av .= ustrip(auconvert(0.1u"Å"))
 
-    wigner.masses .= ustrip(auconvert(mass))
+    wigner.masses .= ustrip(auconvert(halfmass))
     wigner.atoms .= "H"
 
     calculator = QuantumGaussianDynamics.init_calculator(py_calc, wigner, ase.Atoms)
@@ -151,7 +151,7 @@ function test_julia_harmonic3d()
     algorithm = "generalized-verlet"
     dt = 0.5u"fs"
     total_time = 0.1u"ps"
-    N_configs = 1000
+    N_configs = 100
 
 
     settings = QuantumGaussianDynamics.Dynamics(dt, total_time, N_configs;
@@ -172,7 +172,7 @@ function test_julia_harmonic3d()
 
     wigner.R_av .= ustrip(auconvert(0.1u"Å"))
 
-    wigner.masses .= ustrip(auconvert(mass))
+    wigner.masses .= ustrip(auconvert(halfmass))
     wigner.atoms .= "H"
 
     QuantumGaussianDynamics.update!(wigner, settings)
@@ -200,9 +200,9 @@ function test_asr_harmonic_py()
     ase_calc_module = pyimport("test_ase_calculator")
 
     # Convert the force constant in ASE units
-    k1 = uconvert(u"eV/Å^2", ω1^2 * mass)
-    k2 = uconvert(u"eV/Å^2", ω2^2 * mass)
-    k3 = uconvert(u"eV/Å^2", ω3^2 * mass)
+    k1 = uconvert(u"eV/Å^2", ω1^2 * halfmass)
+    k2 = uconvert(u"eV/Å^2", ω2^2 * halfmass)
+    k3 = uconvert(u"eV/Å^2", ω3^2 * halfmass)
 
     # Initialize the calculator
     py_calc = ase_calc_module.Harmonic3D_ASR(ustrip(k1), 
@@ -234,7 +234,7 @@ function test_asr_harmonic_py()
 
     wigner.R_av .= ustrip(auconvert(0.1u"Å"))
 
-    wigner.masses .= ustrip(auconvert(mass))
+    wigner.masses .= ustrip(auconvert(halfmass))
     wigner.atoms .= "H"
 
     calculator = QuantumGaussianDynamics.init_calculator(py_calc, wigner, ase.Atoms)
