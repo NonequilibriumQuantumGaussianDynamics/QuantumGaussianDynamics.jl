@@ -33,3 +33,8 @@ end
         @test wj.PP_corr[i,i] ≈ wp.PP_corr[i,i] rtol = 5e-2
     end
 end
+
+@testset "Harmonic nat = 2, 3D, ASR; ASE and Cellconstructor interface" begin 
+    include("test_cellconstructor_interface.jl")
+    test_dyn_scha_converged()
+end
