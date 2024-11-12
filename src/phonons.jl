@@ -175,15 +175,15 @@ function update!(wigner :: WignerDistribution, settings :: GeneralSettings)
         settings.n_dims = get_ndims(wigner)
     end
 
-    println("[UPDATE] RR corr = ", wigner.RR_corr)
+    # println("[UPDATE] RR corr = ", wigner.RR_corr)
     lambda_eigen = eigen((wigner.RR_corr))
     #println(" DEBUG λs = ", lambda_eigen.values)
     λvects, λs = remove_translations(lambda_eigen.vectors, lambda_eigen.values, settings)
     wigner.λs_vect = λvects
     wigner.λs = λs
 
-    println("[UPDATE] λs = ", wigner.λs)
-    println("[UPDATE] λs_vect = ", wigner.λs_vect)
+    # println("[UPDATE] λs = ", wigner.λs)
+    # println("[UPDATE] λs_vect = ", wigner.λs_vect)
 end
 function update!(wigner :: WignerDistribution, settings :: Dynamics)
     update!(wigner, get_general_settings(settings))
@@ -240,9 +240,9 @@ function get_Φ!(Φ :: AbstractMatrix{T}, λs :: AbstractVector{T}, λ_pols :: A
     n_modes = size(Φ, 1)
     n_good_modes = length(λs)
 
-    println("SIZE Φ: ", size(Φ))
-    println("SIZE λs: ", size(λs))
-    println("SIZE λ_pols: ", size(λ_pols))
+    # println("SIZE Φ: ", size(Φ))
+    # println("SIZE λs: ", size(λs))
+    # println("SIZE λ_pols: ", size(λ_pols))
     
     Φ .= 0.0
     for μ in 1:n_good_modes

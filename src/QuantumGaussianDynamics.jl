@@ -437,7 +437,7 @@ function init_from_dyn(dyn :: PyObject, TEMPERATURE :: T, settings :: Dynamics{T
     rho.beta .= beta
     rho.gamma .= gamma
     rho.evolve_correlators = settings.evolve_correlators
-    rho.cell .= cell
+    rho.cell .= cell'
     rho.atoms .= atoms
 
     #rho = WignerDistribution(R_av  = R_av, P_av = P_av, n_atoms = N_atoms, masses = mass_array, n_modes = N_modes, 
@@ -457,6 +457,7 @@ include("external_f.jl")
 
 include("UnitfulInterface.jl")
 
+include("symmetry_interface.jl")
 
 export WignerDistribution, get_general_settings,
        NoASR, ASR
