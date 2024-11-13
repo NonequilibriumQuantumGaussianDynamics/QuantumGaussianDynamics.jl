@@ -41,10 +41,10 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
     tot_for = avg_for .+ ext_for
     tot_cl_for = cl_for .+ ext_for
 
-    println("Forces ", tot_for)
-    println("Classic forces ", tot_cl_for)
-    println("External forces ", ext_for)
-    println("D2V_DR2 ", d2v_dr2)
+    # println("Forces ", tot_for)
+    # println("Classic forces ", tot_cl_for)
+    # println("External forces ", ext_for)
+    # println("D2V_DR2 ", d2v_dr2)
 
     
     # Impose symmetries
@@ -54,11 +54,11 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
         symmetry_group.symmetrize_fc!(d2v_dr2)
     end
 
-    println("After symmetries")
-    println("Forces ", tot_for)
-    println("Classic forces ", tot_cl_for)
-    println("External forces ", ext_for)
-    println("D2V_DR2 ", d2v_dr2)
+    # println("After symmetries")
+    # println("Forces ", tot_for)
+    # println("Classic forces ", tot_cl_for)
+    # println("External forces ", ext_for)
+    # println("D2V_DR2 ", d2v_dr2)
 
 
 
@@ -95,12 +95,12 @@ Error, the selected algorithm $(settings.algorithm)
         # Classic integration (part 1)
         classic_evolution!(Rs, Ps, my_dt, tot_cl_for, 1)
 
-        println("R_av ", wigner.R_av)
-        println("P_av ", wigner.P_av)
-        println("RR_corr ", wigner.RR_corr)
-        println("PP_corr ", wigner.PP_corr)
-        println("RP_corr ", wigner.RP_corr)
-        println("dt = $my_dt - dt^2 = $(my_dt^2)")
+        # println("R_av ", wigner.R_av)
+        # println("P_av ", wigner.P_av)
+        # println("RR_corr ", wigner.RR_corr)
+        # println("PP_corr ", wigner.PP_corr)
+        # println("RP_corr ", wigner.RP_corr)
+        # println("dt = $my_dt - dt^2 = $(my_dt^2)")
 
         # Update the eigenvalues of the Wigner matrix
         update!(wigner, get_general_settings(settings))

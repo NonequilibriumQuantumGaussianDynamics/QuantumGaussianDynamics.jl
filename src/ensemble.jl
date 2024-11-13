@@ -97,7 +97,7 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
 
     ensemble.energies .= tot_energies
     ensemble.forces .= tot_forces
-    println(size(tot_stress), size(ensemble.stress))
+    #println(size(tot_stress), size(ensemble.stress))
     ensemble.stress .= tot_stress
     """
     check_energy = ensemble.energies .- tot_energies
@@ -172,7 +172,7 @@ function get_random_y(N, N_modes, settings :: Dynamics{T}) where {T <: AbstractF
             error("Error, evenodd allowed only with an even number of random structures")
         end
         N2 = N ÷ 2
-        println("N2 ", N2, "N_modes ", N_modes)
+        #println("N2 ", N2, "N_modes ", N_modes)
         ymu_i = randn(T, N_modes, N2)
         if MPI.Initialized()
             # So that all the processors work with the same random numbers
@@ -214,9 +214,9 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
         if ensemble.correlated
             sqrt_RR = wigner_distribution.λs_vect * Diagonal(sqrt.(wigner_distribution.λs)) * wigner_distribution.λs_vect'
 
-            println("Generating √RR = ", sqrt_RR)
-            println("λ = ", wigner_distribution.λs)
-            println("eigen vect λ = ", wigner_distribution.λs_vect)
+            # println("Generating √RR = ", sqrt_RR)
+            # println("λ = ", wigner_distribution.λs)
+            # println("eigen vect λ = ", wigner_distribution.λs_vect)
             if old_N==N
                 @views mul!(ensemble.positions[:,1:N2], sqrt_RR , ensemble.y0)
                 @views ensemble.positions[:,N2+1:end] .= .-ensemble.positions[:,1:N2]
@@ -274,7 +274,7 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
     end
     
     # reset the ensemble
-    println("n dim of wigner ", get_ndims(wigner_distribution))
+    #println("n dim of wigner ", get_ndims(wigner_distribution))
     if old_N==N
         ensemble.weights .= 1.0
         ensemble.rho0 = deepcopy(wigner_distribution)
@@ -294,7 +294,7 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
         ensemble.energies = zeros(T, N)
         ensemble.sscha_energies = zeros(T, N)
     end
-    println("N dim of ensemble ", get_ndims(ensemble.rho0))
+    #println("N dim of ensemble ", get_ndims(ensemble.rho0))
 
 end
 function generate_ensemble!(ensemble:: Ensemble{T}, wigner_distribution :: WignerDistribution{T}; kwargs...) where {T <: AbstractFloat}
@@ -489,14 +489,14 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
         # println("forces ", ensemble.forces)
         # println("positions ", ensemble.positions)
         # println("y0 ", ensemble.y0)
-        println("avg forces ", avg_for)
-        println("forces ")
-        println(avg_for[1,1]*sqrt(ensemble.rho0.masses[1]))
+        #println("avg forces ", avg_for)
+        #println("forces ")
+        #println(avg_for[1,1]*sqrt(ensemble.rho0.masses[1]))
         #display(avg_for .* sqrt.(ensemble.rho0.masses) )
-        println("norm ")
-        println(norm(avg_for .* sqrt.(ensemble.rho0.masses)))
-        println("max ")
-        println(maximum(avg_for .* sqrt.(ensemble.rho0.masses)))
+        #println("norm ")
+        #println(norm(avg_for .* sqrt.(ensemble.rho0.masses)))
+        #println("max ")
+        #println(maximum(avg_for .* sqrt.(ensemble.rho0.masses)))
     end
 
     #t0 = time()
@@ -524,7 +524,7 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
     #t1 = time()
     #println("time = ", t1-t0)
 
-    println("<u Δf> = ", d2v_dr2)
+    #println("<u Δf> = ", d2v_dr2)
 
     # Compute the Ψ^{-1} multiplication : Ψ^{-1} * <u f>
     # This is performed exploiting the spectal decomposition of Ψ in the λ eigenvalues
@@ -542,12 +542,12 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
     mul!(d2v_dr2, wigner_distribution.λs_vect , d2v_dr2_tmp)
 
     # Add back the Φ
-    println("Y <u Δf>", d2v_dr2)
+    #println("Y <u Δf>", d2v_dr2)
 
     d2v_dr2 .-= Φ
 
-    println("Y <uf>", d2v_dr2)
-    println("Φ ", Φ)
+    # println("Y <uf>", d2v_dr2)
+    # println("Φ ", Φ)
 
 
     # Impose hermitianity

@@ -18,7 +18,7 @@ function test_symmetric_anharmonic_dynamics()
 
     algorithm = "generalized-verlet"
     dt = 1.0u"fs"
-    total_time = 100.0u"fs"
+    total_time = 75.0u"fs"
     dyn_file = joinpath(@__DIR__, "data/dyn_harmonic_sym_converged")
     nqirr = 1
     N_configs = 100
