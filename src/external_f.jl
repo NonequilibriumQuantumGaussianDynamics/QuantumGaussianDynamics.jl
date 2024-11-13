@@ -173,7 +173,12 @@ function get_external_forces(t::T, efield :: ElectricField{T}, wigner :: WignerD
     return forces
 end
 
-function fake_field(nat; ndims = 3, type = Float64) :: ElectricField
+@doc raw"""
+    fake_field(nat :: Int; ndims = 3, type = Float64) :: ElectricField
+
+An empty electric field. Use this to avoid introducing any external field in the dynamics.
+"""
+function fake_field(nat :: Int; ndims = 3, type = Float64) :: ElectricField
 
    Zeff = zeros(type, ndims*nat, ndims)
    eps = Matrix{type}(I, ndims, ndims)

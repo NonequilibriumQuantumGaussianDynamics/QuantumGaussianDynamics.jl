@@ -14,6 +14,7 @@ using Unitful, UnitfulAtomic
 using PhysicalConstants
 
 using AtomicSymmetries
+using Spglib
 
 # Init MPI
 include("parallel.jl")

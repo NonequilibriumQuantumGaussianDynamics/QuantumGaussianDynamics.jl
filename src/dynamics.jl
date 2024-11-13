@@ -49,8 +49,8 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
     
     # Impose symmetries
     if !isempty(symmetry_group)
-        symmetry_group.symmetrize_vector!(tot_for)
-        symmetry_group.symmetrize_vector!(tot_cl_for)
+        symmetry_group.symmetrize_centroid!(tot_for)
+        symmetry_group.symmetrize_centroid!(tot_cl_for)
         symmetry_group.symmetrize_fc!(d2v_dr2)
     end
 
@@ -132,8 +132,8 @@ Error, the selected algorithm $(settings.algorithm)
         
         # Impose symmetries
         if !isempty(symmetry_group)
-            symmetry_group.symmetrize_vector!(tot_for)
-            symmetry_group.symmetrize_vector!(tot_cl_for)
+            symmetry_group.symmetrize_centroid!(tot_for)
+            symmetry_group.symmetrize_centroid!(tot_cl_for)
             symmetry_group.symmetrize_fc!(d2v_dr2)
         end
 

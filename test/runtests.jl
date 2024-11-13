@@ -39,3 +39,8 @@ end
     include("test_cellconstructor_interface.jl")
     test_dyn_scha_converged()
 end
+
+@testset "Anharmonic symmetries with ASE and Cellconstructor interface" begin
+    include("test_symmetries.jl")
+    test_symmetric_anharmonic_dynamics()
+end
