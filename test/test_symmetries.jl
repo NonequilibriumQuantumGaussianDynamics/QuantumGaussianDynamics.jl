@@ -47,10 +47,10 @@ function test_symmetric_anharmonic_dynamics()
                                                 temperature=temperature)
 
     # Get the potential using EMT
-    k1 = 0.919347513/2 # 0.01892175 
+    k1 = 0.919347513/5 # 0.01892175 
     k2 = k1
     k3 = k1
-    calc = ase_calc_module.Anharmonic3D_ASR(k1, k2, k3, 1.0, 1.0, 1.0, 0.05)
+    calc = ase_calc_module.Anharmonic3D_ASR(k1, k2, k3, 1.0, 1.0, 1.0, 0.1)
     calc! = QuantumGaussianDynamics.init_calculator(calc, wigner, ase.Atoms)
 
     efield = QuantumGaussianDynamics.fake_field(get_natoms(wigner))

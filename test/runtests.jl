@@ -44,3 +44,13 @@ end
     include("test_symmetries.jl")
     test_symmetric_anharmonic_dynamics()
 end
+
+@testset "RR →  Φ - T>0" begin
+    include("test_rr_phi_finite_temperature.jl")
+    test_rr_phi()
+end
+
+@testset "Finite temperature dynamics (ASE)" begin
+    include("test_temperature.jl")
+    test_temperature()
+end
