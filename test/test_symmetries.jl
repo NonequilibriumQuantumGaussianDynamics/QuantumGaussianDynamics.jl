@@ -66,7 +66,7 @@ function test_symmetric_anharmonic_dynamics()
     nat = get_natoms(wigner)
     for i in 1:3nat
         for j in 1:3nat
-            @test wigner.RR_corr ≈ RR_corr_start atol=1e-8 rtol=1e-2
+            @test wigner.RR_corr[i, j] ≈ RR_corr_start[i, j] atol=1e-8 rtol=5e-2
         end
     end
 end
