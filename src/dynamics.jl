@@ -173,7 +173,7 @@ Error, the selected algorithm $(settings.algorithm)
                     line *= "  $(wigner.P_av[i]*sqrt(wigner.masses[i])) "
                 end
                 if rank==0
-                    println("! $t $(wigner.R_av) $(wigner.P_av) $(wigner.masses) $total_energy")
+                    #println("! $t $(wigner.R_av) $(wigner.P_av) $(wigner.masses) $total_energy")
                 end
                 line *= " $total_energy"
                 line *= "\n"
