@@ -461,6 +461,10 @@ include("UnitfulInterface.jl")
 include("symmetry_interface.jl")
 
 export WignerDistribution, get_general_settings,
-       NoASR, ASR
+       NoASR, ASR, integrate!, Dynamics, init_from_dyn,
+       get_symmetry_group_from_spglib, get_IR_electric_field,
+       Ensemble, single_cycle_pulse, get_IR_electric_field,
+       generate_ensemble!, calculate_ensemble!
+
 
 end # module QuantumGaussianDynamics
