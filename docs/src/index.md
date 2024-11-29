@@ -113,6 +113,37 @@ In the following, the API for the function `init_from_dyn` is shown
 init_from_dyn
 ```
 
+## Initialize the forces calculator
+
+The force calculator can be initialized using the ASE interface.
+If `ase_calculator` is a valid PyObject representing an ASE calculator, the following code initializes the forces calculator.
+
+```julia
+using QuantumGaussianDynamics
+using PyCall
+ATM = pyimport("ase.atoms")
+
+calculator = QuantumGaussianDynamics.init_calculator(ase_calculator, wigner, ATM.Atoms)
+```
+
+Alternatively, much more efficiently Julia function can be used to calculate the forces.
+
+```@docs
+QuantumGaussianDynamics.init_calculator
+```
+
+If we chose to use a julia function, the `init_calculator` is not necessary, and we can replace the resulting `calculator` object in the final dynamics with the julia function that inplaces modifies the forces like
+
+```julia
+function force_calculator!(forces :: AbstractVector{T}, stress :: AbstractVector{T}, coords :: AbstractVector{T}) :: T where {T}
+    # Inplace calculation of the forces
+    # Calculation of the energy
+    return energy
+end
+```
+
+The function `force_calculator!` takes 1D vectors (flattened `3 * N_atoms` arrays) and returns the energy of the system. Units are assumed in Hartree Atomic Units.
+The stress is a 6-component vector representing the stress tensor in Voigt notation.
 
 
 # Troubleshooting 

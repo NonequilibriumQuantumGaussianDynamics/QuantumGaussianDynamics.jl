@@ -1,4 +1,9 @@
+@doc raw"""
+    init_calculator(calc, wigner_distribution :: WignerDistribution{T}, Atoms) where {T <: AbstractFloat}
 
+Initialize the calculator for forces and energy from an ASE object.
+The last parameter is the Atoms type from the ASE package (imported with PyCall)
+"""
 function init_calculator(calc, wigner_distribution :: WignerDistribution{T}, Atoms) where {T <: AbstractFloat}
 
     ase_positions = get_ase_positions(wigner_distribution.R_av, wigner_distribution.masses) 
