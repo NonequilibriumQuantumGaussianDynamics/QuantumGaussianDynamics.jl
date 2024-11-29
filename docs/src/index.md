@@ -1,8 +1,13 @@
-# QuantumGaussianDynamics.jl Documentation
+# QuantumGaussianDynamics.jl Development Documentation
 
 Perform the quantum dynamics of a Gaussian wave-packet solving the equation of motion of the Time-Dependent Self-Consistent Harmonic Approximation.
 
 The code is written in julia to achieve high performance.
+
+Note that this documentation is under development and may not be complete.
+The code is not yet registered or released as open-source package. If you want to employ it for your research, please contact [the author](mailto:lorenzo.monacelli@uniroma1.it).
+
+# Table of contents
 
 ```@contents
 ```
@@ -32,9 +37,22 @@ pip install python-sscha
 
 # Simulation setup
 
-To perform a dynamics, we need a configuration variables called ``Dynamics``.
+To run a TD-SCHA simulation, we need the following steps:
+
+- Setup the configuration variables: time-step, total simulation time, number of configurations, etc.
+- Load the initial conditions (e.g. the Gaussian distribution encoded via a dynamical matrix)
+- Setup the calculator for interatomic energies and forces
+- Setup the external force (electric field, etc)
+- Setup the symmetries of the system + external force (optional)
+- Run the dynamics
+
+These steps will be discussed in details in the next subsections
+
+## Setup the configuration variables
+
+To perform a dynamics, we need a configuration variables called `Dynamics`.
 Here we specify the total simulation time, time-step and number of configurations, as well as other properties of the integration.
-Here an example using ``Unitful.jl`` to define units
+Here an example using `Unitful.jl` to define units
 
 ```jldoctest
 julia> using Unitful, QuantumGaussianDynamics
@@ -56,6 +74,43 @@ In the following, we show the available functions to setup the dynamics.
 
 ```@docs
 Dynamics
+```
+
+### Load the initial conditions (dynamical matrix)
+
+The TD-SCHA evolves starting from a initial equilibrium Gaussian distribution, obtained by solving the Stochastic Self-Consistent Harmonic Approximation (SSCHA).
+For details on how to obtain this solution, see the [SSCHA package](https://sscha.eu).
+
+Here, we assume you already obtained a dynamical matrix and want to use it to initialize the TD-SCHA dynamics.
+
+For this, we use PyCall to load the dynamics using a python calculator
+
+```julia
+using PyCall
+cc = pyimport("cellconstructor")
+PH = pyimport("cellconstructor.Phonons")
+
+# Load the dynamical matrix using cellconstructor from python
+dyn = PH.Phonons("dynfile", nqirr=1)
+```
+
+For more details on how to load the dynamical matrix, see the [cellconstructor documentation](https://sscha.eu/documentation/).
+
+The dynamical matrix as a python object can be converted into a Wigner distribution for TD-SCHA using the following function
+
+```julia
+using QuantumGaussianDynamics, Unitful
+
+temperature = 300.0u"K"
+
+# Convert the python dynamical matrix into a Wigner distribution
+wigner = init_from_dyn(dyn, temperature, settings)
+```
+
+In the following, the API for the function `init_from_dyn` is shown
+
+```@docs
+init_from_dyn
 ```
 
 
