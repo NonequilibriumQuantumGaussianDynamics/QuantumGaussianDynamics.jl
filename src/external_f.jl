@@ -114,27 +114,30 @@ function gaussian1(t, A, w, t0)
 end
 
 @doc raw"""
-    single_cycle_pulse(time :: Real, A :: Quantity, σ :: Quantity, t0 :: Quantity)
+    single_cycle_pulse(time :: Real, A :: Quantity, T :: Quantity, t0 :: Quantity)
 
-The standard single cycle pulse function obtained as the second derivative of a Gaussian function
+The standard single cycle pulse function obtained as the second derivative of a Gaussian function.
+Note that the duration of the pulse (T) is about 4.425σ.
 
 $$
-E(t) = -A \frac{t-t_0}{\sigma^2} \exp\left(-\frac{(t-t_0)^2}{2\sigma^2}\right)
+\sigma = \frac{T}{4.425}\qquad
+E(t) = -A \left(\frac{t-t_0}{\sigma^2} \exp\left(-\frac{(t-t_0)^2}{2\sigma^2}\right)
 $$
 
 where $A$ is the electric field amplitude (Compatible with V/m units),
-σ is the time duration of the pulse (Compatible with fs units) and $t_0$ is the peak intensity of the pulse (Compatible with fs units).
+T is the time duration of the pulse (Compatible with fs units) and $t_0$ is the peak intensity of the pulse (Compatible with fs units).
 """
-function single_cycle_pulse(t :: Real, A :: Quantity, σ :: Quantity, t0 :: Quantity)
+function single_cycle_pulse(t :: Real, A :: Quantity, T :: Quantity, t0 :: Quantity)
     # Convert to Hartree atomic units and rescale energy to mHa
     A = ustrip(auconvert(A)) 
-    σ = ustrip(auconvert(σ)) 
+    T = ustrip(auconvert(T)) 
     t0 = ustrip(auconvert(t0))
 
-    single_cycle_pulse(t, A, σ, t0)
+    single_cycle_pulse(t, A, T, t0)
 end
-function single_cycle_pulse(t :: Real, A :: Real, σ :: Real, t0 :: Real)
-    -A * (t - t0) / σ^2 * exp(-0.5 * (t - t0)^2 / σ^2)
+function single_cycle_pulse(t :: Real, A :: Real, T :: Real, t0 :: Real)
+    σ = T/4.425
+    -A * ((t - t0)^2 / σ^2 - 1) * exp(-0.5 * (t - t0)^2 / σ^2)
 end
 
 
