@@ -435,7 +435,7 @@ function get_average_stress(ensemble :: Ensemble{T}, wigner :: WignerDistributio
        end
    end
 
-   Vol = det(wigner.cell)
+   Vol = get_volume(wigner)
 
    #delta_str =  [2*sxx, 2*syy, 2*szz, syz+szy, sxz+szx, sxy+syx]
    # TODO: Check the units

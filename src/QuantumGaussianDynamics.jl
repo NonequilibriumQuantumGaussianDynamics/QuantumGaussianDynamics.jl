@@ -228,6 +228,8 @@ end
 get_ndims(rho :: WignerDistribution) = rho.n_modes ÷ rho.n_atoms
 get_nmodes(rho :: WignerDistribution) = rho.n_modes
 get_natoms(rho :: WignerDistribution) = rho.n_atoms
+get_cell(rho :: WignerDistribution) = rho.cell
+get_volume(rho :: WignerDistribution) = abs(det(get_cell(rho)))
 
 export get_ndims, get_nmodes, get_natoms
 
@@ -464,7 +466,8 @@ export WignerDistribution, get_general_settings,
        NoASR, ASR, integrate!, Dynamics, init_from_dyn,
        get_symmetry_group_from_spglib, get_IR_electric_field,
        Ensemble, single_cycle_pulse, get_IR_electric_field,
-       generate_ensemble!, calculate_ensemble!
+       generate_ensemble!, calculate_ensemble!,
+       get_volume
 
 
 end # module QuantumGaussianDynamics

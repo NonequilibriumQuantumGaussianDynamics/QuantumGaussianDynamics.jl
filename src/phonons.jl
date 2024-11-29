@@ -261,6 +261,10 @@ function get_Φ(wigner :: WignerDistribution{T}, temperature ::T) where {T}
 end
 
 
+function get_volume(wigner :: WignerDistribution{T}) where {T}
+    return abs(det(get_cell(wigner)))
+end
+
     
 
 
