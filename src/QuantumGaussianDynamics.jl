@@ -44,6 +44,9 @@ export CONV_RY
 export CONV_BOHR
 export CONV_EFIELD
 
+# Define abstract types
+abstract type ExternalPerturbation end
+
 """
 Electric Field.
 
@@ -60,7 +63,7 @@ This structure contains the information about the external IR electric field.
 - `Zeff` is the effective charge matrix
 - `edir` is the direction of the electric field
 """
-Base.@kwdef mutable struct ElectricField{T <: AbstractFloat} 
+Base.@kwdef mutable struct ElectricField{T <: AbstractFloat} <: ExternalPerturbation
     fun :: Function #Time in fs, unit 
     Zeff :: Matrix{T} 
     edir :: Vector{T} #Must have unit norm
@@ -457,6 +460,7 @@ include("phonons.jl")
 include("calculator.jl")
 include("dynamics.jl")
 include("external_f.jl")
+include("raman_external_f.jl")
 
 include("UnitfulInterface.jl")
 
@@ -467,7 +471,7 @@ export WignerDistribution, get_general_settings,
        get_symmetry_group_from_spglib, get_IR_electric_field,
        Ensemble, single_cycle_pulse, get_IR_electric_field,
        generate_ensemble!, calculate_ensemble!,
-       get_volume
+       get_volume, get_impulsive_raman_pump
 
 
 end # module QuantumGaussianDynamics

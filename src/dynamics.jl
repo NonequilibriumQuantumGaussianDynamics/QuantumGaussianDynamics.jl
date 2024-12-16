@@ -1,4 +1,4 @@
-function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, settings :: Dynamics{T}, crystal, efield :: ElectricField{T}; symmetry_group :: Symmetries{T} = get_empty_symmetry_group(T)) where T
+function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, settings :: Dynamics{T}, crystal, efield :: ExternalPerturbation{T}; symmetry_group :: Symmetries{T} = get_empty_symmetry_group(T)) where T
     
     index :: Int32 = 0
     t :: T = 0
