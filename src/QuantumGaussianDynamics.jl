@@ -70,15 +70,46 @@ Base.@kwdef mutable struct ElectricField{T <: AbstractFloat} <: ExternalPerturba
     eps :: Matrix{T}
 end
 
+@doc raw"""
+    StochasticSettings()
+
+A structure to set the stochastic settings for the calculation.
+It contains a series of flag the change the behaviour of the dynamics.
+The overall results should not be affected by these flags
+in the limit of a large number of configurations, 
+but they can lead to better convergence in some cases.
+
+- `clean_start_gradient_centroids` is a flag to removes the gradient of the centroids based on the initial conditions. 
+Note: this flag changes the dynamics from the real one if the starting point is not the equilibrium one.
+- `clean_start_gradient_fcs` is a flag to removes the gradient of the force constants based on the initial conditions.
+As the previous one, this flag changes the dynamics from the real one if the starting point is not the equilibrium one.
+- `remove_scha_forces` is a flag to remove the Scha forces from the calculation of averages. This does not affects the dynamics,
+but can lead to a better convergence of the averages.
+
+This subroutine needs to be initialized, as it stores the original forces and force constants to be removed from the dynamics if needed.
+"""
+mutable struct StochasticSettings{T}
+    remove_scha_forces :: Bool
+    clean_start_gradient_centroids :: Bool
+    clean_start_gradient_fcs :: Bool
+    initialized :: Bool
+    original_force :: Vector{T}
+    original_fc_gradient :: Matrix{T}
+end
+StochasticSettings(; type=Float64) = StochasticSettings(true, false, false, false, zeros(type, 1), zeros(type, 1, 1))
+
 abstract type GeneralSettings end
+get_settings(x :: GeneralSettings) = x.settings
+
 mutable struct ASR{T} <: GeneralSettings
     #evolve_correlators :: Bool
     ignore_small_w :: Bool
     small_w_value :: T
     n_dims :: Int   
+    settings :: StochasticSettings
 end
 ASR(; ignore_small_w=false,
-   small_w_value=1e-8, n_dims=3) = ASR(ignore_small_w, small_w_value, n_dims)
+   small_w_value=1e-8, n_dims=3) = ASR(ignore_small_w, small_w_value, n_dims, StochasticSettings())
 
 @doc raw"""
     NoASR()
@@ -87,8 +118,9 @@ A settings to avoid alltogether the ASR.
 """
 struct NoASR <: GeneralSettings
     n_dims :: Int
+    settings :: StochasticSettings
 end 
-NoASR() = NoASR(3)
+NoASR() = NoASR(3, StochasticSettings())
 
 
 @doc raw"""
@@ -145,6 +177,7 @@ struct Dynamics{T <: AbstractFloat}
 end
 Dynamics(dt, total_time, N :: Int; algorithm="generalized-verlet", kong_liu_ratio=1.0, verbose=true, evolve_correlators=true, seed=0, correlated=true, settings=ASR(;n_dims = 3), save_filename="dynamics", save_correlators=false, save_each=100) = Dynamics(dt, total_time, algorithm, kong_liu_ratio, verbose, evolve_correlators, seed, N, correlated, settings, save_filename, save_correlators, save_each)
 get_general_settings(x :: Dynamics) = x.settings
+get_stochastic_settings(x :: Dynamics) = get_settings(get_general_settings(x))
 
 
 @doc raw"""
@@ -471,7 +504,8 @@ export WignerDistribution, get_general_settings,
        get_symmetry_group_from_spglib, get_IR_electric_field,
        Ensemble, single_cycle_pulse, get_IR_electric_field,
        generate_ensemble!, calculate_ensemble!,
-       get_volume, get_impulsive_raman_pump
+       get_volume, get_impulsive_raman_pump,
+       get_stochastic_settings, get_settings
 
 
 end # module QuantumGaussianDynamics

@@ -1,4 +1,4 @@
-function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, settings :: Dynamics{T}, crystal, efield :: ExternalPerturbation{T}; symmetry_group :: Symmetries{T} = get_empty_symmetry_group(T)) where T
+function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, settings :: Dynamics{T}, crystal, efield :: ExternalPerturbation; symmetry_group :: Symmetries{T} = get_empty_symmetry_group(T)) where T
     
     index :: Int32 = 0
     t :: T = 0
@@ -31,8 +31,11 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
     file6 = init_file(name*".bet")
     file7 = init_file(name*".gam")
     
+    # Initialize the stochastic settings
+    init_stochastic_settings!(get_stochastic_settings(settings), wigner, ensemble)
+    
     # Get the average derivatives
-    get_averages!(avg_for, d2v_dr2, ensemble, wigner)
+    get_averages!(avg_for, d2v_dr2, ensemble, wigner, get_stochastic_settings(settings))
     total_energy = get_total_energy(ensemble, wigner)
     classic_for = get_classic_forces(wigner, crystal)
     cl_energy, cl_for = get_classic_ef(Rs, wigner, crystal)
@@ -119,7 +122,7 @@ Error, the selected algorithm $(settings.algorithm)
 
         # Get the average derivatives
         # TODO: Too many allocating functions
-        get_averages!(avg_for, d2v_dr2, ensemble, wigner)
+        get_averages!(avg_for, d2v_dr2, ensemble, wigner, get_stochastic_settings(settings))
         total_energy = get_total_energy(ensemble, wigner)
         avg_stress = get_average_stress(ensemble, wigner)
         classic_for = get_classic_forces(wigner, crystal)

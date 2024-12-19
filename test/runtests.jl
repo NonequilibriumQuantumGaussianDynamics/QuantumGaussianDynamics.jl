@@ -17,6 +17,12 @@ end
     test_harmonic_1_particle_2d()
 end
 
+@testset "RR →  Φ - T>0" begin
+    include("test_rr_phi_finite_temperature.jl")
+    test_rr_phi()
+end
+
+
 @testset "ASE calculator" begin 
     include("test_ase_calculator.jl")
     test_compute_force_ase()
@@ -43,11 +49,6 @@ end
 @testset "Anharmonic symmetries with ASE and Cellconstructor interface" begin
     include("test_symmetries.jl")
     test_symmetric_anharmonic_dynamics()
-end
-
-@testset "RR →  Φ - T>0" begin
-    include("test_rr_phi_finite_temperature.jl")
-    test_rr_phi()
 end
 
 @testset "Finite temperature dynamics (ASE)" begin

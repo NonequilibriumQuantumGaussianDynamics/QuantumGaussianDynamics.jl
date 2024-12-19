@@ -1,4 +1,3 @@
-
 @doc raw"""
     StimulatedRamanField <: ExternalPerturbation
 
@@ -16,7 +15,7 @@ case the force is modulated by the product of the two fields intensity.
 
 This can be created with the `get_impulsive_raman_pump` function.
 """
-mutable struct StimulatedRamanField{T} <: ExternalPerturation
+mutable struct StimulatedRamanField{T} <: ExternalPerturbation
     field_env1 :: Function      
     field_env2 :: Function
     ω1 :: T

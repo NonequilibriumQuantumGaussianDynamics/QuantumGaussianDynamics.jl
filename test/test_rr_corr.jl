@@ -57,7 +57,7 @@ function test_corr_rr_generate()
 
     avg_for = zeros(Float64, 1)
     d2v_dr2 = zeros(Float64, 1, 1)
-    QuantumGaussianDynamics.get_averages!(avg_for, d2v_dr2, ensemble, wigner_dist)
+    QuantumGaussianDynamics.get_averages!(avg_for, d2v_dr2, ensemble, wigner_dist, get_stochastic_settings(settings))
 
     # It is mass-rescaled so it does not account for the mass dependency
     @test d2v_dr2[1,1] ≈ ω^2  rtol = 5e-2
