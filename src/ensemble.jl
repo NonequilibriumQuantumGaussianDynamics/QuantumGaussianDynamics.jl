@@ -321,6 +321,7 @@ Update the weights of the ensemble according with the new wigner distribution
 function update_weights!(ensemble:: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
 
     # Check the length
+    println("Updating weights: nw wigner = $(length(wigner_distribution.λs)), nw rho0 = $(length(ensemble.rho0.λs))")
 
     if length(wigner_distribution.λs) != length(ensemble.rho0.λs)
     	println("nw wigner = "* string(length(wigner_distribution.λs)) *" , nw rho0 = "* string(length(ensemble.rho0.λs)) ) #debug 1d

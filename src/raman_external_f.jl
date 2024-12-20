@@ -21,8 +21,8 @@ mutable struct StimulatedRamanField{T} <: ExternalPerturbation
     ω1 :: T
     ω2 :: T
     raman_tensor :: Array{T, 3} # E field, E field, n_dims*nat (n_dims * atom + i coords)
-    field_1_pol :: AbstractVector{T}
-    field_2_pol :: AbstractVector{T}
+    field_1_pol :: Vector{T}
+    field_2_pol :: Vector{T}
 end
 
 @doc raw"""
@@ -38,18 +38,25 @@ The time envelope of the field is assumed to be a Gaussian function.
 - `raman_tensor::Array{T, 3}`: The Raman tensor of the system. Can be obtained from a Phonons object via `get_raman_tensor_from_phonons`.
 - `field_frequency::Quantity`: The frequency of the field. A Unitful quantity with annotated units. (Note, this is a frequency, not a wavelength. Good units are THz or c/cm, not eV or nm)
 - `field_duration::Quantity`: The duration of the field. A Unitful quantity with annotated units.
-- `field_total_energy::Quantity`: The energy of the field pulse. A Unitful quantity with annotated units (i.e. mJ)
+- `field_energy_density::Quantity`: The energy density averaged over the pulse duration of the field pulse. A Unitful quantity with annotated units (i.e. mJ/m^3)
 - `field_polarization::AbstractVector{T}`: The polarization of the field.
 - `second_polarization::AbstractVector{T}`: The polarization of the second field. If not given, it is assumed to be the same as the first field. This is useful if the light is unpolarized or circularly polarized.
 
 
 Note that, differently for IR pulses, it is required to provide the total energy of the field pulse, not the amplitude of the electric field. Also in this case, the microscopic value is considered (the one that interacts with the atoms), not the external one.
 """
-function get_impulsive_raman_pump(raman_tensor :: Array{T, 3}, field_frequency :: Quantity, field_duration :: Quantity, field_start_time :: Quantity, field_total_energy :: Quantity, field_polarization:: AbstractVector{T}; second_polarization :: AbstractVector{T} = nothing) :: StimulatedRamanField{T} where T 
+function get_impulsive_raman_pump(raman_tensor :: Array{T, 3}, field_frequency :: Quantity, field_duration :: Quantity, field_start_time :: Quantity, field_intensity :: Quantity, field_polarization:: AbstractVector{T}; second_polarization :: Union{Nothing, AbstractVector{T}} = nothing) :: StimulatedRamanField{T} where T 
     field_duration = ustrip(auconvert(field_duration))
     field_start_time = ustrip(auconvert(field_start_time))
     ω = ustrip(auconvert(field_frequency)) / (2π)
-    field_total_energy = ustrip(auconvert(field_intensity))
+
+    # Check that the input electric field has the correct units
+    if dimension(field_intensity) != dimension(u"V/m")
+        error("Error, the intensity must be the peak value of the electric field (of the whole pulse) per unit of area, got instead $(dimension(field_energy_density))")
+    end
+    
+    #electric_field_square_amplitude = ustrip(auconvert(2 * field_energy_density / PhysicalConstants.CODATA2018.ε_0))
+    electric_field_square_amplitude = ustrip(auconvert(field_intensity))^2
 
     # Normalize the polarization
     field_polarization ./= norm(field_polarization)
@@ -61,12 +68,13 @@ function get_impulsive_raman_pump(raman_tensor :: Array{T, 3}, field_frequency :
     end
 
     function field(t)
-        return sqrt(field_total_energy) * exp(-0.25 * (t - field_start_time)^2 / field_duration^2) / sqrt(sqrt(2π * field_duration^2))
+        return sqrt(electric_field_square_amplitude) * exp(-0.25 * (t - field_start_time)^2 / field_duration^2) / √(2π * field_duration^2)
     end
 
 
-    StimulatedRamanField(field, field, ω, ω, raman_tensor, field_polarization, field_polarization, field_2_pol)
+    StimulatedRamanField(field, field, ω, ω, raman_tensor, field_polarization, field_2_pol)
 end
+
 
 @doc raw"""
     get_raman_tensor_from_phonons(py_dyn) :: Array{T, 3}
@@ -101,14 +109,32 @@ function get_external_forces(t :: T, raman_field :: StimulatedRamanField{T},
     phase_factor *= cos((raman_field.ω1 - raman_field.ω2)*t)
 
     for i in 1:nat*n_dims
-        start = n_dims*(i-1) + 1
-        fin = start + n_dims - 1
-
-        @views mul!(tmp_vect, raman_field.field_1_pol, 
-                    raman_field.raman_tensor[:, :, i])
-        @views mul!(forces[start:fin], tmp_vect, raman_field.field_2_pol')
+        # start = n_dims*(i-1) + 1
+        # fin = start + n_dims - 1
+        @views tmp_vect .= raman_field.raman_tensor[:, :, i] * raman_field.field_2_pol
+        forces[i] = raman_field.field_1_pol' * tmp_vect
     end
 
     forces .*= phase_factor
     forces
+end
+
+function get_perturbation_direction(raman_field :: StimulatedRamanField{T}, wigner :: WignerDistribution{T}) :: Vector{T} where T
+    n_dims = get_ndims(wigner)
+    nat = get_natoms(wigner)
+    perturb_vect = zeros(T, n_dims*nat)
+    tmp_vect = zeros(T, n_dims)
+    for i in 1:nat*n_dims
+        # start = n_dims*(i-1) + 1
+        # fin = start + n_dims - 1
+        @views tmp_vect .= raman_field.raman_tensor[:, :, i] * raman_field.field_2_pol
+        perturb_vect[i] = raman_field.field_1_pol' * tmp_vect
+    end
+
+    # Normalize the perturbation vector
+    perturb_vect ./= norm(perturb_vect)
+    return perturb_vect
+end
+function get_perturbation_direction(field :: ElectricField, wigner :: WignerDistribution{T}) :: Vector{T} where T
+    return field.edir
 end

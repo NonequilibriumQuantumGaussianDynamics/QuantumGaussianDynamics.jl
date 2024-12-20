@@ -57,6 +57,11 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
         symmetry_group.symmetrize_fc!(d2v_dr2)
     end
 
+    # Impose the ASR constraints
+    constrain_asr!(tot_for, get_general_settings(settings))
+    constrain_asr!(tot_cl_for, get_general_settings(settings))
+    constrain_asr!(d2v_dr2, get_general_settings(settings))
+
     # println("After symmetries")
     # println("Forces ", tot_for)
     # println("Classic forces ", tot_cl_for)
@@ -139,6 +144,11 @@ Error, the selected algorithm $(settings.algorithm)
             symmetry_group.symmetrize_centroid!(tot_cl_for)
             symmetry_group.symmetrize_fc!(d2v_dr2)
         end
+        
+        # Impose the ASR constraints
+        constrain_asr!(tot_for, get_general_settings(settings))
+        constrain_asr!(tot_cl_for, get_general_settings(settings))
+        constrain_asr!(d2v_dr2, get_general_settings(settings))
 
 
         if "semi-implicit-verlet" == lowercase(settings.algorithm)

@@ -177,10 +177,11 @@ function update!(wigner :: WignerDistribution, settings :: GeneralSettings)
 
     # println("[UPDATE] RR corr = ", wigner.RR_corr)
     lambda_eigen = eigen((wigner.RR_corr))
-    #println(" DEBUG λs = ", lambda_eigen.values)
+    println(" DEBUG λs = ", lambda_eigen.values)
     λvects, λs = remove_translations(lambda_eigen.vectors, lambda_eigen.values, settings)
     wigner.λs_vect = λvects
     wigner.λs = λs
+    println(" After translations = ", λs)
 
     # println("[UPDATE] λs = ", wigner.λs)
     # println("[UPDATE] λs_vect = ", wigner.λs_vect)

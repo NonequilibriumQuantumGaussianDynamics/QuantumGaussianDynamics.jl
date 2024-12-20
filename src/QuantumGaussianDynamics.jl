@@ -44,6 +44,7 @@ export CONV_RY
 export CONV_BOHR
 export CONV_EFIELD
 
+
 # Define abstract types
 abstract type ExternalPerturbation end
 
@@ -110,6 +111,19 @@ mutable struct ASR{T} <: GeneralSettings
 end
 ASR(; ignore_small_w=false,
    small_w_value=1e-8, n_dims=3) = ASR(ignore_small_w, small_w_value, n_dims, StochasticSettings())
+
+@doc raw"""
+    ASRfixmodes()
+
+This structure is used to fix the acoustic sum rule on modes that are zero.
+It will store the eigenvectors of the zeroth modes and constrain the dynamics not to occur along those modes.
+"""
+mutable struct ASRfixmodes{T} <: GeneralSettings
+    small_w_value :: T
+    n_dims :: Int
+    settings :: StochasticSettings
+    eigvect_remove :: Matrix{T}
+end
 
 @doc raw"""
     NoASR()
@@ -330,7 +344,7 @@ end
 Remove acoustic sum rule from eigenvalue and eigenvectors
 """
 function remove_translations(vectors, values, thr)
-    not_trans_mask =  values .> thr
+    not_trans_mask =  values .> max(values...) * thr
 
     if sum(.!not_trans_mask) != 3
         println("WARNING")
@@ -379,6 +393,24 @@ function remove_translations(vectors, values, settings :: GeneralSettings)
 	return remove_translations(vectors, values; ndims = settings.n_dims)
 end
 remove_translations(vect, val, settings :: NoASR) = (vect, val)
+
+function constrain_asr!(matrix_vector, asr :: GeneralSettings) where {T <: AbstractFloat}
+end
+function constrain_asr!(matrix :: AbstractMatrix{T}, asr :: ASRfixmodes{T}) where {T <: AbstractFloat}
+    proj = zeros(T, size(matrix, 1), size(matrix, 2))
+    for i in 1:length(asr.eigvect_remove)
+        @views proj .+= asr.eigvect_remove[:, i] * asr.eigvect_remove[:, i]'
+    end
+    matrix .-= proj' * matrix * proj
+end
+function constrain_asr!(vector :: AbstractVector{T}, asr :: ASRfixmodes{T}) where {T <: AbstractFloat}
+    proj = zeros(T, length(vector))
+    for i in 1:length(asr.eigvect_remove)
+        @views proj .+= asr.eigvect_remove[:, i] * asr.eigvect_remove[:, i]' * vector
+    end
+    vector .-= proj
+end
+
 
 #function get_n_translations(w_total :: Vector{T<: AbstractFloat}, settings :: GeneralSettings)
 function get_n_translations(w_total, settings:: GeneralSettings) :: Int
@@ -505,7 +537,9 @@ export WignerDistribution, get_general_settings,
        Ensemble, single_cycle_pulse, get_IR_electric_field,
        generate_ensemble!, calculate_ensemble!,
        get_volume, get_impulsive_raman_pump,
-       get_stochastic_settings, get_settings
+       get_stochastic_settings, get_settings,
+       get_raman_tensor_from_phonons, get_perturbation_direction
+
 
 
 end # module QuantumGaussianDynamics
