@@ -175,8 +175,17 @@ function update!(wigner :: WignerDistribution, settings :: GeneralSettings)
         settings.n_dims = get_ndims(wigner)
     end
 
-    # println("[UPDATE] RR corr = ", wigner.RR_corr)
     lambda_eigen = eigen((wigner.RR_corr))
+    if settings isa ASRfixmodes 
+        # check if eigvect_remove isnothing
+        if isnothing(settings.eigvect_remove)
+            # Initialize
+            mask = lambda_eigen.values .< settings.small_w_value
+            settings.eigvect_remove = lambda_eigen.vectors[:, mask]
+        end
+    end
+
+
     println(" DEBUG λs = ", lambda_eigen.values)
     λvects, λs = remove_translations(lambda_eigen.vectors, lambda_eigen.values, settings)
     wigner.λs_vect = λvects

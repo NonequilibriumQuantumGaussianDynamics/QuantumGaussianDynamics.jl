@@ -122,8 +122,9 @@ mutable struct ASRfixmodes{T} <: GeneralSettings
     small_w_value :: T
     n_dims :: Int
     settings :: StochasticSettings
-    eigvect_remove :: Matrix{T}
+    eigvect_remove :: Union{Nothing,Matrix{T}}
 end
+ASRfixmodes(; small_w_value=1e-8, n_dims=3) = ASRfixmodes(small_w_value, n_dims, StochasticSettings(), nothing)
 
 @doc raw"""
     NoASR()
@@ -410,6 +411,7 @@ function constrain_asr!(vector :: AbstractVector{T}, asr :: ASRfixmodes{T}) wher
     end
     vector .-= proj
 end
+
 
 
 #function get_n_translations(w_total :: Vector{T<: AbstractFloat}, settings :: GeneralSettings)
