@@ -170,11 +170,11 @@ if __name__ == "__main__":
         print("Usage: python plot.py <dynamical_matrix> <nqirr> <posfile.pos> <mode-ids> ... ")
         sys.exit(1)
 
-    fname = sys.argv[1]
-    dynfname = sys.argv[2]
-    nqirr = sys.argv[3]
+    dynfname = sys.argv[1]
+    nqirr = int(sys.argv[2])
+    fname = sys.argv[3]
 
-    modes = [int(i) for i in sys.argv[2:]]
+    modes = [int(i) for i in sys.argv[4:]]
 
     source_dir = os.path.dirname(fname)
 
