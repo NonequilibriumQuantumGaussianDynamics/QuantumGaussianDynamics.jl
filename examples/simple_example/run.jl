@@ -20,10 +20,10 @@ using DelimitedFiles
 
 # Load the dyn corresponding to the equilibrium structure of a SSCHA calculation
 TEMPERATURE = 0.0 
-sscha_path = "./"
-dyn = PH.Phonons.(sscha_path * "final_result", 1)
+sscha_path = @__DIR__ 
+dyn = PH.Phonons(joinpath(sscha_path, "final_result"), 1)
 py_ensemble = PyEnsemble.Ensemble(dyn, TEMPERATURE)
-py_ensemble.load_bin(sscha_path * "sscha_ensemble", 1)
+py_ensemble.load_bin(joinpath(sscha_path, "sscha_ensemble"), 1)
 dyn.Symmetrize()
 dyn.ForcePositiveDefinite()
 

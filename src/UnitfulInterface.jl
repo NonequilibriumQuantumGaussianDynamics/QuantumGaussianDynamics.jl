@@ -9,7 +9,7 @@ function Dynamics(dt:: Quantity,
         evolve_correlators:: Bool = true,
         seed:: Int = 0,
         evolve_correlated:: Bool = true,
-        settings:: GeneralSettings = GeneralSettings(),
+        settings:: GeneralSettings = ASR(; n_dims=3),
         save_filename:: String = "dynamics",
         save_correlators:: Bool = false,
         save_each:: Int=100)

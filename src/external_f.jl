@@ -114,27 +114,30 @@ function gaussian1(t, A, w, t0)
 end
 
 @doc raw"""
-    single_cycle_pulse(time :: Real, A :: Quantity, σ :: Quantity, t0 :: Quantity)
+    single_cycle_pulse(time :: Real, A :: Quantity, T :: Quantity, t0 :: Quantity)
 
-The standard single cycle pulse function obtained as the second derivative of a Gaussian function
+The standard single cycle pulse function obtained as the second derivative of a Gaussian function.
+Note that the duration of the pulse (T) is about 4.425σ.
 
 $$
-E(t) = -A \frac{t-t_0}{\sigma^2} \exp\left(-\frac{(t-t_0)^2}{2\sigma^2}\right)
+\sigma = \frac{T}{4.425}\qquad
+E(t) = -A \left(\frac{t-t_0}{\sigma^2} \exp\left(-\frac{(t-t_0)^2}{2\sigma^2}\right)
 $$
 
 where $A$ is the electric field amplitude (Compatible with V/m units),
-σ is the time duration of the pulse (Compatible with fs units) and $t_0$ is the peak intensity of the pulse (Compatible with fs units).
+T is the time duration of the pulse (Compatible with fs units) and $t_0$ is the peak intensity of the pulse (Compatible with fs units).
 """
-function single_cycle_pulse(t :: Real, A :: Quantity, σ :: Quantity, t0 :: Quantity)
+function single_cycle_pulse(t :: Real, A :: Quantity, T :: Quantity, t0 :: Quantity)
     # Convert to Hartree atomic units and rescale energy to mHa
-    A = ustrip(auconvert(A)) * 1000 # Ha to mHa
-    σ = ustrip(auconvert(σ)) / 1000
-    t0 = ustrip(auconvert(t0)) / 1000
+    A = ustrip(auconvert(A)) 
+    T = ustrip(auconvert(T)) 
+    t0 = ustrip(auconvert(t0))
 
-    single_cycle_pulse(t, A, σ, t0)
+    single_cycle_pulse(t, A, T, t0)
 end
-function single_cycle_pulse(t :: Real, A :: Real, σ :: Real, t0 :: Real)
-    -A * (t - t0) / σ^2 * exp(-0.5 * (t - t0)^2 / σ^2)
+function single_cycle_pulse(t :: Real, A :: Real, T :: Real, t0 :: Real)
+    σ = T/4.425
+    -A * ((t - t0)^2 / σ^2 - 1) * exp(-0.5 * (t - t0)^2 / σ^2)
 end
 
 
@@ -142,38 +145,50 @@ function get_external_forces(t::T, efield :: ElectricField{T}, wigner :: WignerD
 
     # t must be in Rydberg units
     # efield.fun must be a function of t only
+    n_dims = get_ndims(wigner)
+
+    # Check consistency of the electric field
+    n_dims_field = length(efield.edir)
+    @assert n_dims == n_dims_field "Electric field polarization must have the same number of dimensions as the system. ($n_dims != $n_dims_field)"
 
     efield_norm=norm(efield.edir)
     if abs(efield_norm -1) > SMALL_VALUE
         error("Electric field polarization must have norm 1, found $efield_norm")
     end
-    for i in 1:3
+    for i in 1:n_dims
         efield_asr_violation = abs(sum(efield.Zeff[:,i])) 
         @views if efield_asr_violation > 1e-4
             error("Must enforce sum rule for effective charges: violated by $efield_asr_violation on component $i")
         end
     end
 
-    @views nat = size(efield.Zeff, 1) ÷ 3
-    forces = Vector{T}(undef, 3*nat)
+    nat = size(efield.Zeff, 1) ÷ n_dims
+    forces = Vector{T}(undef, n_dims*nat)
 
     for i in 1:nat
-        start = 3*(i-1) +1
-        fin = start+2
+        start = n_dims*(i-1) +1
+        fin = start+n_dims-1
 
         epsE = inv(efield.eps)*efield.edir
-        ZepsE  = efield.Zeff[start:fin,:]  * epsE
-        forces[start:fin] .= ZepsE .* sqrt(2) ./sqrt(wigner.masses[3*(i-1)+1]).* efield.fun(t)
-
+        @views ZepsE  = efield.Zeff[start:fin,:]  * epsE
+        forces[start:fin] .= ZepsE .* sqrt(2) ./sqrt(wigner.masses[n_dims*(i-1)+1]).* efield.fun(t)
     end
     return forces
 end
 
-function fake_field(nat) :: ElectricField
+@doc raw"""
+    fake_field(nat :: Int; ndims = 3, type = Float64) :: ElectricField
 
-   Zeff = zeros(3*nat, 3)
-   eps = [1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0]
-   edir = [1.0,0,0]
+An empty electric field. Use this to avoid introducing any external field in the dynamics.
+"""
+function fake_field(nat :: Int; ndims = 3, type = Float64) :: ElectricField
+
+   Zeff = zeros(type, ndims*nat, ndims)
+   eps = Matrix{type}(I, ndims, ndims)
+   #[1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0]
+   edir = zeros(type, ndims)
+   edir[1] = 1.0
+   #[1.0,0,0]
    field_f = t -> 0
 
    efield = ElectricField(fun = field_f, Zeff = Zeff, edir=edir, eps = eps)
@@ -205,18 +220,19 @@ function get_IR_electric_field(py_dyn :: PyObject, pol_dir :: AbstractVector{T},
 
     nat = py_dyn.structure.N_atoms
     nat_sc = nat * scell_size[1] * scell_size[2] * scell_size[3] 
+    n_dims = length(pol_dir)
 
-    Zeff = zeros(T, 3*nat_sc, 3)
-    eps = zeros(T, 3, 3)
+    Zeff = zeros(T, n_dims*nat_sc, n_dims)
+    eps = zeros(T, n_dims, n_dims)
 
-    for k in 1:3
+    for k in 1:n_dims
         for i in 1:nat_sc
             i_uc = (i - 1) % nat + 1
-            for j in 1:3
-                Zeff[3*(i-1)+j, k] = py_dyn.effective_charges[i_uc, k, j]
+            for j in 1:n_dims
+                Zeff[n_dims*(i-1)+j, k] = py_dyn.effective_charges[i_uc, k, j]
             end
         end
-        for j in 1:3
+        for j in 1:n_dims
             eps[j, k] = py_dyn.dielectric_tensor[k, j]
         end
     end

@@ -98,13 +98,26 @@ end
 
 function generalized_verlet_step!(wigner :: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}, bc0 :: Vector{T} ,part ) where {T <: AbstractFloat}
     # Solve the newton equations
+    rank = 0
+    size = 1
+    if MPI.Initialized()
+        rank = MPI.Comm_rank(MPI.COMM_WORLD)
+        size = MPI.Comm_size(MPI.COMM_WORLD)
+    end
+
     if part == 1
         wigner.R_av .+= @. wigner.P_av * dt + 1/2.0 * avg_for * dt^2
         wigner.P_av .+= @. 1/2.0 * avg_for * dt
 
         tmp_d2v_mul = similar(d2V_dr2)
+        # println("RR corr ", wigner.RR_corr)
+        # println("RP corr ", wigner.RP_corr)
+        # println("PP corr ", wigner.PP_corr)
+        # println("d2V_dr2 ", d2V_dr2)
         mul!(tmp_d2v_mul, wigner.RR_corr, d2V_dr2)  # calculate <RR><d2V>
+        # println("tmp_d2v_mul ", tmp_d2v_mul)
         wigner.RR_corr .+= @. (wigner.RP_corr + wigner.RP_corr')*dt - (tmp_d2v_mul + tmp_d2v_mul')*dt^2/2.0 + wigner.PP_corr * dt^2
+        # println("RR corr ", wigner.RR_corr)
 
         RP_copy = copy(wigner.RP_corr)
         wigner.RP_corr .+= @. 1/2.0 * (wigner.PP_corr - tmp_d2v_mul) *dt
@@ -114,7 +127,6 @@ function generalized_verlet_step!(wigner :: WignerDistribution{T}, dt :: T, avg_
     elseif part == 2
         wigner.P_av .+= 1/2.0 .* avg_for .* dt # repeat with the new force
 
-        rank  = MPI.Comm_rank(MPI.COMM_WORLD)
         function obj(B1, C1, d2V_dr2, B0p, C0p) 
 
             KC1 = similar(d2V_dr2)
@@ -176,6 +188,12 @@ function fixed_step!(wigner :: WignerDistribution{T}, dt :: T, avg_for :: Vector
 end 
 
 function full_generalized_verlet_step!(wigner :: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}, bc0 :: Vector{T} ,part ) where {T <: AbstractFloat}
+    rank = 0
+    size = 1
+    if MPI.Initialized()
+        rank = MPI.Comm_rank(MPI.COMM_WORLD)
+        size = MPI.Comm_size(MPI.COMM_WORLD)
+    end
     # Solve the newton equations
     if part == 1
         wigner.R_av .+= wigner.P_av .* dt .+ 1/2.0 * avg_for .* dt^2
@@ -196,7 +214,6 @@ function full_generalized_verlet_step!(wigner :: WignerDistribution{T}, dt :: T,
         #KA = similar(d2V_dr2)
         #mul!(KA, d2V_dr2, wigner.RR_corr)  # calculate <RR><d2V>
 
-        rank  = MPI.Comm_rank(MPI.COMM_WORLD)
         function obj(x,p) 
             B0p = p[1]
             C0p = p[2]

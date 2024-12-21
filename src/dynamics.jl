@@ -1,10 +1,11 @@
-function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, settings :: Dynamics{T}, crystal, efield :: ElectricField{T}) where {T <: AbstractFloat}
+function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, settings :: Dynamics{T}, crystal, efield :: ElectricField{T}; symmetry_group :: Symmetries{T} = get_empty_symmetry_group(T)) where T
     
     index :: Int32 = 0
     t :: T = 0
     my_dt = settings.dt / CONV_FS # Convert to Rydberg units
 
-    nat3 = wigner.n_atoms* 3
+    n_dims = get_ndims(wigner)
+    nat3 = wigner.n_atoms * n_dims
 
     avg_for = zeros(T, nat3)
     d2v_dr2 = zeros(T, (nat3, nat3))
@@ -13,7 +14,14 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
     Ps = deepcopy(wigner.P_av)
 
     name = settings.save_filename*"$(settings.dt)-$(settings.total_time)-$(settings.N)"
-    rank  = MPI.Comm_rank(MPI.COMM_WORLD)
+
+    rank = 0
+    size = 1
+    if MPI.Initialized()
+        rank = MPI.Comm_rank(MPI.COMM_WORLD)
+        size = MPI.Comm_size(MPI.COMM_WORLD)
+    end
+
     file0 = init_file(name*".pos")
     file1 = init_file(name*".rho")
     file2 = init_file(name*".for")
@@ -32,6 +40,28 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
 
     tot_for = avg_for .+ ext_for
     tot_cl_for = cl_for .+ ext_for
+
+    # println("Forces ", tot_for)
+    # println("Classic forces ", tot_cl_for)
+    # println("External forces ", ext_for)
+    # println("D2V_DR2 ", d2v_dr2)
+
+    
+    # Impose symmetries
+    if !isempty(symmetry_group)
+        symmetry_group.symmetrize_centroid!(tot_for)
+        symmetry_group.symmetrize_centroid!(tot_cl_for)
+        symmetry_group.symmetrize_fc!(d2v_dr2)
+    end
+
+    # println("After symmetries")
+    # println("Forces ", tot_for)
+    # println("Classic forces ", tot_cl_for)
+    # println("External forces ", ext_for)
+    # println("D2V_DR2 ", d2v_dr2)
+
+
+
 
     # Integrate
     while t < settings.total_time
@@ -65,25 +95,30 @@ Error, the selected algorithm $(settings.algorithm)
         # Classic integration (part 1)
         classic_evolution!(Rs, Ps, my_dt, tot_cl_for, 1)
 
-        # Update matrix and weights
-        lambda_eigen = eigen((wigner.RR_corr))
-        #println(" DEBUG λs = ", lambda_eigen.values)
-        λvects, λs = remove_translations(lambda_eigen.vectors, lambda_eigen.values, settings.settings)
-        wigner.λs_vect = λvects
-        wigner.λs = λs
+        # println("R_av ", wigner.R_av)
+        # println("P_av ", wigner.P_av)
+        # println("RR_corr ", wigner.RR_corr)
+        # println("PP_corr ", wigner.PP_corr)
+        # println("RP_corr ", wigner.RP_corr)
+        # println("dt = $my_dt - dt^2 = $(my_dt^2)")
 
+        # Update the eigenvalues of the Wigner matrix
+        update!(wigner, get_general_settings(settings))
 
+        # Update the stochastic weights
         update_weights!(ensemble, wigner)
         kl = get_kong_liu(ensemble)
         if rank == 0
             println("KL ratio ", kl/T(ensemble.n_configs))
         end
         if kl < settings.kong_liu_ratio*ensemble.n_configs
-            generate_ensemble!(settings.N,ensemble, wigner)
+            generate_ensemble!(ensemble, wigner)
+            #println("N dim before calculate ensemble ", get_ndims(ensemble.rho0))
             calculate_ensemble!(ensemble, crystal)
         end
 
         # Get the average derivatives
+        # TODO: Too many allocating functions
         get_averages!(avg_for, d2v_dr2, ensemble, wigner)
         total_energy = get_total_energy(ensemble, wigner)
         avg_stress = get_average_stress(ensemble, wigner)
@@ -93,6 +128,15 @@ Error, the selected algorithm $(settings.algorithm)
 
         tot_for = avg_for .+ ext_for
         tot_cl_for = cl_for .+ ext_for
+
+        
+        # Impose symmetries
+        if !isempty(symmetry_group)
+            symmetry_group.symmetrize_centroid!(tot_for)
+            symmetry_group.symmetrize_centroid!(tot_cl_for)
+            symmetry_group.symmetrize_fc!(d2v_dr2)
+        end
+
 
         if "semi-implicit-verlet" == lowercase(settings.algorithm)
             semi_implicit_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
@@ -129,7 +173,7 @@ Error, the selected algorithm $(settings.algorithm)
                     line *= "  $(wigner.P_av[i]*sqrt(wigner.masses[i])) "
                 end
                 if rank==0
-                    println("Total energy ", total_energy)
+                    #println("! $t $(wigner.R_av) $(wigner.P_av) $(wigner.masses) $total_energy")
                 end
                 line *= " $total_energy"
                 line *= "\n"
@@ -191,7 +235,7 @@ Error, the selected algorithm $(settings.algorithm)
 
 
                 line = ""
-                for i in 1:6
+                for i in 1:(n_dims * (n_dims+1)) ÷ 2
                     line *= " $(avg_stress[i]) "
                 end
                 line *= "\n"
