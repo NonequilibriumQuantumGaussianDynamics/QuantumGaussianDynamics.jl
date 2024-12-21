@@ -91,7 +91,7 @@ function test_raman_perturbation()
 
     settings = QuantumGaussianDynamics.Dynamics(dt, total_time, N_configs;
                                                 algorithm = algorithm,
-                                                settings = ASR(; ignore_small_w=true),
+                                                settings = ASRfixmodes(; small_w_value = 1e-5),
                                                 save_each=1,
                                                 save_filename="co2_raman")
 

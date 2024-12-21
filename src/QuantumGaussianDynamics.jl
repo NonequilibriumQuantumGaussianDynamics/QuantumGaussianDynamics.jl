@@ -120,11 +120,12 @@ It will store the eigenvectors of the zeroth modes and constrain the dynamics no
 """
 mutable struct ASRfixmodes{T} <: GeneralSettings
     small_w_value :: T
+    ignore_small_w :: Bool
     n_dims :: Int
     settings :: StochasticSettings
     eigvect_remove :: Union{Nothing,Matrix{T}}
 end
-ASRfixmodes(; small_w_value=1e-8, n_dims=3) = ASRfixmodes(small_w_value, n_dims, StochasticSettings(), nothing)
+ASRfixmodes(; small_w_value=1e-8, n_dims=3) = ASRfixmodes(small_w_value, true, n_dims, StochasticSettings(), nothing)
 
 @doc raw"""
     NoASR()
@@ -399,14 +400,14 @@ function constrain_asr!(matrix_vector, asr :: GeneralSettings) where {T <: Abstr
 end
 function constrain_asr!(matrix :: AbstractMatrix{T}, asr :: ASRfixmodes{T}) where {T <: AbstractFloat}
     proj = zeros(T, size(matrix, 1), size(matrix, 2))
-    for i in 1:length(asr.eigvect_remove)
+    for i in 1:size(asr.eigvect_remove, 2)
         @views proj .+= asr.eigvect_remove[:, i] * asr.eigvect_remove[:, i]'
     end
     matrix .-= proj' * matrix * proj
 end
 function constrain_asr!(vector :: AbstractVector{T}, asr :: ASRfixmodes{T}) where {T <: AbstractFloat}
     proj = zeros(T, length(vector))
-    for i in 1:length(asr.eigvect_remove)
+    for i in 1:size(asr.eigvect_remove, 2)
         @views proj .+= asr.eigvect_remove[:, i] * asr.eigvect_remove[:, i]' * vector
     end
     vector .-= proj
@@ -534,7 +535,7 @@ include("UnitfulInterface.jl")
 include("symmetry_interface.jl")
 
 export WignerDistribution, get_general_settings,
-       NoASR, ASR, integrate!, Dynamics, init_from_dyn,
+       NoASR, ASR, ASRfixmodes, integrate!, Dynamics, init_from_dyn,
        get_symmetry_group_from_spglib, get_IR_electric_field,
        Ensemble, single_cycle_pulse, get_IR_electric_field,
        generate_ensemble!, calculate_ensemble!,
