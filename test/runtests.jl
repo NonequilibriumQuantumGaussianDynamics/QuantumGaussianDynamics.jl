@@ -22,6 +22,11 @@ end
     test_rr_phi()
 end
 
+@testset "Raman perturbation" begin
+    include("test_raman_perturbation.jl")
+    test_raman_perturbation()
+end
+
 
 @testset "ASE calculator" begin 
     include("test_ase_calculator.jl")

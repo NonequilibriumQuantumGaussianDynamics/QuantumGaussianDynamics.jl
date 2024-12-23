@@ -5,6 +5,7 @@ using DelimitedFiles
 using Unitful, UnitfulAtomic
 using PhysicalConstants 
 using AtomicSymmetries
+using Test
 
 using QuantumGaussianDynamics
 
@@ -79,7 +80,7 @@ function create_co2()
     return positions, raman_tensor
 end
 
-function test_raman_perturbation()
+function test_raman_perturbation(; verbose=false)
     algorithm = "generalized-verlet"
     dt = 0.2u"fs"
     total_time = 100.0u"fs"
@@ -131,31 +132,49 @@ function test_raman_perturbation()
 
     # Define the ensemble
     ensemble = QuantumGaussianDynamics.Ensemble(wigner, settings; n_configs=N_configs, temperature=temperature)
-    @show raman_tensor
+    if verbose
+        @show raman_tensor
+    end
     raman_field = get_impulsive_raman_pump(raman_tensor, 1.0/550u"nm/c", 10.0u"fs", 15.0u"fs", 1.0e2u"GV/mm", 
                                            raman_polarization)
 
     symmetry_group = get_symmetry_group_from_spglib(wigner)
-    println("Number of symmetries: ", length(symmetry_group.symmetries))
+    n_sym_before = length(symmetry_group.symmetries)
+    if verbose
+        println("Number of symmetries: ", length(symmetry_group.symmetries))
+    end
 
     # Filter the invariant symmetries with respect to the Raman perturbation
     perturbation_direction = get_perturbation_direction(raman_field, wigner)
-    println("Perturbation direction: ", perturbation_direction)
+    if verbose
+        println("Perturbation direction: ", perturbation_direction)
+    end
+    @test norm(perturbation_direction) ≈ 1.0
+    @test abs(perturbation_direction[1]) > 0.1
+    @test perturbation_direction[7] ≈ -perturbation_direction[1]
+
     filter_invariant_symmetries!(symmetry_group, perturbation_direction)
-    println("Number of symmetries after Raman activity: ", length(symmetry_group.symmetries))
+
+    # The raman perturbation should not change the number of symmetries
+    @test length(symmetry_group.symmetries) == n_sym_before
+
+    if verbose
+        println("Number of symmetries after Raman activity: ", length(symmetry_group.symmetries))
+    end
 
     QuantumGaussianDynamics.generate_ensemble!(N_configs, ensemble, wigner)
     QuantumGaussianDynamics.calculate_ensemble!(ensemble, co2_force_field!)
 
     # Get the external force
     ext_for = QuantumGaussianDynamics.get_external_forces(0.0, raman_field, wigner)
-    @show ext_for
+    if verbose
+        @show ext_for
+    end
 
-    # Use the e
-
+    # Check that everything runs without errors
     QuantumGaussianDynamics.integrate!(wigner, ensemble, settings, co2_force_field!, raman_field)
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    test_raman_perturbation()
+    test_raman_perturbation(; verbose=true)
 end

@@ -58,9 +58,13 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
     end
 
     # Impose the ASR constraints
+    println("Before constraint force = ", tot_for)
+    println("Before constraint d2v_dr2 = ", d2v_dr2)
     constrain_asr!(tot_for, get_general_settings(settings))
     constrain_asr!(tot_cl_for, get_general_settings(settings))
     constrain_asr!(d2v_dr2, get_general_settings(settings))
+    println("After constraint force = ", tot_for)
+    println("After constraint d2v_dr2 = ", d2v_dr2)
 
     # println("After symmetries")
     # println("Forces ", tot_for)
@@ -146,9 +150,13 @@ Error, the selected algorithm $(settings.algorithm)
         end
         
         # Impose the ASR constraints
+        println("Before constraint force = ", tot_for)
+        println("Before constraint d2v_dr2 = ", d2v_dr2)
         constrain_asr!(tot_for, get_general_settings(settings))
         constrain_asr!(tot_cl_for, get_general_settings(settings))
         constrain_asr!(d2v_dr2, get_general_settings(settings))
+        println("After constraint force = ", tot_for)
+        println("After constraint d2v_dr2 = ", d2v_dr2)
 
 
         if "semi-implicit-verlet" == lowercase(settings.algorithm)

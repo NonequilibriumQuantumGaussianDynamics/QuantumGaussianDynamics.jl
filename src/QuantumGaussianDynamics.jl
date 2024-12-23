@@ -414,6 +414,7 @@ end
 function constrain_asr!(vector :: AbstractVector{T}, asr :: ASRfixmodes{T}) where {T <: AbstractFloat}
     proj = zeros(T, length(vector))
     for i in 1:size(asr.eigvect_remove, 2)
+        println("Projector $i : ", asr.eigvect_remove[:, i])
         @views proj .+= asr.eigvect_remove[:, i] * asr.eigvect_remove[:, i]' * vector
     end
     vector .-= proj
