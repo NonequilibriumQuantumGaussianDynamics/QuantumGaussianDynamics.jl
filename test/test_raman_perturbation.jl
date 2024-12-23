@@ -82,19 +82,23 @@ end
 function test_raman_perturbation()
     algorithm = "generalized-verlet"
     dt = 0.2u"fs"
-    total_time = 20.0u"fs"
+    total_time = 100.0u"fs"
     N_configs = 100
     n_atoms = 3
     temperature = 0.0u"K"
 
     raman_polarization = [1.0, 0.0, 0.0]
 
+
     settings = QuantumGaussianDynamics.Dynamics(dt, total_time, N_configs;
                                                 algorithm = algorithm,
                                                 settings = ASRfixmodes(; small_w_value = 1e-5),
                                                 save_each=1,
                                                 save_filename="co2_raman")
+    # Impose the cleaning of gradients
+    set_clean_gradients!(settings, true)
 
+    # TODO: The set clean gradients does not work as expected
 
     wigner = WignerDistribution(n_atoms; n_modes = 3n_atoms - 5)
 
@@ -128,14 +132,16 @@ function test_raman_perturbation()
     # Define the ensemble
     ensemble = QuantumGaussianDynamics.Ensemble(wigner, settings; n_configs=N_configs, temperature=temperature)
     @show raman_tensor
-    raman_field = get_impulsive_raman_pump(raman_tensor, 1.0/550u"nm/c", 10.0u"fs", 15.0u"fs", 1.0u"MV/cm", 
+    raman_field = get_impulsive_raman_pump(raman_tensor, 1.0/550u"nm/c", 10.0u"fs", 15.0u"fs", 1.0e2u"GV/mm", 
                                            raman_polarization)
 
     symmetry_group = get_symmetry_group_from_spglib(wigner)
     println("Number of symmetries: ", length(symmetry_group.symmetries))
 
     # Filter the invariant symmetries with respect to the Raman perturbation
-    filter_invariant_symmetries!(symmetry_group, get_perturbation_direction(raman_field, wigner))
+    perturbation_direction = get_perturbation_direction(raman_field, wigner)
+    println("Perturbation direction: ", perturbation_direction)
+    filter_invariant_symmetries!(symmetry_group, perturbation_direction)
     println("Number of symmetries after Raman activity: ", length(symmetry_group.symmetries))
 
     QuantumGaussianDynamics.generate_ensemble!(N_configs, ensemble, wigner)
@@ -146,7 +152,6 @@ function test_raman_perturbation()
     @show ext_for
 
     # Use the e
-
 
     QuantumGaussianDynamics.integrate!(wigner, ensemble, settings, co2_force_field!, raman_field)
 end

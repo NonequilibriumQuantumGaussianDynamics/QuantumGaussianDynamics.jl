@@ -9,9 +9,24 @@ function init_stochastic_settings!(x :: StochasticSettings{T}, wigner :: WignerD
     x.original_force = zeros(T, size(wigner.R_av))
     x.original_fc_gradient = zeros(T, size(wigner.RR_corr)...)
 
+    clean_centroids = x.clean_start_gradient_centroids
+    clean_scha = x.clean_start_gradient_fcs
+
+    # Reset the flags to compute the actual gradients
+    x.clean_start_gradient_centroids = false
+    x.clean_start_gradient_fcs = false
+
     # Compute the original gradients
     get_averages!(x.original_force, x.original_fc_gradient, ensemble, wigner, x;
                  remove_sscha=true)
+
+    # Reset the flags
+    x.clean_start_gradient_centroids = clean_centroids
+    x.clean_start_gradient_fcs = clean_scha
+
+    println("Stochastic initialization...")
+    println("Original force ", x.original_force)
+    println("Original gradient ", x.original_fc_gradient)
 end
 
 function check_initialization(x :: StochasticSettings{T}) where T
@@ -508,7 +523,9 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
     # If needed, lets clean the starting gradient of the centroids
     if stochastic_settings.clean_start_gradient_centroids
         check_initialization(stochastic_settings)
+        println("Forces before cleaning ", avg_for)
         avg_for .-= stochastic_settings.original_force
+        println("Forces after cleaning ", avg_for)
     end
 
     rank = 0 
@@ -599,7 +616,9 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
 
     # Check if the original gradient needs to be removed
     if stochastic_settings.clean_start_gradient_fcs
+        println("d2V_dr2 before cleaning ", d2v_dr2 - Φ)
         d2v_dr2 .-= stochastic_settings.original_fc_gradient
+        println("d2V_dr2 after cleaning ", d2v_dr2 - Φ)
     end
 end 
 

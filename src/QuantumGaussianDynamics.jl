@@ -98,9 +98,15 @@ mutable struct StochasticSettings{T}
     original_fc_gradient :: Matrix{T}
 end
 StochasticSettings(; type=Float64) = StochasticSettings(true, false, false, false, zeros(type, 1), zeros(type, 1, 1))
+function set_clean_gradients!(settings :: StochasticSettings, value :: Bool) 
+    settings.clean_start_gradient_centroids = value
+    settings.clean_start_gradient_fcs = value
+end
+
 
 abstract type GeneralSettings end
 get_settings(x :: GeneralSettings) = x.settings
+set_clean_gradients!(x :: GeneralSettings, value :: Bool) = set_clean_gradients!(get_settings(x), value)
 
 mutable struct ASR{T} <: GeneralSettings
     #evolve_correlators :: Bool
@@ -194,7 +200,7 @@ end
 Dynamics(dt, total_time, N :: Int; algorithm="generalized-verlet", kong_liu_ratio=1.0, verbose=true, evolve_correlators=true, seed=0, correlated=true, settings=ASR(;n_dims = 3), save_filename="dynamics", save_correlators=false, save_each=100) = Dynamics(dt, total_time, algorithm, kong_liu_ratio, verbose, evolve_correlators, seed, N, correlated, settings, save_filename, save_correlators, save_each)
 get_general_settings(x :: Dynamics) = x.settings
 get_stochastic_settings(x :: Dynamics) = get_settings(get_general_settings(x))
-
+set_clean_gradients!(x :: Dynamics, value :: Bool) = set_clean_gradients!(get_stochastic_settings(x), value)
 
 @doc raw"""
 The WignerDistribution.
@@ -396,7 +402,7 @@ function remove_translations(vectors, values, settings :: GeneralSettings)
 end
 remove_translations(vect, val, settings :: NoASR) = (vect, val)
 
-function constrain_asr!(matrix_vector, asr :: GeneralSettings) where {T <: AbstractFloat}
+function constrain_asr!(matrix_vector, asr :: GeneralSettings) 
 end
 function constrain_asr!(matrix :: AbstractMatrix{T}, asr :: ASRfixmodes{T}) where {T <: AbstractFloat}
     proj = zeros(T, size(matrix, 1), size(matrix, 2))
@@ -541,7 +547,8 @@ export WignerDistribution, get_general_settings,
        generate_ensemble!, calculate_ensemble!,
        get_volume, get_impulsive_raman_pump,
        get_stochastic_settings, get_settings,
-       get_raman_tensor_from_phonons, get_perturbation_direction
+       get_raman_tensor_from_phonons, get_perturbation_direction,
+       set_clean_gradients!
 
 
 
