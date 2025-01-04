@@ -44,6 +44,10 @@ export CONV_RY
 export CONV_BOHR
 export CONV_EFIELD
 
+
+# Define abstract types
+abstract type ExternalPerturbation end
+
 """
 Electric Field.
 
@@ -60,22 +64,74 @@ This structure contains the information about the external IR electric field.
 - `Zeff` is the effective charge matrix
 - `edir` is the direction of the electric field
 """
-Base.@kwdef mutable struct ElectricField{T <: AbstractFloat} 
+Base.@kwdef mutable struct ElectricField{T <: AbstractFloat} <: ExternalPerturbation
     fun :: Function #Time in fs, unit 
     Zeff :: Matrix{T} 
     edir :: Vector{T} #Must have unit norm
     eps :: Matrix{T}
 end
 
+@doc raw"""
+    StochasticSettings()
+
+A structure to set the stochastic settings for the calculation.
+It contains a series of flag the change the behaviour of the dynamics.
+The overall results should not be affected by these flags
+in the limit of a large number of configurations, 
+but they can lead to better convergence in some cases.
+
+- `clean_start_gradient_centroids` is a flag to removes the gradient of the centroids based on the initial conditions. 
+Note: this flag changes the dynamics from the real one if the starting point is not the equilibrium one.
+- `clean_start_gradient_fcs` is a flag to removes the gradient of the force constants based on the initial conditions.
+As the previous one, this flag changes the dynamics from the real one if the starting point is not the equilibrium one.
+- `remove_scha_forces` is a flag to remove the Scha forces from the calculation of averages. This does not affects the dynamics,
+but can lead to a better convergence of the averages.
+
+This subroutine needs to be initialized, as it stores the original forces and force constants to be removed from the dynamics if needed.
+"""
+mutable struct StochasticSettings{T}
+    remove_scha_forces :: Bool
+    clean_start_gradient_centroids :: Bool
+    clean_start_gradient_fcs :: Bool
+    initialized :: Bool
+    original_force :: Vector{T}
+    original_fc_gradient :: Matrix{T}
+end
+StochasticSettings(; type=Float64) = StochasticSettings(true, false, false, false, zeros(type, 1), zeros(type, 1, 1))
+function set_clean_gradients!(settings :: StochasticSettings, value :: Bool) 
+    settings.clean_start_gradient_centroids = value
+    settings.clean_start_gradient_fcs = value
+end
+
+
 abstract type GeneralSettings end
+get_settings(x :: GeneralSettings) = x.settings
+set_clean_gradients!(x :: GeneralSettings, value :: Bool) = set_clean_gradients!(get_settings(x), value)
+
 mutable struct ASR{T} <: GeneralSettings
     #evolve_correlators :: Bool
     ignore_small_w :: Bool
     small_w_value :: T
     n_dims :: Int   
+    settings :: StochasticSettings
 end
 ASR(; ignore_small_w=false,
-   small_w_value=1e-8, n_dims=3) = ASR(ignore_small_w, small_w_value, n_dims)
+   small_w_value=1e-8, n_dims=3) = ASR(ignore_small_w, small_w_value, n_dims, StochasticSettings())
+
+@doc raw"""
+    ASRfixmodes()
+
+This structure is used to fix the acoustic sum rule on modes that are zero.
+It will store the eigenvectors of the zeroth modes and constrain the dynamics not to occur along those modes.
+"""
+mutable struct ASRfixmodes{T} <: GeneralSettings
+    small_w_value :: T
+    ignore_small_w :: Bool
+    n_dims :: Int
+    settings :: StochasticSettings
+    eigvect_remove :: Union{Nothing,Matrix{T}}
+end
+ASRfixmodes(; small_w_value=1e-8, n_dims=3) = ASRfixmodes(small_w_value, true, n_dims, StochasticSettings(), nothing)
 
 @doc raw"""
     NoASR()
@@ -84,8 +140,9 @@ A settings to avoid alltogether the ASR.
 """
 struct NoASR <: GeneralSettings
     n_dims :: Int
+    settings :: StochasticSettings
 end 
-NoASR() = NoASR(3)
+NoASR() = NoASR(3, StochasticSettings())
 
 
 @doc raw"""
@@ -142,7 +199,8 @@ struct Dynamics{T <: AbstractFloat}
 end
 Dynamics(dt, total_time, N :: Int; algorithm="generalized-verlet", kong_liu_ratio=1.0, verbose=true, evolve_correlators=true, seed=0, correlated=true, settings=ASR(;n_dims = 3), save_filename="dynamics", save_correlators=false, save_each=100) = Dynamics(dt, total_time, algorithm, kong_liu_ratio, verbose, evolve_correlators, seed, N, correlated, settings, save_filename, save_correlators, save_each)
 get_general_settings(x :: Dynamics) = x.settings
-
+get_stochastic_settings(x :: Dynamics) = get_settings(get_general_settings(x))
+set_clean_gradients!(x :: Dynamics, value :: Bool) = set_clean_gradients!(get_stochastic_settings(x), value)
 
 @doc raw"""
 The WignerDistribution.
@@ -294,7 +352,7 @@ end
 Remove acoustic sum rule from eigenvalue and eigenvectors
 """
 function remove_translations(vectors, values, thr)
-    not_trans_mask =  values .> thr
+    not_trans_mask =  values .> max(values...) * thr
 
     if sum(.!not_trans_mask) != 3
         println("WARNING")
@@ -343,6 +401,26 @@ function remove_translations(vectors, values, settings :: GeneralSettings)
 	return remove_translations(vectors, values; ndims = settings.n_dims)
 end
 remove_translations(vect, val, settings :: NoASR) = (vect, val)
+
+function constrain_asr!(matrix_vector, asr :: GeneralSettings) 
+end
+function constrain_asr!(matrix :: AbstractMatrix{T}, asr :: ASRfixmodes{T}) where {T <: AbstractFloat}
+    proj = zeros(T, size(matrix, 1), size(matrix, 2))
+    for i in 1:size(asr.eigvect_remove, 2)
+        @views proj .+= asr.eigvect_remove[:, i] * asr.eigvect_remove[:, i]'
+    end
+    matrix .-= proj' * matrix * proj
+end
+function constrain_asr!(vector :: AbstractVector{T}, asr :: ASRfixmodes{T}) where {T <: AbstractFloat}
+    proj = zeros(T, length(vector))
+    for i in 1:size(asr.eigvect_remove, 2)
+        println("Projector $i : ", asr.eigvect_remove[:, i])
+        @views proj .+= asr.eigvect_remove[:, i] * asr.eigvect_remove[:, i]' * vector
+    end
+    vector .-= proj
+end
+
+
 
 #function get_n_translations(w_total :: Vector{T<: AbstractFloat}, settings :: GeneralSettings)
 function get_n_translations(w_total, settings:: GeneralSettings) :: Int
@@ -457,17 +535,22 @@ include("phonons.jl")
 include("calculator.jl")
 include("dynamics.jl")
 include("external_f.jl")
+include("raman_external_f.jl")
 
 include("UnitfulInterface.jl")
 
 include("symmetry_interface.jl")
 
 export WignerDistribution, get_general_settings,
-       NoASR, ASR, integrate!, Dynamics, init_from_dyn,
+       NoASR, ASR, ASRfixmodes, integrate!, Dynamics, init_from_dyn,
        get_symmetry_group_from_spglib, get_IR_electric_field,
        Ensemble, single_cycle_pulse, get_IR_electric_field,
        generate_ensemble!, calculate_ensemble!,
-       get_volume
+       get_volume, get_impulsive_raman_pump,
+       get_stochastic_settings, get_settings,
+       get_raman_tensor_from_phonons, get_perturbation_direction,
+       set_clean_gradients!
+
 
 
 end # module QuantumGaussianDynamics

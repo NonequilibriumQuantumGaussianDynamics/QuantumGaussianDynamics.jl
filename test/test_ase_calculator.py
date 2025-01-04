@@ -1,7 +1,10 @@
 import ase, ase.calculators
 import numpy as np
 from ase.calculators.calculator import Calculator
+import julia, julia.Main
 
+# Load the force field
+julia.Main.include("test_raman_perturbation.jl")
 
 class Harmonic3D(Calculator):
     def __init__(self, k1, k2, k3, *args, **kwargs):

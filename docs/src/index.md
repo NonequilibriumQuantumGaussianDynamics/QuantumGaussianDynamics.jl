@@ -146,6 +146,29 @@ The function `force_calculator!` takes 1D vectors (flattened `3 * N_atoms` array
 The stress is a 6-component vector representing the stress tensor in Voigt notation.
 
 
+# External force
+
+External forces are introduced in the dynamics as `ExternalPerturbation` objects. The code introduces few kinds of such perturbations, like IR electric fields, Raman lasers, etc. The important thing is that the perturbation must be a subtype of ExternalPerturbation and must implement the method `get_external_forces` defined as
+
+```julia
+get_external_forces(time :: T, perturbation :: ExternalPerturbation, wigner :: WignerDistribution{T}) :: Vector{T} where {T}
+```
+
+It must return a vector of size `n_dims * n_atoms`, with the external force acting on each atom at the given time. All quantities must be expressed in Hartree atomic units.
+
+Two types of external perturbations are already implemented: `ElectricField` and `StimulatedRamanField`.
+
+```@docs
+ElectricField
+StimulatedRamanField
+```
+
+The stimulated Raman can be created as
+```@docs
+QuantumGaussianDynamics.get_impulsive_raman_pump
+```
+
+
 # Troubleshooting 
 
 - When running an example that uses an ``ase`` calculator, I get the following error:

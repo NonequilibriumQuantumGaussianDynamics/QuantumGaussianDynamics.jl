@@ -1,3 +1,39 @@
+@doc raw"""
+    init_stochastic_settings!(x :: StochasticSettings{T}, wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}) where T
+
+Initialize the stochastic settings for the ensemble. This function is called by the dynamics and should not be called by the user.
+It is called at the beginning of the dynamics to initialize the stochastic settings.
+"""
+function init_stochastic_settings!(x :: StochasticSettings{T}, wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}) where T
+    x.initialized = true
+    x.original_force = zeros(T, size(wigner.R_av))
+    x.original_fc_gradient = zeros(T, size(wigner.RR_corr)...)
+
+    clean_centroids = x.clean_start_gradient_centroids
+    clean_scha = x.clean_start_gradient_fcs
+
+    # Reset the flags to compute the actual gradients
+    x.clean_start_gradient_centroids = false
+    x.clean_start_gradient_fcs = false
+
+    # Compute the original gradients
+    get_averages!(x.original_force, x.original_fc_gradient, ensemble, wigner, x;
+                 remove_sscha=true)
+
+    # Reset the flags
+    x.clean_start_gradient_centroids = clean_centroids
+    x.clean_start_gradient_fcs = clean_scha
+
+    println("Stochastic initialization...")
+    println("Original force ", x.original_force)
+    println("Original gradient ", x.original_fc_gradient)
+end
+
+function check_initialization(x :: StochasticSettings{T}) where T
+    if !x.initialized
+        error("The stochastic settings have not been initialized")
+    end
+end
 
 function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: AbstractFloat}
 
@@ -300,6 +336,7 @@ Update the weights of the ensemble according with the new wigner distribution
 function update_weights!(ensemble:: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
 
     # Check the length
+    println("Updating weights: nw wigner = $(length(wigner_distribution.λs)), nw rho0 = $(length(ensemble.rho0.λs))")
 
     if length(wigner_distribution.λs) != length(ensemble.rho0.λs)
     	println("nw wigner = "* string(length(wigner_distribution.λs)) *" , nw rho0 = "* string(length(ensemble.rho0.λs)) ) #debug 1d
@@ -378,14 +415,21 @@ function get_average_energy(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
    return avg_ene
 end
 
-function get_average_forces(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
+function get_average_forces(ensemble :: Ensemble{T}; stochastic_settings :: StochasticSettings = nothing) :: Vector{T} where {T <: AbstractFloat}
 
    avg_for = ensemble.forces * ensemble.weights
+   if stochastic_settings.remove_scha_forces
+       avg_for .-= ensemble.sscha_forces * ensemble.weights
+   end
    #avg_for ./= Float64(ensemble.n_configs)
    #avg_for ./= T(ensemble.n_configs)
    avg_for ./= sum(ensemble.weights)
    #println(avg_for .* sqrt.(ensemble.rho0.masses) .* CONV_BOHR ./CONV_RY)
-
+   
+   if stochastic_settings.clean_start_gradient_centroids
+       avg_for .-= stochastic_settings.original_force
+   end
+   avg_for
 end
 
 function get_average_stress(ensemble :: Ensemble{T}, wigner :: WignerDistribution{T}) where {T <: AbstractFloat}
@@ -461,12 +505,28 @@ $$
 \left<\frac{d^2V}{dR_adR_b}\right> = -\sum_c\Psi^{-1}_{ac} \left<(R_c - R^{(0)}_c)f_b\right> \right>
 $$
 
-TODO: Improve the stochastic accuracy using f - f_scha instead of just f, and adding back the analytical quantity.
-Which is exactly the Φ matrix.
+The flag remove_scha changes the behaviour of the function.
+If true, the d2v_dr2 is
+$$
+\left<\frac{d^2(V - V_\text{SCHA})}{dR_adR_b}\right> = -\sum_c\Psi^{-1}_{ac} \left<(R_c - R^{(0)}_c)f_b\right> \right> - \Phi
+$$
+which is the SCHA preconditioned gradient. Note that to remove the scha forces to clean the ensemble, you must use the stochastic_settings flags.
+
 """
-function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
+function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: Ensemble{T}, wigner_distribution :: WignerDistribution{T}, stochastic_settings :: StochasticSettings; remove_sscha=false) where {T <: AbstractFloat}
     avg_for .= ensemble.forces * ensemble.weights
+    if stochastic_settings.remove_scha_forces
+        avg_for .-= ensemble.sscha_forces * ensemble.weights
+    end
     avg_for ./= sum(ensemble.weights)
+
+    # If needed, lets clean the starting gradient of the centroids
+    if stochastic_settings.clean_start_gradient_centroids
+        check_initialization(stochastic_settings)
+        println("Forces before cleaning ", avg_for)
+        avg_for .-= stochastic_settings.original_force
+        println("Forces after cleaning ", avg_for)
+    end
 
     rank = 0 
     psize = 1
@@ -508,7 +568,9 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
         @views delta .= ensemble.positions[i,:] .- wigner_distribution.R_av[i]
         delta .*= ensemble.weights
         d2v_dr2[i,:] .=  (ensemble.forces)  * delta   
-        d2v_dr2[i, :] .-= ensemble.sscha_forces * delta
+        if stochastic_settings.remove_scha_forces
+            d2v_dr2[i, :] .-= ensemble.sscha_forces * delta
+        end
     end
     d2v_dr2 ./= sum(ensemble.weights)
 
@@ -534,9 +596,13 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
     mul!(d2v_dr2, wigner_distribution.λs_vect , d2v_dr2_tmp)
 
     # Add back the Φ
-    #println("Y <u Δf>", d2v_dr2)
-
-    d2v_dr2 .-= Φ
+    if !remove_sscha && stochastic_settings.remove_scha_forces
+        # We computed Y<uΔf>, we must add -Φ to get Y<uf>
+        d2v_dr2 .-= Φ
+    elseif remove_sscha && !stochastic_settings.remove_scha_forces
+        # We computed Y<uf>, we must remove -Φ to get Y<uΔf>
+        d2v_dr2 .+= Φ
+    end
 
     # println("Y <uf>", d2v_dr2)
     # println("Φ ", Φ)
@@ -548,8 +614,12 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
     #println("fc ")
     #display(d2v_dr2 .* wigner_distribution.masses[1])
 
-
-    # TODO! Impose the acoustic sum rule and the symmetries
+    # Check if the original gradient needs to be removed
+    if stochastic_settings.clean_start_gradient_fcs
+        println("d2V_dr2 before cleaning ", d2v_dr2 - Φ)
+        d2v_dr2 .-= stochastic_settings.original_fc_gradient
+        println("d2V_dr2 after cleaning ", d2v_dr2 - Φ)
+    end
 end 
 
 """

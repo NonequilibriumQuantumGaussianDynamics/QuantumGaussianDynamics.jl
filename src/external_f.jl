@@ -141,7 +141,7 @@ function single_cycle_pulse(t :: Real, A :: Real, T :: Real, t0 :: Real)
 end
 
 
-function get_external_forces(t::T, efield :: ElectricField{T}, wigner :: WignerDistribution{T}) where {T <: AbstractFloat}
+function get_external_forces(t::T, efield :: ElectricField{T}, wigner :: WignerDistribution{T}) :: Vector{T} where {T <: AbstractFloat}
 
     # t must be in Rydberg units
     # efield.fun must be a function of t only
