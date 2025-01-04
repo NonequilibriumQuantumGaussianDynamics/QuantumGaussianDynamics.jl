@@ -22,8 +22,9 @@ end
     test_rr_phi()
 end
 
-@testset "Raman perturbation" begin
+@testset "Raman and gradient clean" begin
     include("test_raman_perturbation.jl")
+    test_cleaning()
     test_raman_perturbation()
 end
 
