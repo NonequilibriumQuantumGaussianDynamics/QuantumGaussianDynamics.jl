@@ -38,7 +38,7 @@ The time envelope of the field is assumed to be a Gaussian function.
 - `raman_tensor::Array{T, 3}`: The Raman tensor of the system. Can be obtained from a Phonons object via `get_raman_tensor_from_phonons`.
 - `field_frequency::Quantity`: The frequency of the field. A Unitful quantity with annotated units. (Note, this is a frequency, not a wavelength. Good units are THz or c/cm, not eV or nm)
 - `field_duration::Quantity`: The duration of the field. A Unitful quantity with annotated units.
-- `field_energy_density::Quantity`: The energy density averaged over the pulse duration of the field pulse. A Unitful quantity with annotated units (i.e. mJ/m^3)
+- `field_intensity::Quantity`: Intensity of the electric field (maximum Amplitude) A Unitful quantity with annotated units (i.e. kV/m)
 - `field_polarization::AbstractVector{T}`: The polarization of the field.
 - `second_polarization::AbstractVector{T}`: The polarization of the second field. If not given, it is assumed to be the same as the first field. This is useful if the light is unpolarized or circularly polarized.
 
