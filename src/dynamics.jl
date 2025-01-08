@@ -32,9 +32,12 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
     file7 = init_file(name*".gam")
     
     # Initialize the stochastic settings
+    println("SCHA Forces:", ensemble.sscha_forces[:, 1])
     init_stochastic_settings!(get_stochastic_settings(settings), wigner, ensemble)
     
     # Get the average derivatives
+    println("SCHA Forces:", ensemble.sscha_forces[:, 1])
+    println("First avg:")
     get_averages!(avg_for, d2v_dr2, ensemble, wigner, get_stochastic_settings(settings))
     total_energy = get_total_energy(ensemble, wigner)
     classic_for = get_classic_forces(wigner, crystal)

@@ -19,14 +19,14 @@ using PyCall
 function main()
     method = "generalized-verlet"
     dt = 0.1u"fs"
-    t_max = 100.0u"fs"
+    t_max = 20.0u"fs"
     temperature = 0.0u"K"
 
 
     # Load the SSCHA dynamical matrix
     # @__DIR__ is the directory of the current script
     sscha_path = @__DIR__
-    dyn = PH.Phonons(joinpath(sscha_path, "final_result"), 1)
+    dyn = PH.Phonons(joinpath(sscha_path, "sscha_ensemble/dyn_gen_pop1_"), 1)
 
     # Load the converged SSCHA ensemble
     py_ensemble = PyEnsemble.Ensemble(dyn, ustrip(temperature))
@@ -52,8 +52,8 @@ function main()
     # Properties of the perturbing field
     field_frequency = 1.0u"c" / 500u"nm" # Raman is done with visible light, usually around 500 nm of wavelength. We convert in the frequency with the usual relation νλ = c
     field_duration = 1.0u"fs" # With a duration of 1 fs, we are close to a single cycle pulse.
-    field_start_time = 2.0u"fs" # When the field arrives
-    field_intensity = 0.0u"V/m" # The intensity of the field.
+    field_start_time = 3.0u"fs" # When the field arrives
+    field_intensity = 100.0u"MV/cm" # The intensity of the field.
     field_polarization = [1.0, 0.0, 0.0] # Polarization of the incoming pump (along the molecule)
 
     # Properties of the simulation

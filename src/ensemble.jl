@@ -16,6 +16,7 @@ function init_stochastic_settings!(x :: StochasticSettings{T}, wigner :: WignerD
     x.clean_start_gradient_centroids = false
     x.clean_start_gradient_fcs = false
 
+
     # Compute the original gradients
     get_averages!(x.original_force, x.original_fc_gradient, ensemble, wigner, x;
                  remove_sscha=true)
@@ -514,9 +515,20 @@ which is the SCHA preconditioned gradient. Note that to remove the scha forces t
 
 """
 function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: Ensemble{T}, wigner_distribution :: WignerDistribution{T}, stochastic_settings :: StochasticSettings; remove_sscha=false) where {T <: AbstractFloat}
+    # Update the SSCHA forces
+    # Get the force constant matrix (TODO: Memory non efficient)
+    Φ = get_Φ(wigner_distribution, ensemble.temperature)
+    δr = copy(ensemble.positions)
+    for i in 1:ensemble.n_configs
+        δr[:, i] .-= wigner_distribution.R_av
+    end
+    ensemble.sscha_forces .= Φ * δr
+    ensemble.sscha_forces .*= -1
+
     avg_for .= ensemble.forces * ensemble.weights
     if stochastic_settings.remove_scha_forces
         avg_for .-= ensemble.sscha_forces * ensemble.weights
+        println(ensemble.sscha_forces[:, 1])
     end
     avg_for ./= sum(ensemble.weights)
 
@@ -555,15 +567,7 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
     delta = Vector{T}(undef, ensemble.n_configs)
     d2v_dr2_tmp = Matrix{T}(undef, length(wigner_distribution.λs), wigner_distribution.n_modes)
 
-    # Get the force constant matrix (TODO: Memory non efficient)
-    Φ = get_Φ(wigner_distribution, ensemble.temperature)
-    δr = copy(ensemble.positions)
-    for i in 1:ensemble.n_configs
-        δr[:, i] .-= wigner_distribution.R_av
-    end
-    ensemble.sscha_forces .= Φ * δr
-    ensemble.sscha_forces .*= -1
-
+    
     for i in 1: wigner_distribution.n_modes
         @views delta .= ensemble.positions[i,:] .- wigner_distribution.R_av[i]
         delta .*= ensemble.weights
@@ -637,8 +641,6 @@ function init_ensemble_from_python(py_ensemble, settings :: Dynamics{T}) where {
     N_modes = N_atoms*3
     N_configs = py_ensemble.N
 
-    println("Temperature:", TEMPERATURE)
-    println("ens temp:", py_ensemble.T0)
 
     # Random positions
     ens_positions = reshape(permutedims(py_ensemble.xats,(3,2,1)), (N_modes, py_ensemble.N))
@@ -648,19 +650,19 @@ function init_ensemble_from_python(py_ensemble, settings :: Dynamics{T}) where {
     end
 
     # Random energies
-    ens_energies = py_ensemble.energies #.* CONV_RY
+    ens_energies = py_ensemble.energies .* CONV_RY
 
     #SSCHA energies
-    sscha_energies = py_ensemble.sscha_energies #.* CONV_RY
+    sscha_energies = py_ensemble.sscha_energies .* CONV_RY
 
     # Random forces
     ens_forces = reshape(permutedims(py_ensemble.forces,(3,2,1)), (N_modes, py_ensemble.N))
-    ens_forces = ens_forces ./ CONV_BOHR #.* CONV_RY
+    ens_forces = ens_forces .* (CONV_RY / CONV_BOHR)
     ens_forces = ens_forces ./ sqrt.(rho0.masses)
 
     # SSCHA forces
     sscha_forces = reshape(permutedims(py_ensemble.sscha_forces,(3,2,1)), (N_modes, py_ensemble.N))
-    sscha_forces ./= CONV_BOHR #./ CONV_RY
+    sscha_forces ./= CONV_BOHR ./ CONV_RY
     sscha_forces ./= sqrt.(rho0.masses)
 
     # Random stress
@@ -684,7 +686,6 @@ function init_ensemble_from_python(py_ensemble, settings :: Dynamics{T}) where {
     else
        y0 = 0.0 .* get_random_y(settings.N, N_modes-3, settings )
     end
-    println("Temperature now: $TEMPERATURE")
     ensemble = Ensemble(rho0, settings;
                         n_configs=N_configs,
                         temperature=TEMPERATURE)
@@ -693,7 +694,6 @@ function init_ensemble_from_python(py_ensemble, settings :: Dynamics{T}) where {
     ensemble.forces .= ens_forces
     ensemble.stress .= ens_voigt
     ensemble.energies .= ens_energies
-    println("Final size: $(size(ensemble.sscha_energies)); $(size(sscha_energies))")
     ensemble.sscha_energies .= sscha_energies
     ensemble.sscha_forces .= sscha_forces
     ensemble.weights .= weights

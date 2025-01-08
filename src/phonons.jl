@@ -214,7 +214,8 @@ where $n(\omega)$ is the Bose-Einstein distribution function.
 """
 function get_ω(λ :: T, temperature :: T; thr = 1e-5) :: T where {T}
     if temperature < SMALL_VALUE
-        return 1.0 / (2.0 * λ)
+        ω = 1.0 / (2.0 * λ)
+        return ω
     end
 
     kT = temperature * CONV_K
@@ -255,8 +256,10 @@ function get_Φ!(Φ :: AbstractMatrix{T}, λs :: AbstractVector{T}, λ_pols :: A
     # println("SIZE λ_pols: ", size(λ_pols))
     
     Φ .= 0.0
+    println("Nm", n_good_modes)
     for μ in 1:n_good_modes
         ω_μ = get_ω(λs[μ], temperature)
+        println("Frequency $μ : $(uconvert(u"c/cm", ω_μ * u"hartree/ħ" / (2π)))")
         @views Φ .+= λ_pols[:, μ] * λ_pols[:, μ]' * ω_μ^2
     end
 end

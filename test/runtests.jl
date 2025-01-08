@@ -45,6 +45,11 @@ end
         @test wj.RP_corr[i,i] ≈ wp.RP_corr[i,i] rtol = 5e-2 atol=1e-10
         @test wj.PP_corr[i,i] ≈ wp.PP_corr[i,i] rtol = 5e-2 atol=1e-10
     end
+
+    # Test also the frequency diagonalization
+    # After loading
+    include("test_frequency_loaddyn.jl")
+    test_load_dyn_compare_freqs()
 end
 
 @testset "Harmonic nat = 2, 3D, ASR; ASE and Cellconstructor interface" begin 
