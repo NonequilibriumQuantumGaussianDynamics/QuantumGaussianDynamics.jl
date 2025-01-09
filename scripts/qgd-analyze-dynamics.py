@@ -187,6 +187,7 @@ if __name__ == "__main__":
     
     w, pols = dyn.DiagonalizeSupercell()
     w = w[3:]
+    pols = pols[:, 3:]
 
     energies = compute_energy(w, data)
     last_w = w[-1] * 1.05
@@ -202,12 +203,12 @@ if __name__ == "__main__":
 
         plt.xlabel("Time (fs)")
         plt.ylabel("$R\sqrt{M}$ [a.u.]")
-        plt.plot(data[:, 0], data[:, i], color  = "k")
+        plt.plot(data[:, 0], data[:, i+1], color  = "k")
 
         # Add the force on the other axis
         ax2 = plt.twinx()
         ax2.set_ylabel("$F/\sqrt{M}$ [a.u.]")
-        ax2.plot(data[:, 0], data[:, i + 2*len(w)], color = "r")
+        ax2.plot(data[:, 0], data[:, i + 2*len(w) + 1], color = "r")
         # Set the yaxis as red
         ax2.yaxis.label.set_color("red")
         ax2.tick_params(axis='y', colors='red')
@@ -216,7 +217,7 @@ if __name__ == "__main__":
 
     # Plot the colormap
     plt.figure()
-    plt.imshow(energy_map.T, aspect='auto', extent=(data[0, 0], data[-1, 0], w[0] * CC.Units.RY_TO_CM, last_w * CC.Units.RY_TO_CM), cmap=CMAP)
+    plt.imshow(energy_map.T, origin="lower", aspect='auto', extent=(data[0, 0], data[-1, 0], w[0] * CC.Units.RY_TO_CM, last_w * CC.Units.RY_TO_CM), cmap=CMAP)
     plt.colorbar()
     plt.xlabel("Time (fs)")
     plt.ylabel("Frequency (cm-1)")
