@@ -14,7 +14,7 @@ N_CONFIGS = 1000
 MAX_ITERATIONS = 50
 
 
-dyn = CC.Phonons.Phonons('dyn',1)
+dyn = CC.Phonons.Phonons('final_result',1)
 dyn.ForcePositiveDefinite()
 qe_sym = CC.symmetries.QE_Symmetry(dyn.structure)
 qe_sym.SetupFromSPGLIB()
@@ -24,6 +24,8 @@ ensemble = sscha.Ensemble.Ensemble(dyn, TEMPERATURE)
 
 # Define the minimization variables
 minim = sscha.SchaMinimizer.SSCHA_Minimizer(ensemble)
+minim.kong_liu_ratio = 0.8
+minim.meaningful_factor = 0.00001
 
 # Save minimization data
 iodata = sscha.Utilities.IOInfo()
@@ -37,7 +39,7 @@ relax = sscha.Relax.SSCHA(minim, calculator, N_configs = N_CONFIGS,
 relax.data_dir = 'data'
 relax.setup_custom_functions(custom_function_post = iodata.CFP_SaveAll)
 
-relax.relax(get_stress = True, ensemble_loc = 'sscha_ensemble')
+relax.relax(get_stress = False, ensemble_loc = 'sscha_ensemble')
 relax.minim.finalize()
 relax.minim.dyn.save_qe('final_result')
 

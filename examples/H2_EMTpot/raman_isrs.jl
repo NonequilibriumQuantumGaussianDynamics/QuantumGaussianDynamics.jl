@@ -53,7 +53,7 @@ function main()
     field_frequency = 1.0u"c" / 500u"nm" # Raman is done with visible light, usually around 500 nm of wavelength. We convert in the frequency with the usual relation νλ = c
     field_duration = 1.0u"fs" # With a duration of 1 fs, we are close to a single cycle pulse.
     field_start_time = 3.0u"fs" # When the field arrives
-    field_intensity = 100.0u"MV/cm" # The intensity of the field.
+    field_intensity = 10.0u"GV/cm" # The intensity of the field.
     field_polarization = [1.0, 0.0, 0.0] # Polarization of the incoming pump (along the molecule)
 
     # Properties of the simulation

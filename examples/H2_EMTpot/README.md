@@ -20,3 +20,7 @@ To simplify, we only account for the component of the Raman tensor along the str
 The setup file for this calculation is ``raman_isrs.jl``
 
 
+## Current errors
+
+When solving the system, it seems it wants to stretch the molecule even with the average gradient removal, like it is in a unstable state.
+This could be probably improved by pre-converging much better with the SSCHA
