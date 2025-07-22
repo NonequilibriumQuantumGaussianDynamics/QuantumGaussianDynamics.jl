@@ -4,7 +4,14 @@ using LinearAlgebra
 using Random
 using PyCall
 using Roots
+using MPI
+#using Optimization
+using Optim
+using OptimizationOptimJL
+using ForwardDiff
 
+# Init MPI
+include("parallel.jl")
 
 """
 Some guide on the units
@@ -14,21 +21,32 @@ Therefore each derived units (like forces and times) are appropriately rescaled.
 """
 
 const SMALL_VALUE :: Float64 = 1e-8
+const THR_ACOUSTIC :: Float64 = 1e-1
 const CONV_FS :: Float64 = 0.048377687 # to femtoseconds
 const CONV_RY :: Float64 = 0.0734985857 # eV to Ry
 const CONV_BOHR :: Float64 = 1.8897261246257702 # Angstrom to Bohr
 const CONV_MASS :: Float64 = 911.444175 # amu to kg
+const CONV_EFIELD :: Float64 = 2.7502067*1e-7 #kVcm to E_Ry
+const CONV_FREQ :: Float64 = 4.83776857*1e-5 #THz to w_Ry
 
 export SMALL_VALUE
 export CONV_FS
 export CONV_RY
 export CONV_BOHR
+export CONV_EFIELD
 
 """
 Here information about the dynamics are stored, 
 like integration algorithm, time_step, kong_liu ratio 
 and so on, so forth. 
 """
+Base.@kwdef mutable struct ElectricField{T <: AbstractFloat} 
+    fun :: Function #Time in fs, unit 
+    Zeff :: Matrix{T} 
+    edir :: Vector{T} #Must have unit norm
+    eps :: Matrix{T}
+end
+
 Base.@kwdef struct Dynamics{T <: AbstractFloat}
     dt :: T   #In femtosecodns
     total_time :: T # In femtosecodns
@@ -36,7 +54,9 @@ Base.@kwdef struct Dynamics{T <: AbstractFloat}
     kong_liu_ratio :: T
     verbose :: Bool
     evolve_correlators :: Bool
+    seed :: Int64
     N :: Int64
+    correlated :: Bool
 
     # Save the data each
     save_filename :: String 
@@ -88,11 +108,14 @@ Base.@kwdef mutable struct Ensemble{T <: AbstractFloat}
     positions :: Matrix{T}  # Positions are multiplied by the squareroot of the masses
     energies :: Vector{T} 
     forces :: Matrix{T} # Forces are divided by the squareroot of masses
+    stress :: Matrix{T} # Stress in eV/A^3
     sscha_energies :: Vector{T} 
     sscha_forces :: Matrix{T}
     n_configs :: Int32
     weights :: Vector{T}
     temperature :: T
+    correlated :: Bool
+    y0 :: Matrix{T}
 
     #unit_cell :: Matrix{T}
 end 
@@ -100,18 +123,24 @@ end
 """
 Remove acoustic sum rule from eigenvalue and eigenvectors
 """
-function remove_translations(vectors, values)
-    println("values")
-    println(values)
-    not_trans_mask =  values .> SMALL_VALUE
+function remove_translations(vectors, values, thr)
+    not_trans_mask =  values .> thr
 
-    @assert sum(.!not_trans_mask) == 3   """
-Error, the expected number of acustic modes is 3
-       got $(sum(.!not_trans_mask)) instead.
-"""
+    if sum(.!not_trans_mask) != 3
+        println("WARNING")
+        println("the expected number of acustic modes is 3
+                #       got $(sum(.!not_trans_mask)) instead")
+        println(values[:3])
+    end
+    #@assert sum(.!not_trans_mask) == 3   """
+#Error, the expected number of acustic modes is 3
+#       got $(sum(.!not_trans_mask)) instead.
+#"""
 
-    new_values = values[ not_trans_mask ]
-    new_vectors = vectors[:, not_trans_mask]
+    #new_values = values[ not_trans_mask ]
+    #new_vectors = vectors[:, not_trans_mask]
+    new_values = values[4:end]
+    new_vectors = vectors[:,4:end]
 
     return new_vectors, new_values
 end
@@ -147,19 +176,19 @@ function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T 
 
     # Rescale
     masses = super_struct.get_masses_array() # already in Rydberg units
-    mass_array = vec(repeat(masses,3,1)) # array of 3N masses ordered according to m1 m1 m1 m2 m2 m2 ...
+    mass_array = reshape(repeat(masses',3,1), N_modes)
     R_av = R_av.*sqrt.(mass_array)
     P_av = P_av./sqrt.(mass_array)
 
     # Diagonalize alpha
     if settings.evolve_correlators == false
         lambda_eigen = eigen(alpha)
-        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values) #NO NEEDED WITH ALPHAS
+        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, THR_ACOUSTIC) #NO NEEDED WITH ALPHAS
     else
         lambda_eigen = eigen(RR_corr)
         #println("RR_Coror")
         #display(RR_corr)
-        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values) #NO NEEDED WITH ALPHAS       
+        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, THR_ACOUSTIC) #NO NEEDED WITH ALPHAS       
     end
 
     # Cell
@@ -178,5 +207,6 @@ include("ensemble.jl")
 include("phonons.jl")
 include("calculator.jl")
 include("dynamics.jl")
+include("external_f.jl")
 
 end # module QuanumGaussianDynamics

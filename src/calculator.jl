@@ -20,5 +20,13 @@ function get_ase_positions(pos , masses)
 end
 
 
+function get_ase_positions_array(pos , masses) 
+    if length(masses) != length(pos)
+        error("masses and positions have different lengths")
+    end
+    N_atoms = Int64(length(masses)/3.0)
+    new_pos = pos ./ sqrt.(masses) ./ CONV_BOHR
+    return new_pos
+end
     
 

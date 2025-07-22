@@ -11,7 +11,7 @@ function get_alphabeta(TEMP, w_full, pols_full)
     K_to_Ry=6.336857346553283e-06
 
     n_mod = length(w_full)
-    pols, w = remove_translations(pols_full, w_full)
+    pols, w = remove_translations(pols_full, w_full, SMALL_VALUE)
 
     nw = zeros(n_mod - 3)
     aw = zeros(n_mod - 3)
@@ -65,7 +65,7 @@ function get_correlators(TEMP, w_full, pols_full)
     K_to_Ry=6.336857346553283e-06
 
     n_mod = length(w_full)
-    pols, w = remove_translations(pols_full, w_full)
+    pols, w = remove_translations(pols_full, w_full, SMALL_VALUE)
 
     nw = zeros(n_mod - 3)
     aw = zeros(n_mod - 3)
@@ -136,6 +136,24 @@ function extract_dynamical_matrix(wigner :: WignerDistribution{T}, TEMP) where {
     end 
 
 end
+
+
+
+function displace_along_mode!(mod, eta, wigner, dyn) 
+    # eta in Angstrom*sqrt(uma)
+    eta = eta * CONV_BOHR * sqrt(CONV_MASS)
+
+    eig, eigv = dyn.DiagonalizeSupercell()
+    v = eigv[:,mod]
+
+    du = v .* eta # No need to divide by sqrt(m), by definition of TDSCHA coord
+    wigner.R_av .+= du
+end
+
+
+
+    
+
 
 """
 # TODO: add a function to load and save the ensemble on disk

@@ -35,6 +35,7 @@ t1 = time()
 
 # Initialization
 method = "semi-implicit-euler"
+method = "none"
 settings = QuanumGaussianDynamics.Dynamics(dt = 0.1, total_time = 50.0, algorithm = method, kong_liu_ratio = 1.0, 
                                            verbose = true,  evolve_correlators = true, save_filename = method, 
                                           save_correlators = true, save_each = 1, N=400)
@@ -67,7 +68,7 @@ rho.P_av[1] += 0.01 #sqrt(Ry)
 QuanumGaussianDynamics.generate_ensemble!(200,ensemble, rho)
 QuanumGaussianDynamics.calculate_ensemble!(ensemble, crystal)
 #println("free energy", QuanumGaussianDynamics.get_average_energy(ensemble))
-println("initial forces")
+#println("initial forces")
 display(QuanumGaussianDynamics.get_average_forces(ensemble))
 QuanumGaussianDynamics.get_classic_forces(rho,crystal)
 
