@@ -77,14 +77,6 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
         ensemble.forces .= tot_forces
         ensemble.stress .= tot_stress
     end
-    """
-    check_energy = ensemble.energies .- tot_energies
-    check_forces = ensemble.forces .- tot_forces
-    println("check ",norm(check_energy))
-    println("check for",norm(check_forces))
-    MPI.Barrier(comm)
-    error()
-    """
 
 end
 
