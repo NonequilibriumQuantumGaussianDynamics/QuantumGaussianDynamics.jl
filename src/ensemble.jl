@@ -30,13 +30,6 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
                 println("1 Calculating configuration $i out of $(ensemble.n_configs) $(energy * CONV_RY)")
             end
             
-            """
-            println("old, ", ensemble.energies[i])
-            println("new, ", energy * CONV_RY)
-
-            println("old, ", ensemble.forces[:,i])
-            println("new, ", forces)
-            """
         end
     else
         start_per_proc, end_per_proc = parallel_force_distribute(ensemble.n_configs)
