@@ -1,0 +1,4 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+QuanumGaussianDynamics = "b5781b8a-c3cd-49e3-88b7-4e99ca02a1de"
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
