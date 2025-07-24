@@ -1,11 +1,4 @@
-using Documenter
-using QuanumGaussianDynamics
+using Documenter, TDSCHA
 using Unitful
 
-makedocs(
-    sitename = "QuantumGaussianDynamics.jl",
-    modules = [QuanumGaussianDynamics],
-    pages = [
-        "Home" => "index.md",
-    ],
-)
+makedocs(sitename="TDSCHA.jl")
