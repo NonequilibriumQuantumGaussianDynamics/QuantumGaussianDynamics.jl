@@ -1,0 +1,64 @@
+using TDSCHA
+using Test
+
+using Unitful, UnitfulAtomic
+
+const x0_new = [0.1, -0.1]
+const ω_new = [1.0, 2.0]
+const mass_new = 2.0
+
+function harmonic_potential!(forces, stress, positions; ndims=2)
+    energy = 0 
+    stress .= 0.0
+    @simd for i in 1:length(positions)
+        atomic_index = (i-1) ÷ ndims + 1
+        forces[i] = -mass_new[atomic_index] * ω_new[i]^2 * (positions[i] - x0_new[i])
+        energy += 0.5 * mass_new[atomic_index] * ω_new[i]^2 * (positions[i] - x0_new[i])^2
+    end
+    return energy
+end
+
+
+function test_harmonic_1_particle_2d()
+
+    algorithm = "generalized-verlet"
+    dt = 0.01u"fs"
+    total_time = 5.0u"fs"
+    N_configs = 100
+
+    # We do not want ASR to be imposed
+    settings = TDSCHA.Dynamics(dt, total_time, N_configs;
+                                                algorithm = algorithm,
+                                                settings = NoASR(),
+                                                save_each=1)
+
+    wigner_dist = WignerDistribution(1; n_dims=2)
+    
+    # Generate a good initial distribution
+    for i in 1:length(ω_new)
+        wigner_dist.RR_corr[i,i] = 1/(2ω_new[i])
+        wigner_dist.PP_corr[i,i] = ω_new[i]^2 * wigner_dist.RR_corr[i,i]
+    end
+    wigner_dist.RP_corr .= 0.0
+    wigner_dist.R_av .= 0.0
+    wigner_dist.P_av .= 0.0
+    println("size of masses: ", size(wigner_dist.masses))
+    wigner_dist.masses .= mass_new
+    TDSCHA.update!(wigner_dist, settings)
+
+    ensemble = TDSCHA.Ensemble(wigner_dist, settings; n_configs=100, temperature=0.0u"K")
+    efield = TDSCHA.fake_field(1; ndims=2)
+
+    TDSCHA.generate_ensemble!(N_configs, ensemble, wigner_dist)
+    TDSCHA.calculate_ensemble!(ensemble, harmonic_potential!)
+
+    TDSCHA.integrate!(wigner_dist, ensemble, settings, harmonic_potential!, efield)
+
+    @test wigner_dist.RR_corr[1,1] ≈ 1/(2ω_new[1]) rtol = 5e-2
+    @test wigner_dist.RR_corr[2,2] ≈ 1/(2ω_new[2]) rtol = 5e-2
+end
+
+
+if abspath(PROGRAM_FILE) == @__FILE__
+    test_harmonic_1_particle_2d()
+end
