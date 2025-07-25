@@ -38,8 +38,6 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
         force_array = Matrix{Float64}(undef,Int64(ensemble.rho0.n_modes),nconf_proc)
         stress_array = Matrix{Float64}(undef,6,nconf_proc)
 
-        #for i in 1 : ensemble.n_configs
-
         for i in start_per_proc[rank+1]: end_per_proc[rank+1]
             if rank == 0
                 println("Calculating configuration $i out of $(ensemble.n_configs)")
@@ -82,19 +80,14 @@ end
 
 function get_classic_forces(wigner_distribution:: WignerDistribution{T}, crystal) where {T <: AbstractFloat}
 
-        #println("Calculating configuration $i out of $(ensemble.n_configs)")
         coords  = get_ase_positions(wigner_distribution.R_av , wigner_distribution.masses)
         crystal.positions = coords
         energy = crystal.get_potential_energy()
         forces = crystal.get_forces()
 
         forces = reshape(permutedims(forces), Int64(wigner_distribution.n_modes))
-        #println("Classic forces (eV/A)")
-        #println(forces)
         forces = forces ./ sqrt.(wigner_distribution.masses) .* CONV_RY ./CONV_BOHR
 
-        #println("Classic forces Ry/Bohr/sqrt(m)")
-        #println(forces)
         return forces
 end
 
@@ -387,17 +380,7 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
 
     comm = MPI.COMM_WORLD
     rank = MPI.Comm_rank(comm)
-    if rank==0
-    println("forces ")
-    println(avg_for[1,1]*sqrt(ensemble.rho0.masses[1]))
-    #display(avg_for .* sqrt.(ensemble.rho0.masses) )
-    println("norm ")
-    println(norm(avg_for .* sqrt.(ensemble.rho0.masses)))
-    println("max ")
-    println(maximum(avg_for .* sqrt.(ensemble.rho0.masses)))
-    end
 
-    #t0 = time()
     delta = Vector{T}(undef, ensemble.n_configs)
     d2v_dr2_tmp = Matrix{T}(undef, length(wigner_distribution.λs), wigner_distribution.n_modes)
 
@@ -408,8 +391,6 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
     end
 
     d2v_dr2 ./= sum(ensemble.weights)
-    #t1 = time()
-    #println("time = ", t1-t0)
 
     mul!(d2v_dr2_tmp, wigner_distribution.λs_vect' , d2v_dr2)
 
@@ -420,11 +401,7 @@ function get_averages!(avg_for :: Vector{T}, d2v_dr2 :: Matrix{T}, ensemble :: E
 
     d2v_dr2 .+= d2v_dr2'
     d2v_dr2 ./= (-2.0)
-    #println("fc ")
-    #display(d2v_dr2 .* wigner_distribution.masses[1])
 
-
-    # TODO! Impose the acoustic sum rule and the symmetries
 end 
 
 """
