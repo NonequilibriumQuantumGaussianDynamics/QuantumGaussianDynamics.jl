@@ -1,18 +1,29 @@
-# Quantum Gaussian Dynamics
+# TDSCHA.jl
 
-This package perform the quantum dynamics of a Wigner Gaussian distribution solving the
-equation of motion of the Time-Dependent Self-Consistent Harmonic Approximation. 
+This package performs the quantum nuclear dynamics of a system under impulsive radiation (Pump-Probe).
+It works by integrating the Time-Dependent Self-Consistent Harmonic Approximation equations of motion.
 
-# Install on a new machine
-julia; using Pkg; 
-Pkg.add(PackageSpec(path="path/QuantumGaussianDynamics.jl"))
+## Installation
+To use it, you must activate the environment and install the dependencies.
 
-# Activate and add dependencies
-open Julia shell
-enter the package mode (type ])
-activate the packacge (activate . )
-add the dependency (add LinearAlgebra)
+```bash
+julia --project=/path/to/QuantumGaussianDynamics
+```
 
-# Also install cellconstructor and Python-sscha
-pip install Cellconstructor;
+Then, instantiate the environment and install the dependencies.
+
+```julia
+using Pkg
+Pkg.instantiate()
+```
+
+This will create a file named ``Manifest.toml`` containing the current state of the environment.
+
+To employ the ASE interface for the calculators, you must install the following Python packages:
+```bash
+pip install ase
+pip install cellconstructor
 pip install python-sscha
+````
+
+
