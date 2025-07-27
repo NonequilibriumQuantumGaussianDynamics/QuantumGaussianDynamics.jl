@@ -1,4 +1,4 @@
-# TDSCHA.jl
+# QuantumGaussianDynamics.jl
 
 This package performs the quantum nuclear dynamics of a system under impulsive radiation (Pump-Probe).
 It works by integrating the Time-Dependent Self-Consistent Harmonic Approximation equations of motion.
@@ -26,4 +26,8 @@ pip install cellconstructor
 pip install python-sscha
 ````
 
+## References
+
+Details about the numerical methods can be found at 
+> F. Libbi *et al.*, *Atomistic simulations of out-of-equilibrium quantum nuclear dynamics*, npj Computational Materials  11, 144 (2025) 
 
