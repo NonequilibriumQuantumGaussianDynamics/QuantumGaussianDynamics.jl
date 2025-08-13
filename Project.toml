@@ -13,3 +13,9 @@ OptimizationOptimJL = "36348300-93cb-4f02-beb5-3c3902f8871e"
 PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c6dc98e632"
+
+[targets]
+test = ["Test"]
