@@ -22,13 +22,10 @@ function euler_step!(wigner_distribution:: WignerDistribution{T}, dt :: T, avg_f
     wigner_distribution.RP_corr .+= wigner_distribution.PP_corr .* dt # update RP
 
     wigner_distribution.PP_corr .-= (tmp_d2v_mul .+ tmp_d2v_mul')    # update PP
-    #wigner_distribution.PP_corr .-= tmp_d2v_mul'      # update PP
 
     mul!(tmp_d2v_mul, wigner_distribution.RR_corr, d2V_dr2)
     tmp_d2v_mul .*= dt
     wigner_distribution.RP_corr .-=  tmp_d2v_mul      # update RP
-    #println("Check")
-    #display(copy_PP_corr.-tmp_d2v_mul )
 
     wigner_distribution.RR_corr .+= copy_RP_corr
     wigner_distribution.RR_corr .+= copy_RP_corr'
@@ -49,8 +46,6 @@ function semi_implicit_euler_step!(wigner_distribution:: WignerDistribution{T}, 
     # Evolve the correlators
     mul!(tmp_d2v_mul, wigner_distribution.RR_corr, d2V_dr2)  # calculate <RR><d2V>
     tmp_d2v_mul .*= dt
-    #println("Check")
-    #display(wigner_distribution.PP_corr.-tmp_d2v_mul )
 
     wigner_distribution.RP_corr .+= (wigner_distribution.PP_corr .* dt .- tmp_d2v_mul) # update RP
 
@@ -80,8 +75,6 @@ function semi_implicit_verlet_step!(wigner_distribution:: WignerDistribution{T},
         # Evolve the correlators
         mul!(tmp_d2v_mul, wigner_distribution.RR_corr, d2V_dr2)  # calculate <RR><d2V>
         tmp_d2v_mul .*= dt
-        #println("Check")
-        #display(wigner_distribution.PP_corr.-tmp_d2v_mul )
 
         wigner_distribution.RP_corr .+= (wigner_distribution.PP_corr .* dt .- tmp_d2v_mul) # update RP
 
@@ -147,18 +140,6 @@ function generalized_verlet_step!(wigner :: WignerDistribution{T}, dt :: T, avg_
 
         wigner.PP_corr .= B1
         wigner.RP_corr .= C1
-
-        """
-        KC = similar(C1)
-        mul!(KC, d2V_dr2, C1)  # calculate <d2V><RP>
-        AK = similar(C0)
-        mul!(AK, wigner.RR_corr, d2V_dr2)
-        B0 .-= 1/2.0 * (KC .+ KC') *dt
-        C0 .+= 1/2.0 * (B0 .- AK) *dt
-
-        wigner.PP_corr .= B0
-        wigner.RP_corr .= C0
-        """
 
     end
 end 

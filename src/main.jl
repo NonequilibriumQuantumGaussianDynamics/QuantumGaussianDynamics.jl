@@ -1,8 +1,8 @@
 t0 = time()
 push!(LOAD_PATH, "/home/flibbi/programs/sscha/QuantumGaussianDynamics.jl")
 println(LOAD_PATH)
-import QuanumGaussianDynamics
-using QuanumGaussianDynamics.QuanumGaussianDynamics
+import QuantumGaussianDynamics
+using QuantumGaussianDynamics.QuantumGaussianDynamics
 
 using PyCall
 using LinearAlgebra
@@ -36,10 +36,10 @@ t1 = time()
 # Initialization
 method = "semi-implicit-euler"
 method = "none"
-settings = QuanumGaussianDynamics.Dynamics(dt = 0.1, total_time = 50.0, algorithm = method, kong_liu_ratio = 1.0, 
+settings = QuantumGaussianDynamics.Dynamics(dt = 0.1, total_time = 50.0, algorithm = method, kong_liu_ratio = 1.0, 
                                            verbose = true,  evolve_correlators = true, save_filename = method, 
                                           save_correlators = true, save_each = 1, N=400)
-rho = QuanumGaussianDynamics.init_from_dyn(dyn, Float64(TEMPERATURE), settings)
+rho = QuantumGaussianDynamics.init_from_dyn(dyn, Float64(TEMPERATURE), settings)
 
 """ Initializaiton of the ensemble. TODO:
 correctly subtract the translations
@@ -48,31 +48,31 @@ load the ensamble through python and pass the info to the julia structure
 add check for positive frequencies
 check units
 """
-ensemble = QuanumGaussianDynamics.init_ensemble_from_python(py_ensemble, settings)
+ensemble = QuantumGaussianDynamics.init_ensemble_from_python(py_ensemble, settings)
 
-QuanumGaussianDynamics.update_weights!(ensemble, rho)
-QuanumGaussianDynamics.get_average_energy(ensemble)
-QuanumGaussianDynamics.get_average_forces(ensemble)
+QuantumGaussianDynamics.update_weights!(ensemble, rho)
+QuantumGaussianDynamics.get_average_energy(ensemble)
+QuantumGaussianDynamics.get_average_forces(ensemble)
 writedlm("weights.txt", ensemble.weights, ' ')
 dv_dr = zeros(rho.n_atoms*3)
 d2v_dr2 = zeros(rho.n_atoms*3,rho.n_atoms*3)
-QuanumGaussianDynamics.get_averages!(dv_dr, d2v_dr2, ensemble, rho)
+QuantumGaussianDynamics.get_averages!(dv_dr, d2v_dr2, ensemble, rho)
 
 calculator = DIMERCalc.DIMERCalculator(2, case= "cubic", k2 = 0.1)
-crystal = QuanumGaussianDynamics.init_calculator(calculator, rho, ase.Atoms)
+crystal = QuantumGaussianDynamics.init_calculator(calculator, rho, ase.Atoms)
 
 #println("initial free energy", QuanumGaussianDynamics.get_average_energy(ensemble))
 #println("initial forces", QuanumGaussianDynamics.get_average_forces(ensemble) )
 # Display atoms
 rho.P_av[1] += 0.01 #sqrt(Ry)
-QuanumGaussianDynamics.generate_ensemble!(200,ensemble, rho)
-QuanumGaussianDynamics.calculate_ensemble!(ensemble, crystal)
+QuantumGaussianDynamics.generate_ensemble!(200,ensemble, rho)
+QuantumGaussianDynamics.calculate_ensemble!(ensemble, crystal)
 #println("free energy", QuanumGaussianDynamics.get_average_energy(ensemble))
 #println("initial forces")
-display(QuanumGaussianDynamics.get_average_forces(ensemble))
-QuanumGaussianDynamics.get_classic_forces(rho,crystal)
+display(QuantumGaussianDynamics.get_average_forces(ensemble))
+QuantumGaussianDynamics.get_classic_forces(rho,crystal)
 
-QuanumGaussianDynamics.integrate!(rho, ensemble, settings, crystal )
+QuantumGaussianDynamics.integrate!(rho, ensemble, settings, crystal )
 
 
 

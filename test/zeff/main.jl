@@ -2,8 +2,8 @@ push!(LOAD_PATH, "/home/flibbi/programs/sscha/QuantumGaussianDynamics.jl")
 
 using MPI
 using Test
-import QuanumGaussianDynamics
-using QuanumGaussianDynamics.QuanumGaussianDynamics
+import QuantumGaussianDynamics
+using QuantumGaussianDynamics.QuantumGaussianDynamics
 
 using PyCall
 using LinearAlgebra
@@ -34,13 +34,13 @@ MPI.Init()
 
     # Initialization
     method = "generalized-verlet"
-    settings = QuanumGaussianDynamics.Dynamics(dt =0.5, total_time = 10005.0, algorithm = method, kong_liu_ratio =1.0, 
+    settings = QuantumGaussianDynamics.Dynamics(dt =0.5, total_time = 10005.0, algorithm = method, kong_liu_ratio =1.0, 
                                                verbose = true,  evolve_correlators = true, save_filename = method, 
                                               save_correlators = true, save_each = 1, N=1000, seed=0, correlated = true)
-    rho = QuanumGaussianDynamics.init_from_dyn(dyn, Float64(TEMPERATURE), settings)
+    rho = QuantumGaussianDynamics.init_from_dyn(dyn, Float64(TEMPERATURE), settings)
 
-    ensemble = QuanumGaussianDynamics.init_ensemble_from_python(py_ensemble, settings)
-    QuanumGaussianDynamics.update_weights!(ensemble, rho)
+    ensemble = QuantumGaussianDynamics.init_ensemble_from_python(py_ensemble, settings)
+    QuantumGaussianDynamics.update_weights!(ensemble, rho)
 
     calc = lammpslib.LAMMPSlib(
             keep_alive=true,
@@ -51,24 +51,24 @@ MPI.Init()
                 "pair_coeff * * /n/holyscratch01/kozinsky_lab/libbi/sscha/SrTiO3_flare/srtio3.otf.flare"
                 ])
 
-    crystal = QuanumGaussianDynamics.init_calculator(calc, rho, ase.Atoms)
+    crystal = QuantumGaussianDynamics.init_calculator(calc, rho, ase.Atoms)
 
     A = 3000.0 # 3000.0 #kV/cm
     freq = 2.4 #THz
     t0 = 1878.0 #fs
     sig = 468.0 #fs
     edir = [1.0,0.0,0.0]
-    field_fun = deepcopy(QuanumGaussianDynamics.pulse)
+    field_fun = deepcopy(QuantumGaussianDynamics.pulse)
     field_f = t -> field_fun(t,A,freq,t0,sig)
 
-    Zeff, eps = QuanumGaussianDynamics.read_charges_from_out!("ph.out",  rho)
-    efield = QuanumGaussianDynamics.ElectricField(fun = field_f, Zeff = Zeff, edir=edir, eps = eps)
+    Zeff, eps = QuantumGaussianDynamics.read_charges_from_out!("ph.out",  rho)
+    efield = QuantumGaussianDynamics.ElectricField(fun = field_f, Zeff = Zeff, edir=edir, eps = eps)
 
     Nstep = Int32(settings.total_time/settings.dt)
     for i in 1:Nstep
         tim = i*settings.dt
         my_dt = tim/ CONV_FS
-        ext_for = QuanumGaussianDynamics.get_external_forces(my_dt, efield, rho)
+        ext_for = QuantumGaussianDynamics.get_external_forces(my_dt, efield, rho)
         ext_for.*=sqrt.(rho.masses)
         for icar=1:3
             fx = ext_for[icar:3:end]

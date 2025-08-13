@@ -1,4 +1,4 @@
-name = "QuanumGaussianDynamics"
+name = "QuantumGaussianDynamics"
 uuid = "b5781b8a-c3cd-49e3-88b7-4e99ca02a1de"
 authors = ["Francesco Libbi <libbi@g.harvard.edu>", "Lorenzo Monacelli <lorenzo.monacelli@epfl.ch>"]
 version = "0.1.0"

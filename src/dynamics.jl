@@ -67,7 +67,7 @@ Error, the selected algorithm $(settings.algorithm)
 
         # Update matrix and weights
         lambda_eigen = eigen(Symmetric(wigner.RR_corr))
-        λvects, λs = QuanumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, THR_ACOUSTIC)
+        λvects, λs = QuantumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, THR_ACOUSTIC)
         wigner.λs_vect = λvects
         wigner.λs = λs
 
@@ -113,12 +113,6 @@ Error, the selected algorithm $(settings.algorithm)
                     println("T = $t fs")
                     println()
                 end
-            #println("Average position:")
-                #println(wigner.R_av)
-                #println()
-                #println("Average momenta:")
-                #println(wigner.P_av)
-                #println()
                 line = "$t "                            
                 for i in 1:nat3
                     line *= "  $(wigner.R_av[i]/sqrt(wigner.masses[i])) "
