@@ -37,3 +37,4 @@ conda activate sscha
 # again julia has been removed:
 pip install ase mpi4py
 pip install cellconstructor python-sscha tdscha
+
