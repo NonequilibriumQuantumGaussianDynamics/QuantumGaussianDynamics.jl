@@ -1,3 +1,22 @@
+"""
+QuantumGaussianDynamics.jl 
+
+This package integrates the Time-Dependent Self-Consistent Harmonic Approximation (TDSCHA)
+equations of motion to simulate pump–probe-like dynamics. 
+
+Main components:
+- `Dynamics` — simulation settings (time step, total time, algorithm, I/O).
+- `ElectricField` — external IR electric field coupling (effective charges, direction, time profile).
+- `WignerDistribution` — quantum state of the system.
+- `Ensemble` — stochastic configurations, forces, stresses, and weights.
+
+**Units**
+We use Rydberg atomic units internally (frequencies in Ry units, lengths in Bohr).
+Helper constants (e.g. `CONV_BOHR`, `CONV_FS`, `CONV_RY`) are provided to convert common lab units.
+
+See the docstrings of each type/function for details and examples.
+"""
+
 module QuantumGaussianDynamics
 
 using LinearAlgebra
@@ -13,13 +32,6 @@ using PyCall
 
 # Init MPI
 include("parallel.jl")
-
-"""
-Some guide on the units
-
-We adopt Rydberg atomic units, where the energy is expressed in Ry.
-Therefore each derived units (like forces and times) are appropriately rescaled.
-"""
 
 const SMALL_VALUE :: Float64 = 1e-8
 const THR_ACOUSTIC :: Float64 = 1e-1
@@ -51,6 +63,7 @@ This structure contains the information about the external IR electric field.
 - `fun` is the function that describes the electric field as a function of time
 - `Zeff` is the effective charge matrix
 - `edir` is the direction of the electric field
+- `eps` is the dielectric constant matrix
 """
 Base.@kwdef mutable struct ElectricField{T <: AbstractFloat} 
     fun :: Function #Time in fs, unit 
@@ -60,53 +73,54 @@ Base.@kwdef mutable struct ElectricField{T <: AbstractFloat}
 end
 
 """
-    Dynamics(dt:: Quantity,
-        total_time:: Quantity,
-        N :: Int;
-        algorithm:: String = "generalized-verlet",
-        kong_liu_ratio:: AbstractFloat = 1.0,
-        verbose:: Bool = true,
-        evolve_correlators:: Bool = true,
-        seed:: Int = 0,
-        evolve_correlated:: Bool = true,
-        settings:: GeneralSettings = ASR(),
-        save_filename:: String = "dynamics",
-        save_correlators:: Bool = false,
-        save_each:: Int=100)
+Settings for the dynamics.
+
+Dynamics(dt :: T = 1.0  #femtosecodns,
+    total_time :: T # In femtosecodns,
+    algorithm :: String = "generalized-verlet",
+    kong_liu_ratio :: T = 1.0,
+    verbose :: Bool = true,
+    evolve_correlators :: Bool = true,
+    correlated :: Bool = true,
+    seed :: Int64,
+    N :: Int64,
+
+    # Save the data each
+    save_each :: Int64 = 1,
+    save_filename :: String,
+    save_correlators :: Bool)
 
 
-The settings for the simulation. dt and total_time are in femtoseconds, or generic
-time units if Unitful is used.
+The settings for the simulation. dt and total_time are in femtoseconds
 
-- `dt` is the time step [either in femtoseconds or generic time units]
-- `total_time` is the total simulation time [either in femtoseconds or generic time units]
-- `N` is the number of atoms in the system
+- `dt` is the time step [in femtoseconds]
+- `total_time` is the total simulation time [in femtoseconds]
 - `algorithm` is the integration algorithm to use. Either "generalized-verlet" or "semi-implicit-verlet"
 - `kong_liu_ratio` is the ratio exploits the importance sampling.
 - `verbose` is a flag to print out information during the simulation
-- `evolve_correlators` is a flag to evolve the correlators. If false, neglects bubble self-energy.
+- `evolve_correlators` is a flag to evolve the correlators <RR>, <PP> and <RP>
+- `correlated` if true, the correlated approach for computing ensemble averages is used
 - `seed` is the seed for the random number generator
-- `evolve_correlated` is a flag to extract correlated ensembles between steps. This improves the convergence of the ensemble.
-- `settings` is a structure with general settings about the constrains on some modes.
+- `N` is the number of stochastic configurations
 - `save_filename` is the name of the file where to save the data
 - `save_correlators` is a flag to save the correlators information
 - `save_each` is the number of steps between each save of the data
 """
 Base.@kwdef struct Dynamics{T <: AbstractFloat}
-    dt :: T   #In femtosecodns
+    dt :: T = 1.0  #femtosecodns
     total_time :: T # In femtosecodns
-    algorithm :: String
-    kong_liu_ratio :: T
-    verbose :: Bool
-    evolve_correlators :: Bool
+    algorithm :: String = "generalized-verlet"
+    kong_liu_ratio :: T = 1.0
+    verbose :: Bool = true
+    evolve_correlators :: Bool = true
+    correlated :: Bool = true
     seed :: Int64
     N :: Int64
-    correlated :: Bool
 
     # Save the data each
+    save_each :: Int64 = 1
     save_filename :: String 
     save_correlators :: Bool 
-    save_each :: Int64
 end
 
 Base.@kwdef struct GeneralSettings{T <: AbstractFloat}
@@ -117,8 +131,7 @@ end
 """
 The WignerDistribution.
 
-It can be initialized either via a cellconstructor Phonon object using the
-method ``init_from_dyn``. Alternatively, one can initialize a generic one with the field
+It can be initialized using the method ``init_from_dyn``. Alternatively, one can initialize a generic one with the field
 
     WignerDistribution(n_atoms; type = Float64, n_dims=3)
 
@@ -156,13 +169,9 @@ Base.@kwdef mutable struct WignerDistribution{T<: AbstractFloat}
     masses  :: Vector{T}
     n_atoms :: Int32
     n_modes :: Int32
-    #RR_corr :: Symmetric{T, Matrix{T}}
-    #PP_corr :: Symmetric{T, Matrix{T}}
     RR_corr :: Matrix{T}
     PP_corr :: Matrix{T}
     RP_corr :: Matrix{T}
-    #alpha   :: Symmetric{T, Matrix{T}}
-    #beta    :: Symmetric{T, Matrix{T}}
     alpha :: Matrix{T}
     beta :: Matrix{T}
     gamma   :: Matrix{T}
@@ -175,6 +184,24 @@ Base.@kwdef mutable struct WignerDistribution{T<: AbstractFloat}
     atoms :: Vector{String}
 end
 
+"""
+Ensemble average information
+stocastic displacements and forces have index i, j, coordinate i, configuration j
+
+Ensemble(rho0 :: WignerDistribution{T},
+    positions :: Matrix{T},  # Positions are multiplied by the square root of the masses
+    energies :: Vector{T},
+    forces :: Matrix{T}, # Forces are divided by the squareroot of masses
+    stress :: Matrix{T}, # Stress in eV/A^3
+    sscha_energies :: Vector{T},
+    sscha_forces :: Matrix{T},
+    n_configs :: Int32,
+    weights :: Vector{T},
+    temperature :: T,
+    correlated :: Bool,
+    y0 :: Matrix{T},
+    #unit_cell :: Matrix{T})
+"""
 Base.@kwdef mutable struct Ensemble{T <: AbstractFloat}
     rho0 :: WignerDistribution{T}
 
@@ -191,8 +218,6 @@ Base.@kwdef mutable struct Ensemble{T <: AbstractFloat}
     temperature :: T
     correlated :: Bool
     y0 :: Matrix{T}
-
-    #unit_cell :: Matrix{T}
 end 
 
 """
