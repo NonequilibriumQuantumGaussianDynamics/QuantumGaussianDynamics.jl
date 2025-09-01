@@ -38,3 +38,4 @@ conda activate sscha
 pip install ase mpi4py
 pip install cellconstructor python-sscha tdscha
 
+
