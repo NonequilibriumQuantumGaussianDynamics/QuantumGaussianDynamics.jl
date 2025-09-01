@@ -102,6 +102,11 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
 
 end
 
+"""
+    get_classic_forces(wigner_distribution:: WignerDistribution{T}, crystal) where {T <: AbstractFloat}
+
+Compute the forces at the centroids, i.e., the classical forces acting on the crystal.
+"""
 function get_classic_forces(wigner_distribution:: WignerDistribution{T}, crystal) where {T <: AbstractFloat}
 
         coords  = get_ase_positions(wigner_distribution.R_av , wigner_distribution.masses)
@@ -109,32 +114,44 @@ function get_classic_forces(wigner_distribution:: WignerDistribution{T}, crystal
         energy = crystal.get_potential_energy()
         forces = crystal.get_forces()
 
-        forces = reshape(permutedims(forces), Int64(wigner_distribution.n_modes))
-        forces = forces ./ sqrt.(wigner_distribution.masses) .* CONV_RY ./CONV_BOHR
+	forces = vec(transpose(forces))
+        forces = @. forces / sqrt(wigner_distribution.masses) * CONV_RY / CONV_BOHR
 
         return forces
 end
 
 function get_classic_ef(Rs:: Vector{T}, wigner_distribution:: WignerDistribution{T},  crystal) where {T <: AbstractFloat}
 
-        #println("Calculating configuration $i out of $(ensemble.n_configs)")
         coords  = get_ase_positions(Rs , wigner_distribution.masses)
         crystal.positions = coords
         energy = crystal.get_potential_energy()
         energy *= CONV_RY
         forces = crystal.get_forces()
-        forces = reshape(permutedims(forces), Int64(wigner_distribution.n_modes))
-        forces = forces ./ sqrt.(wigner_distribution.masses) .* CONV_RY ./CONV_BOHR
+
+	forces = vec(transpose(forces))
+        forces = @. forces / sqrt(wigner_distribution.masses) * CONV_RY / CONV_BOHR
 
         return energy, forces
 end
 
+"""
+    get_kong_liu(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
+
+Compute the Kong-Liu ration
+"""
 function get_kong_liu(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
     sumrho2 = sum(ensemble.weights.^2)
     sumrho  = sum(ensemble.weights)
     return sumrho^2/sumrho2
 end
 
+"""
+    get_random_y(N, N_modes, settings :: Dynamics{T}) where {T <: AbstractFloat}
+
+Generates a random matrix of numbers sampled from a normal distribution.
+Each row corresponds to a phonon mode, and contains N random configurations (or N/2 if even_odd = true).
+For parallel execution, the matrix ymu_i is broadcast so that all processors use the same random variables.
+"""
 function get_random_y(N, N_modes, settings :: Dynamics{T}) where {T <: AbstractFloat}
 
     even_odd = true
