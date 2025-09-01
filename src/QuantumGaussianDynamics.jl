@@ -226,7 +226,9 @@ Remove acoustic sum rule from eigenvalue and eigenvectors
 function remove_translations(vectors::AbstractMatrix{T}, values::AbstractVector{T}, thr::T) where {T<:AbstractFloat}
     mask = values .> thr
     nremoved = count(!, mask)
-    @warn "Expected 3 acoustic modes, found $nremoved" if nremoved != 3
+    if nremoved != 3
+        @warn "Expected 3 acoustic modes, found $nremoved"
+    end
     return vectors[:, mask], values[mask]
 end
 
