@@ -1,4 +1,27 @@
+"""
+   calculate_ensemble!(ensemble::Ensemble{T}, crystal) where {T<:AbstractFloat}
 
+Evaluate energies, forces, and stresses for each configuration in an `Ensemble`
+using a given calculator ( assigned to `crystal`). Results are written back into the
+ensemble in place.
+
+# Arguments
+- `ensemble::Ensemble{T}`: ensemble of stochastic configurations. Updated in place.
+- `crystal`: external calculator object (e.g. ASE/PyCall wrapper) providing:
+  - `crystal.positions` (settable Cartesian coordinates)
+  - `get_potential_energy()`
+  - `get_forces()` (returns `N_atoms × 3` array)
+  - `get_stress()` (returns stress tensor
+
+# Units
+- Energies are converted to Rydberg (`* CONV_RY`).
+- Forces are flattened, divided by √masses, and converted with `CONV_RY/CONV_BOHR`.
+- Stress is assumed to be in eV/Å³ and stored directly.
+
+# Returns
+- The updated `ensemble` (modification is in place, return value is mainly for chaining).
+
+"""
 function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: AbstractFloat}
 
     if MPI.Initialized()
@@ -8,17 +31,19 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
         root = 0 
     end
 
+    sqrtm = sqrt.(ensemble.rho0.masses)
 
     if MPI.Initialized() == false
         for i in 1 : ensemble.n_configs
-            coords  = get_ase_positions(ensemble.positions[:,i] , ensemble.rho0.masses)
+	    ens_pos = @view ensemble.positions[:,i]
+	    coords  = get_ase_positions( ens_pos , ensemble.rho0.masses)
             crystal.positions = coords
             energy = crystal.get_potential_energy()
             forces = crystal.get_forces()
             stress = crystal.get_stress()
 
-            forces = reshape(permutedims(forces), Int64(ensemble.rho0.n_modes))
-            forces = forces ./ sqrt.(ensemble.rho0.masses) .* CONV_RY ./CONV_BOHR
+	    forces = vec(transpose(forces))
+            forces = @. forces / sqrtm * CONV_RY / CONV_BOHR 
 
             ensemble.energies[i] = energy * CONV_RY
             ensemble.forces[:,i] .= forces
@@ -26,30 +51,29 @@ function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: Abstra
 
             if rank==0
                 println("0 Calculating configuration $i out of $(ensemble.n_configs) $(energy * CONV_RY)", )
-            elseif rank==1
-                println("1 Calculating configuration $i out of $(ensemble.n_configs) $(energy * CONV_RY)")
             end
             
         end
     else
         start_per_proc, end_per_proc = parallel_force_distribute(ensemble.n_configs)
         nconf_proc = end_per_proc[rank+1] - start_per_proc[rank+1] + 1
-        energy_vect = Vector{Float64}(undef,nconf_proc)
-        force_array = Matrix{Float64}(undef,Int64(ensemble.rho0.n_modes),nconf_proc)
-        stress_array = Matrix{Float64}(undef,6,nconf_proc)
+        energy_vect = Vector{T}(undef,nconf_proc)
+        force_array = Matrix{T}(undef,Int(ensemble.rho0.n_modes),nconf_proc)
+        stress_array = Matrix{T}(undef,6,nconf_proc)
 
         for i in start_per_proc[rank+1]: end_per_proc[rank+1]
             if rank == 0
                 println("Calculating configuration $i out of $(ensemble.n_configs)")
             end
-            coords  = get_ase_positions(ensemble.positions[:,i] , ensemble.rho0.masses)
+	    ens_pos = @view ensemble.positions[:,i]
+	    coords  = get_ase_positions( ens_pos , ensemble.rho0.masses)
             crystal.positions = coords
             energy = crystal.get_potential_energy()
             forces = crystal.get_forces()
             stress = crystal.get_stress()
 
-            forces = reshape(permutedims(forces), Int64(ensemble.rho0.n_modes))
-            forces = forces ./ sqrt.(ensemble.rho0.masses) .* CONV_RY ./CONV_BOHR
+            forces = vec(transpose(forces))
+            forces = @. forces / sqrtm * CONV_RY / CONV_BOHR 
 
             ind = i - start_per_proc[rank+1] + 1
             energy_vect[ind] = energy * CONV_RY
