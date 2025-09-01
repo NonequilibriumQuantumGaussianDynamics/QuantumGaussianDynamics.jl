@@ -17,7 +17,7 @@ include("parallel.jl")
 """
 Some guide on the units
 
-We adopt Hartree atomic units, where the energy is expressed in mHa (convenient for phonons).
+We adopt Rydberg atomic units, where the energy is expressed in Ry.
 Therefore each derived units (like forces and times) are appropriately rescaled.
 """
 
@@ -198,34 +198,11 @@ end
 """
 Remove acoustic sum rule from eigenvalue and eigenvectors
 """
-function remove_translations(vectors, values, thr)
-    not_trans_mask =  values .> thr
-
-    if sum(.!not_trans_mask) != 3
-        println("WARNING")
-        println("the expected number of acustic modes is 3
-                #       got $(sum(.!not_trans_mask)) instead")
-        println(values[:3])
-    end
-    #@assert sum(.!not_trans_mask) == 3   """
-#Error, the expected number of acustic modes is 3
-#       got $(sum(.!not_trans_mask)) instead.
-#"""
-
-    #new_values = values[ not_trans_mask ]
-    #new_vectors = vectors[:, not_trans_mask]
-    new_values = values[4:end]
-    new_vectors = vectors[:,4:end]
-
-    return new_vectors, new_values
-end
-
-
-"""
-Impose the ASE projecting out the translations
-"""
-function apply_ASR!(matrix :: Matrix{T}, masses :: Vector{T}) where {T <: AbstractFloat}
-    mass_array = zeros(T, size(matrix, 1))
+function remove_translations(vectors::AbstractMatrix{T}, values::AbstractVector{T}, thr::T) where {T<:AbstractFloat}
+    mask = values .> thr
+    nremoved = count(!, mask)
+    @warn "Expected 3 acoustic modes, found $nremoved" if nremoved != 3
+    return vectors[:, mask], values[mask]
 end
 
 function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T <: AbstractFloat}
@@ -238,8 +215,8 @@ function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T 
 
     w, pols = dyn.DiagonalizeSupercell() #frequencies are in Ry
     
-    alpha, beta = QuantumGaussianDynamics.get_alphabeta(Float64(TEMPERATURE), w, pols)
-    RR_corr, PP_corr = QuantumGaussianDynamics.get_correlators(Float64(TEMPERATURE), w, pols)
+    alpha, beta = QuantumGaussianDynamics.get_alphabeta(T(TEMPERATURE), w, pols)
+    RR_corr, PP_corr = QuantumGaussianDynamics.get_correlators(T(TEMPERATURE), w, pols)
     gamma = zeros(N_modes, N_modes) #already rescaled (tilde)
     RP_corr = zeros(N_modes, N_modes) #already rescaled (tilde)
     R_av = super_struct.coords * CONV_BOHR #units
@@ -252,8 +229,8 @@ function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T 
     # Rescale
     masses = super_struct.get_masses_array() # already in Rydberg units
     mass_array = reshape(repeat(masses',3,1), N_modes)
-    R_av = R_av.*sqrt.(mass_array)
-    P_av = P_av./sqrt.(mass_array)
+    R_av .*= sqrt.(mass_array)
+    P_av ./= sqrt.(mass_array)
 
     # Diagonalize alpha
     if settings.evolve_correlators == false
@@ -261,8 +238,6 @@ function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T 
         λvects, λs = QuantumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, THR_ACOUSTIC) #NO NEEDED WITH ALPHAS
     else
         lambda_eigen = eigen(RR_corr)
-        #println("RR_Coror")
-        #display(RR_corr)
         λvects, λs = QuantumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, THR_ACOUSTIC) #NO NEEDED WITH ALPHAS       
     end
 
