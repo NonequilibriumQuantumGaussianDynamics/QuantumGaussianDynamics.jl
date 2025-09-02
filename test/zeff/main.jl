@@ -1,10 +1,10 @@
+using DelimitedFiles
 using MPI
 using Test
 using QuantumGaussianDynamics
 
 using PyCall
 using LinearAlgebra
-using DelimitedFiles
 
 @pyimport cellconstructor.Phonons as PH
 @pyimport cellconstructor as CC
