@@ -1,9 +1,6 @@
-push!(LOAD_PATH, "/home/flibbi/programs/sscha/QuantumGaussianDynamics.jl")
-
 using MPI
 using Test
-import QuantumGaussianDynamics
-using QuantumGaussianDynamics.QuantumGaussianDynamics
+using QuantumGaussianDynamics
 
 using PyCall
 using LinearAlgebra
