@@ -31,11 +31,12 @@ jobs:
       - name: Install Python deps
         shell: bash -l {0}
         run: |
-          conda install -y numpy scipy spglib=2.2 ase mpi4py
-          pip install cellconstructor python-sscha tdscha
+          conda create -n sscha -c conda-forge python=3.10 gfortran libblas lapack \
+          openmpi openmpi-mpicc pip numpy scipy spglib=2.2 setuptools=64
           which python
           python -V
           python -m pip list
+          pip install cellconstructor python-sscha tdscha
 
       # Point PyCall to Conda's Python and rebuild it
       - name: Configure PyCall to use Conda Python
