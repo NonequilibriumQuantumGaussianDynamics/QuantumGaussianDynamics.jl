@@ -1,7 +1,7 @@
+using QuantumGaussianDynamics
 using DelimitedFiles
 using MPI
 using Test
-using QuantumGaussianDynamics
 
 using PyCall
 using LinearAlgebra
@@ -21,10 +21,11 @@ MPI.Init()
     TEMPERATURE = 0.0 #FLOAT
 
     # Load the dyn corresponding to the equilibrium structure of a SSCHA calculation
-    sscha_path = "./"
-    dyn = PH.Phonons.(sscha_path * "final_dyn", 1)
+    file_dyn = joinpath(@__DIR__, "final_dyn")
+    dyn = PH.Phonons.(file_dyn, 1)
     py_ensemble = PyEnsemble.Ensemble(dyn, TEMPERATURE)
-    py_ensemble.load_bin(sscha_path * "sscha_ensemble", 1)
+    sscha_ensemble = joinpath(@__DIR__, "sscha_ensemble")
+    py_ensemble.load_bin(sscha_ensemble, 1)
     dyn.Symmetrize()
     dyn.ForcePositiveDefinite()
 
@@ -58,7 +59,7 @@ MPI.Init()
     field_fun = deepcopy(QuantumGaussianDynamics.pulse)
     field_f = t -> field_fun(t,A,freq,t0,sig)
 
-    Zeff, eps = QuantumGaussianDynamics.read_charges_from_out!("ph.out",  rho)
+    Zeff, eps = QuantumGaussianDynamics.read_charges_from_out!(joinpath(@__DIR__, "ph.out"),  rho)
     efield = QuantumGaussianDynamics.ElectricField(fun = field_f, Zeff = Zeff, edir=edir, eps = eps)
 
     Nstep = Int32(settings.total_time/settings.dt)
