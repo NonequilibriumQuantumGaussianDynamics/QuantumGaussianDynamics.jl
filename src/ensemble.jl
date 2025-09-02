@@ -176,7 +176,31 @@ function get_random_y(N, N_modes, settings :: Dynamics{T}) where {T <: AbstractF
     return ymu_i
 end
 
+"""
+    generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
 
+Generate or update an ensemble of stochastic configurations for nuclear dynamics,
+based on a Wigner distribution.
+
+# Arguments
+- `N::Int`: Number of configurations to generate (must be even).
+- `ensemble::Ensemble{T}`: Target ensemble structure. Arrays are either updated in place
+  if their size already matches `N`, or reallocated otherwise.
+- `wigner_distribution::WignerDistribution{T}`: Wigner distribution that encodes the covariance
+  matrices, eigenvalues, and eigenvectors used to generate the ensemble.
+
+# Behavior
+- If `ensemble.correlated == true`, correlated configurations are generated from
+  `ensemble.y0` using the square root of the correlator matrix.
+- Otherwise, random Gaussian vectors are drawn (using `randn`) and scaled by
+  `√λ` or `1/√λ` depending on whether `ρ.evolve_correlators` is set.
+- In MPI runs, random numbers are generated on rank 0 and broadcast to all ranks
+  so that every processor works with the same ensemble.
+
+# Returns
+- The updated `ensemble` (modifications are in place).
+
+"""
 function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
     
     old_N = copy(ensemble.n_configs)
@@ -184,6 +208,7 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
     evolve_correlators = wigner_distribution.evolve_correlators
     N_modes = length(wigner_distribution.λs)
     even_odd = true
+    sqrtλs = sqrt.(wigner_distribution.λs)
 
     if even_odd
         if mod(N,2) !=0 
@@ -191,7 +216,7 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
         end
         N2 = Int64(N/2.0)
         if ensemble.correlated
-            sqrt_RR = wigner_distribution.λs_vect * Diagonal(sqrt.(wigner_distribution.λs)) * wigner_distribution.λs_vect'
+            sqrt_RR = wigner_distribution.λs_vect * Diagonal(sqrtλs) * wigner_distribution.λs_vect'
 
             if old_N==N
                 @views mul!(ensemble.positions[:,1:N2], sqrt_RR , ensemble.y0)
@@ -211,9 +236,9 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
                 MPI.Bcast!(ymu_i, 0, MPI.COMM_WORLD)
             end
             if evolve_correlators
-                ymu_i .*= sqrt.(wigner_distribution.λs) #sqrt(λ)*y_mu
+                ymu_i .*= sqrtλs #sqrt(λ)*y_mu
             else
-                ymu_i ./= sqrt.(wigner_distribution.λs) #1/sqrt(λ)*y_mu
+                ymu_i ./= sqrtλs #1/sqrt(λ)*y_mu
             end
             dRa_i = wigner_distribution.λs_vect * ymu_i #\sum_{\mu} e_{a\mu}*sqrt(λ_\mu)*y_\mu
 
@@ -238,9 +263,9 @@ function generate_ensemble!(N, ensemble:: Ensemble{T}, wigner_distribution :: Wi
             end
         end
         if evolve_correlators
-            ymu_i .*= sqrt.(wigner_distribution.λs) #sqrt(λ)*y_mu
+            ymu_i .*= sqrtλs #sqrt(λ)*y_mu
         else
-            ymu_i ./= sqrt.(wigner_distribution.λs) #1/sqrt(λ)*y_mu
+            ymu_i ./= sqrtλs #1/sqrt(λ)*y_mu
         end
         dRa_i = wigner_distribution.λs_vect * ymu_i #\sum_{\mu} e_{a\mu}*sqrt(λ_\mu)*y_\mu
         new_positions = Matrix{T}(undef, wigner_distribution.n_atoms, N)
