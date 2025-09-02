@@ -1,5 +1,5 @@
 using Test
-using QuanumGaussianDynamics
+using QuantumGaussianDynamics
 
 @testset "All Tests" begin
     include("zeff/main.jl")
