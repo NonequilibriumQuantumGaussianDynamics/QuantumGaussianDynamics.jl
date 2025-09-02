@@ -25,17 +25,28 @@ jobs:
           auto-update-conda: true
           channels: conda-forge
           activate-environment: sscha
-          python-version: 3.10
+          python-version: '3.10'
 
-      - name: Create env and install Python deps
+      # Install Python deps *into the already-activated sscha env*
+      - name: Install Python deps
         shell: bash -l {0}
         run: |
-          conda create -n sscha -c conda-forge -y \
-            python=3.10 pip numpy scipy spglib=2.2 ase mpi4py
-          conda activate sscha
+          conda install -y numpy scipy spglib=2.2 ase mpi4py
           pip install cellconstructor python-sscha tdscha
           which python
+          python -V
           python -m pip list
+
+      # Point PyCall to Conda's Python and rebuild it
+      - name: Configure PyCall to use Conda Python
+        shell: bash -l {0}
+        run: |
+          julia --project -e '
+            using Pkg
+            ENV["PYTHON"] = Sys.which("python")
+            Pkg.build("PyCall")
+            using PyCall
+            @info "PyCall.python" PyCall.python'
 
       - name: Install dependencies
         run: |
