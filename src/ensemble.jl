@@ -20,7 +20,7 @@ ensemble in place.
 
 # Returns
 - The updated `ensemble` (modification is in place, return value is mainly for chaining).
-
+   
 """
 function calculate_ensemble!(ensemble:: Ensemble{T}, crystal) where {T <: AbstractFloat}
 
