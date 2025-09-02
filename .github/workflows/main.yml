@@ -19,6 +19,24 @@ jobs:
         with:
           version: 1.11.6  # or another version
 
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          channels: conda-forge
+          activate-environment: sscha
+          python-version: 3.10
+
+      - name: Create env and install Python deps
+        shell: bash -l {0}
+        run: |
+          conda create -n sscha -c conda-forge -y \
+            python=3.10 pip numpy scipy spglib=2.2 ase mpi4py
+          conda activate sscha
+          pip install cellconstructor python-sscha tdscha
+          which python
+          python -m pip list
+
       - name: Install dependencies
         run: |
           julia --project -e 'using Pkg; Pkg.instantiate()'
