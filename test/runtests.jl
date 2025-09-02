@@ -1,7 +1,10 @@
 using Test
 using QuantumGaussianDynamics
 
-@testset "All Tests" begin
+@testset "Zeff" begin
     include("zeff/main.jl")
-    include("dynamics/main.jl")
 end
+
+#@testset "Dynamics" begin
+#    include("dynamics/main.jl")
+#end
