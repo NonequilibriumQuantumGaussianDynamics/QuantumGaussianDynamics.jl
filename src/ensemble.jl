@@ -309,15 +309,12 @@ function update_weights!(ensemble:: Ensemble{T}, wigner_distribution :: WignerDi
     if (wigner_distribution.evolve_correlators != ensemble.rho0.evolve_correlators)
         error("The evolution mode is not the same")
     end
-    #ensemble.weights .= sqrt(λs' * λs0_inv) # Since we are using the alphas
     
     if (wigner_distribution.evolve_correlators == false)
         ensemble.weights .= prod(sqrt.(wigner_distribution.λs ./ ensemble.rho0.λs))
     else
         ensemble.weights .= prod(sqrt.(ensemble.rho0.λs ./ wigner_distribution.λs))
     end
-    #wigner_distribution.λs .= λs 
-    #wigner_distribution.λs_vect .= λs_vect
 
     delta_new = zeros(T, wigner_distribution.n_atoms * 3)
     delta_old = zeros(T, wigner_distribution.n_atoms * 3)
@@ -357,6 +354,14 @@ function update_weights!(ensemble:: Ensemble{T}, wigner_distribution :: WignerDi
     end
 end 
 
+"""
+
+    get_total_energy(ensemble :: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
+
+Computes the total quantum energy, as a sum of the quantum potential energy (avg_ene), quantum kynetic energy (K_rho), and
+classic kynetic energy (K_point)
+
+"""
 function get_total_energy(ensemble :: Ensemble{T}, wigner_distribution :: WignerDistribution{T}) where {T <: AbstractFloat}
    avg_ene = get_average_energy(ensemble)
    K_rho = tr(wigner_distribution.PP_corr)
@@ -365,6 +370,12 @@ function get_total_energy(ensemble :: Ensemble{T}, wigner_distribution :: Wigner
    return avg_ene + 0.5*(K_rho + K_point)
 end
 
+"""
+    get_average_energy(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
+
+Computes the ensemble average of the potential energy. 
+
+"""
 function get_average_energy(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
 
    avg_ene = dot(ensemble.energies,ensemble.weights)
@@ -372,31 +383,30 @@ function get_average_energy(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
 
    std = dot(ensemble.energies .- avg_ene, ensemble.energies .- avg_ene) / (sum(ensemble.weights) -1)
    std = sqrt(std) ./ CONV_RY
-   #println("avg ene, ", avg_ene  ./CONV_RY, " std, ", std)
    return avg_ene
 end
 
+
+"""
+    get_average_forces(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
+
+Computes the ensemble average of the forces. 
+
+"""
 function get_average_forces(ensemble :: Ensemble{T}) where {T <: AbstractFloat}
 
    avg_for = ensemble.forces * ensemble.weights
-   #avg_for ./= Float64(ensemble.n_configs)
-   #avg_for ./= T(ensemble.n_configs)
    avg_for ./= sum(ensemble.weights)
-   """
-   comm = MPI.COMM_WORLD
-   rank = MPI.Comm_rank(comm)
-   if rank==0
-   println("forces ")
-   println(avg_for .* sqrt.(ensemble.rho0.masses) )
-   println("norm ")
-   println(norm(avg_for .* sqrt.(ensemble.rho0.masses)))
-   error()
-   end
-   """
-   #println(avg_for .* sqrt.(ensemble.rho0.masses) .* CONV_BOHR ./CONV_RY)
 
 end
 
+
+"""
+    get_average_stress(ensemble :: Ensemble{T}, wigner :: WignerDistribution{T}) where {T <: AbstractFloat}
+
+Computes the ensemble average of the stress. 
+
+"""
 function get_average_stress(ensemble :: Ensemble{T}, wigner :: WignerDistribution{T}) where {T <: AbstractFloat}
 
    Nw = sum(ensemble.weights)
@@ -428,6 +438,8 @@ function get_average_stress(ensemble :: Ensemble{T}, wigner :: WignerDistributio
 
    delta_str =  [2*sxx, 2*syy, 2*szz, syz+szy, sxz+szx, sxy+syx]
    delta_str .*= (1) / 2.0 /Vol /CONV_RY *CONV_BOHR^3
+
+
 
    return avg_str.+delta_str
 
