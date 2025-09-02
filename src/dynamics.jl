@@ -1,9 +1,61 @@
+"""
+    integrate!(wigner::WignerDistribution{T},
+               ensemble::Ensemble{T},
+               settings::Dynamics{T},
+               crystal,
+               efield::ElectricField{T}) where {T<:AbstractFloat}
+
+Time-integrate the TDSCHA equations of motion.
+This mutates `wigner` (⟨R⟩, ⟨P⟩, correlators) and `ensemble` (weights, possibly
+regenerated configurations), and writes diagnostics to disk at the cadence
+`settings.save_each`.
+
+# Integration scheme
+- Uses the algorithm specified by `settings.algorithm`:
+  `"euler" | "semi-implicit-euler" | "semi-implicit-verlet" | "fixed" | "generalized-verlet" | "none"`.
+- At each step:
+  1. Build average force and Hessian‐like term from the current ensemble: `get_averages!`.
+  2. Add external field forces `get_external_forces(t_fs, efield, wigner)`.
+  3. Advance quantum variables with the selected integrator.
+  4. Advance classical centroids `(Rs, Ps)` via `classic_evolution!`.
+  5. Update eigenstructure of `RR` and reweight the ensemble `update_weights!`.
+  6. If the Kong–Liu ratio falls below `settings.kong_liu_ratio`, regenerate the ensemble and recompute forces.
+
+# Files written (rank 0 only)
+All prefixed by `settings.save_filename * "settings.dt-settings.total_time-settings.N"`:
+All in Rydberg units, NOT scaled by masses. 
+- `.pos`: ⟨R⟩ and ⟨P⟩ plus total energy.
+- `.rho`: RR correlator.
+- `.for`: average force and “classical” force, and `d²V/dR²`.
+- `.cl`: classical centroids and classical energy.
+- `.ext`: external field force.
+- `.str`: average Voigt stress.
+- `.bet`: PP correlator.
+- `.gam`: RP correlator.
+
+# Returns
+`nothing`. The function mutates `wigner`, `ensemble`, and writes output files.
+
+# Errors
+Throws `ArgumentError` if `settings.algorithm` is unknown.
+
+# Example
+```julia
+w   = WignerDistribution{Float64}(; ... )   # prepared from a phonon dyn
+ens = Ensemble{Float64}(; ... )             # configurations & weights
+ef  = ElectricField{Float64}(; fun=t->exp(-(t-50)^2/200), Zeff=Z, edir=û, eps=ϵ)
+integrate!(w, ens, Dynamics(dt=1.0, total_time=200.0, algorithm="generalized-verlet",
+                            kong_liu_ratio=0.8, verbose=true, correlated=true,
+                            seed=1, N=size(ens.positions,2), save_each=50,
+                            save_filename="run"), crystal, ef)
+"""
 function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, settings :: Dynamics{T}, crystal, efield :: ElectricField{T}) where {T <: AbstractFloat}
     
     index :: Int32 = 0
     t :: T = 0
     my_dt = settings.dt / CONV_FS # Convert to Rydberg units
 
+    sqrtm = sqrt.(wigner.masses)
     nat3 = wigner.n_atoms* 3
 
     avg_for = zeros(T, nat3)
@@ -38,7 +90,6 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
         # Update the ensemble 
         index += 1
         t += settings.dt
-        my_dt = settings.dt / CONV_FS
 
         # Integrate
         if "euler" == lowercase(settings.algorithm)
@@ -115,10 +166,10 @@ Error, the selected algorithm $(settings.algorithm)
                 end
                 line = "$t "                            
                 for i in 1:nat3
-                    line *= "  $(wigner.R_av[i]/sqrt(wigner.masses[i])) "
+                    line *= "  $(wigner.R_av[i]/sqrtm[i]) "
                 end
                 for i in 1:nat3
-                    line *= "  $(wigner.P_av[i]*sqrt(wigner.masses[i])) "
+                    line *= "  $(wigner.P_av[i]*sqrtm[i]) "
                 end
                 if rank==0
                     println("Total energy ", total_energy)
@@ -129,13 +180,13 @@ Error, the selected algorithm $(settings.algorithm)
 
                 line = ""
                 for i in 1:nat3
-                    line *= "  $(avg_for[i]*sqrt(wigner.masses[i])) "
+                    line *= "  $(avg_for[i]*sqrtm[i]) "
                 end
                 for i in 1:nat3
-                    line *= "  $(classic_for[i]*sqrt(wigner.masses[i])) "
+                    line *= "  $(classic_for[i]*sqrtm[i]) "
                 end
                 for i in 1:nat3 , j in 1:nat3
-                    line *= "  $(d2v_dr2[i,j]*sqrt(wigner.masses[i])*sqrt(wigner.masses[j]))"
+                    line *= "  $(d2v_dr2[i,j]*sqrtm[i]*sqrtm[j])"
                 end
                 line *= "\n"
                 write_file(file2, line)                   
@@ -143,21 +194,21 @@ Error, the selected algorithm $(settings.algorithm)
 
                 line = ""
                 for i in 1:nat3 , j in 1:nat3
-                    line *= "  $(wigner.RR_corr[i,j]/sqrt(wigner.masses[i])/sqrt(wigner.masses[j])) "
+                    line *= "  $(wigner.RR_corr[i,j]/sqrtm[i]/sqrtm[j]) "
                 end
                 line *= "\n"
                 write_file(file1,line)
 
                 line = ""
                 for i in 1:nat3 , j in 1:nat3
-                    line *= "  $(wigner.PP_corr[i,j]*sqrt(wigner.masses[i])*sqrt(wigner.masses[j])) "
+                    line *= "  $(wigner.PP_corr[i,j]*sqrtm[i]*sqrtm[j]) "
                 end
                 line *= "\n"
                 write_file(file6,line)
 
                 line = ""
                 for i in 1:nat3 , j in 1:nat3
-                    line *= "  $(wigner.RP_corr[i,j]/sqrt(wigner.masses[i])*sqrt(wigner.masses[j])) "
+                    line *= "  $(wigner.RP_corr[i,j]/sqrtm[i]*sqrtm[j]) "
                 end
                 line *= "\n"
                 write_file(file7,line)
@@ -165,10 +216,10 @@ Error, the selected algorithm $(settings.algorithm)
 
                 line = ""
                 for i in 1:nat3
-                    line *= "  $(Rs[i]/sqrt(wigner.masses[i])) "
+                    line *= "  $(Rs[i]/sqrtm[i]) "
                 end
                 for i in 1:nat3
-                    line *= "  $(Ps[i]*sqrt(wigner.masses[i])) "
+                    line *= "  $(Ps[i]*sqrtm[i]) "
                 end
                 line *= " $cl_energy"
                 line *= "\n"
@@ -176,7 +227,7 @@ Error, the selected algorithm $(settings.algorithm)
 
                 line = ""
                 for i in 1:nat3
-                    line *= "  $(ext_for[i]*sqrt(wigner.masses[i])) "
+                    line *= "  $(ext_for[i]*sqrtm[i]) "
                 end
                 line *= "\n"
                 write_file(file4,line)
@@ -189,7 +240,6 @@ Error, the selected algorithm $(settings.algorithm)
                 line *= "\n"
                 write_file(file5,line)
 
-            # TODO Save the results on file
             end
         end
 
