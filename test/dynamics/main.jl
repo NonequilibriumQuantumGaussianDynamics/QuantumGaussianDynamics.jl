@@ -1,10 +1,10 @@
-push!(LOAD_PATH, "/home/flibbi/programs/sscha/QuantumGaussianDynamics.jl")   # Needed for finding the installation of the code
-#println(LOAD_PATH)
+import Pkg
+Pkg.activate("/Users/flibbi/Documents/programs/QuantumGaussianDynamics.jl")
+using QuantumGaussianDynamics
+@info "Using package at" path = pathof(QuantumGaussianDynamics)
 
 using MPI
 using Test
-import QuantumGaussianDynamics
-using QuantumGaussianDynamics.QuantumGaussianDynamics
 
 using PyCall
 using LinearAlgebra
