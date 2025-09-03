@@ -2,7 +2,7 @@ using Test
 using QuantumGaussianDynamics
 
 @testset "Zeff" begin
-    include("zeff/main.jl")
+    include("dynamics/main.jl")
 end
 
 #@testset "Dynamics" begin
