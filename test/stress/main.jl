@@ -59,7 +59,7 @@ MPI.Init()
     QuantumGaussianDynamics.calculate_ensemble!(ensemble, crystal)
     stress = QuantumGaussianDynamics.get_average_stress(ensemble, rho)
     #writedlm("stress.dat", stress')
-    expected = readdlm("stress.dat")
+    expected = readdlm(joinpath(@__DIR__, "stress.dat"))
 
     @test stress ≈ vec(expected) atol=1e-8 rtol=1e-8
     
