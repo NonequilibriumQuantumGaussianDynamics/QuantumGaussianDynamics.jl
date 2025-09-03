@@ -23,9 +23,9 @@ MPI.Init()
     # Load the dyn corresponding to the equilibrium structure of a SSCHA calculation
     TEMPERATURE = 0.0 
     sscha_path = "./"
-    dyn = PH.Phonons.(@__DIR__, "final_result", 1)
+    dyn = PH.Phonons.(joinpath(@__DIR__, "final_result"), 1)
     py_ensemble = PyEnsemble.Ensemble(dyn, TEMPERATURE)
-    py_ensemble.load_bin(@__DIR__, "sscha_ensemble", 1)
+    py_ensemble.load_bin(joinpath(@__DIR__, "sscha_ensemble"), 1)
     dyn.Symmetrize()
     dyn.ForcePositiveDefinite()
 
@@ -59,14 +59,8 @@ MPI.Init()
     QuantumGaussianDynamics.calculate_ensemble!(ensemble, crystal)
     stress = QuantumGaussianDynamics.get_average_stress(ensemble, rho)
     #writedlm("stress.dat", stress')
-    expected = readdlm(@__DIR__, "stress.dat")
+    expected = readdlm("stress.dat")
 
     @test stress ≈ vec(expected) atol=1e-8 rtol=1e-8
     
-
-    """
-    ref = readdlm("../../examples/H2/semi-implicit-verlet0.1-10.0-100.pos")
-
-    @test norm(data.-ref) < 1e-8
-    """
 end
