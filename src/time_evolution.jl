@@ -1,63 +1,40 @@
 
 
 """
-Evolve the Wigner Distribution by a step dt with the Euler algorithm.
-You must provide the average derivative of the potential evaluated with the wigner distribution.
+    function semi_implicit_verlet_step!(rho:: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}, part ) where {T <: AbstractFloat}
+
+Evolves the quantum means and correlators of a `WignerDistribution` by one
+semi-implicit Verlet integration step. This algorithms has error O(dt^2) on 
+the integration of the correlators. 
+
+This is a two-stage scheme:  
+- `part == 1` updates the positions (`R_av`) and momenta (`P_av`) using the
+  current force `avg_for`.  
+- `part == 2` completes the step with the updated force, and evolves the
+  second-order correlators (`RR_corr`, `RP_corr`, `PP_corr`).
+
+# Arguments
+- `ρ::WignerDistribution{T}`: system state (means and correlators), mutated in place.
+- `dt::T`: time step.
+- `avg_for::Vector{T}`: average force vector ⟨F⟩.
+- `d2V_dr2::Matrix{T}`: Hessian (second derivatives of the potential).
+- `part::Int`: integration stage:
+
+# Method
+
+Given the following variables name
+⟨R⟩   = R_av, ⟨P⟩   = P_av, ⟨f⟩   = avg_for, ⟨RR⟩  = RR_corr, ⟨PP⟩  = PP_corr, ⟨RP⟩  = RP_corr, ⟨d²V⟩ = d2V_dr2
+
+- In part == 1:
+  - ⟨R⟩ ← ⟨R⟩ + dt·⟨P⟩ + ½·dt²·⟨f⟩
+  - ⟨P⟩ ← ⟨P⟩ + ½·dt·⟨f⟩
+- In part == 2:
+  - ⟨P⟩ ← ⟨P⟩ + ½·dt·⟨f⟩
+  - ⟨RP⟩ ← ⟨RP⟩ + dt·⟨PP⟩ − dt·⟨RR⟩·⟨d²V⟩
+  - ⟨PP⟩ ← ⟨PP⟩ − dt·(⟨d²V⟩·⟨RP⟩ + (⟨d²V⟩·⟨RP⟩)ᵀ)
+  - ⟨RR⟩ ← ⟨RR⟩ + dt·(⟨RP⟩ + ⟨RP⟩ᵀ)
+
 """
-function euler_step!(wigner_distribution:: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}) where {T <: AbstractFloat}
-    # Solve the newton equations
-    wigner_distribution.P_av .+= avg_for .* dt
-    wigner_distribution.R_av .+= wigner_distribution.P_av .* dt
-
-    tmp_d2v_mul = similar(d2V_dr2)
-    copy_RP_corr = copy(wigner_distribution.RP_corr)
-    copy_RP_corr .*= dt
-    copy_PP_corr = copy(wigner_distribution.PP_corr) # Debug
-
-
-    # Evolve the correlators
-    mul!(tmp_d2v_mul, d2V_dr2, wigner_distribution.RP_corr) # first calculate <d2V><RP>
-    tmp_d2v_mul .*= dt
-
-    wigner_distribution.RP_corr .+= wigner_distribution.PP_corr .* dt # update RP
-
-    wigner_distribution.PP_corr .-= (tmp_d2v_mul .+ tmp_d2v_mul')    # update PP
-
-    mul!(tmp_d2v_mul, wigner_distribution.RR_corr, d2V_dr2)
-    tmp_d2v_mul .*= dt
-    wigner_distribution.RP_corr .-=  tmp_d2v_mul      # update RP
-
-    wigner_distribution.RR_corr .+= copy_RP_corr
-    wigner_distribution.RR_corr .+= copy_RP_corr'
-end 
-
-
-function semi_implicit_euler_step!(wigner_distribution:: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}) where {T <: AbstractFloat}
-    # Solve the newton equations
-    wigner_distribution.P_av .+= avg_for .* dt
-    wigner_distribution.R_av .+= wigner_distribution.P_av .* dt
-
-    tmp_d2v_mul = similar(d2V_dr2)
-    copy_RP_corr = copy(wigner_distribution.RP_corr)
-    copy_RP_corr .*= dt
-    copy_PP_corr = copy(wigner_distribution.PP_corr) # Debug
-
-
-    # Evolve the correlators
-    mul!(tmp_d2v_mul, wigner_distribution.RR_corr, d2V_dr2)  # calculate <RR><d2V>
-    tmp_d2v_mul .*= dt
-
-    wigner_distribution.RP_corr .+= (wigner_distribution.PP_corr .* dt .- tmp_d2v_mul) # update RP
-
-    mul!(tmp_d2v_mul, d2V_dr2, wigner_distribution.RP_corr) # calculate <d2V><RP>
-    tmp_d2v_mul .*= dt
-
-    wigner_distribution.PP_corr .-= (tmp_d2v_mul .+ tmp_d2v_mul')    # update PP
-
-    wigner_distribution.RR_corr .+= (wigner_distribution.RP_corr .+ wigner_distribution.RP_corr')*dt # update RR
-end 
-
-
 function semi_implicit_verlet_step!(rho:: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}, part ) where {T <: AbstractFloat}
 
     dthalf = dt/2.0
@@ -92,11 +69,51 @@ function semi_implicit_verlet_step!(rho:: WignerDistribution{T}, dt :: T, avg_fo
 	axpy!(dt, rho.RP_corr, rho.RR_corr)
 	axpy!(dt, rho.RP_corr', rho.RR_corr)
     end
-end 
+end
 
+"""
 
+    generalized_verlet_step!(rho :: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}, bc0 :: Vector{T} ,part ) where {T <: AbstractFloat}
 
-function generalized_verlet_step!(rho :: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}, bc0 :: Vector{T} ,part ) where {T <: AbstractFloat}
+Evolves the means and second–order correlators of a `WignerDistribution` by one
+**generalized-Verlet** step. This is algorithm has O(dt^3) error in time step. 
+The algorithnm is illustrated in the work from Libbi et al., npj Computat. Mater. 11, 102 (2025), and
+consists of the explicit evolution of the variables ⟨R⟩, ⟨P⟩ and ⟨RR⟩, and of an implicit evolution for
+the variables ⟨PP⟩ and ⟨RP⟩. The latter is performed iteratively. 
+
+# Arguments
+- `rho::WignerDistribution{T}`: state (means & correlators), updated in place.
+- `dt::T`: time step.
+- `avg_for::Vector{T}`: current average force ⟨f⟩.
+- `d2V_dr2::Matrix{T}`: Hessian (∂²V). Assumed symmetric in practice.
+- `part::Int`: stage selector (`1` = predictor, `2` = corrector).
+
+Given the following variables name
+⟨R⟩   = R_av, ⟨P⟩   = P_av, ⟨f⟩   = avg_for, ⟨RR⟩  = RR_corr, ⟨PP⟩  = PP_corr, ⟨RP⟩  = RP_corr, ⟨d²V⟩ = d2V_dr2
+
+- `part == 1` (predictor):
+  - Means (half-kick)
+    - ⟨R⟩ ← ⟨R⟩ + dt*⟨P⟩ + ½*dt²*⟨f⟩
+    - ⟨P⟩ ← ⟨P⟩ + ½*dt*⟨f⟩
+  - Correlators
+    - let  K = ⟨RR⟩ * ⟨d²V⟩
+    - ⟨RR⟩ ← ⟨RR⟩ + dt*(⟨RP⟩ + ⟨RP⟩ᵀ) − ½*dt²*(K + Kᵀ) + dt²*⟨PP⟩
+    - save ⟨RP⟩₀ = ⟨RP⟩
+    - ⟨RP⟩ ← ⟨RP⟩ + ½*dt*(⟨PP⟩ − K)
+    - ⟨PP⟩ ← ⟨PP⟩ − ½*dt*(⟨d²V⟩*⟨RP⟩₀ + (⟨d²V⟩*⟨RP⟩₀)ᵀ)
+
+- `part == 2` (corrector / finishing kick):
+  - Means
+    - ⟨P⟩ ← ⟨P⟩ + ½*dt*⟨f⟩
+  - Correlators (fixed-point refinement of ⟨PP⟩ and ⟨RP⟩)
+    - pre-update: ⟨RP⟩ ← ⟨RP⟩ − ½*dt*(⟨RR⟩*⟨d²V⟩)
+    - iterate a few times (typically 4):
+      - ⟨RP⟩₁ ← ⟨RP⟩ + ½*dt*⟨PP⟩₁
+      - ⟨PP⟩₁ ← ⟨PP⟩ − ½*dt*(⟨d²V⟩*⟨RP⟩₁ + (⟨d²V⟩*⟨RP⟩₁)ᵀ)
+    - write back final ⟨PP⟩, ⟨RP⟩
+
+"""
+function generalized_verlet_step!(rho :: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}, part ) where {T <: AbstractFloat}
 
     if part == 1
         @. rho.R_av +=  rho.P_av * dt + 1/2.0 * avg_for * dt^2
@@ -117,18 +134,18 @@ function generalized_verlet_step!(rho :: WignerDistribution{T}, dt :: T, avg_for
         rank  = MPI.Comm_rank(MPI.COMM_WORLD)
         function obj(B1, C1, d2V_dr2, B0p, C0p) 
 
-            dC = @. C0p + 1/2.0 * B1 *dt 
+            C1_ = @. C0p + 1/2.0 * B1 *dt 
 
-	    dB = copy(B0p)
-	    BLAS.syr2k!('U','T', -dt/2.0, d2V_dr2, C1, 1.0, dB)
-	    LinearAlgebra.copytri!(dB, 'U')
+	    B1_ = copy(B0p)
+	    BLAS.syr2k!('U','T', -dt/2.0, d2V_dr2, C1, 1.0, B1_)
+	    LinearAlgebra.copytri!(B1_, 'U')
 
             if rank == 0
-                println("optimization B ", norm((dB.-B1).^2))
-                println("optimization C ", norm((dC.-C1).^2))
+                println("optimization B ", norm((B1_.-B1).^2))
+		println("optimization C ", norm((C1_.-C1).^2))
             end
 
-            return dB, dC
+            return B1_, C1_
 
         end
 
@@ -149,18 +166,114 @@ function generalized_verlet_step!(rho :: WignerDistribution{T}, dt :: T, avg_for
     end
 end 
 
+"""
+   function fixed_step!(wigner :: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T},part ) where {T <: AbstractFloat}
 
+Evolves the quantum state freezing the nuclear degrees of freedom. This corresponds to a classic evolution 
+in which however the forces are computed as ensemble averages using the initial quantum distribution.
+"""
 function fixed_step!(wigner :: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T},part ) where {T <: AbstractFloat}
-    # Solve the newton equations
+
+    dthalf = dt/2.0
+    dtsq = dt^2/2.0
+
     if part == 1
-        wigner.R_av .+= wigner.P_av .* dt .+ 1/2.0 * avg_for .* dt^2
-        wigner.P_av .+= 1/2.0 .* avg_for .* dt
+        axpy!(dt, rho.P_av, rho.R_av)
+        axpy!(dtsq, avg_for, rho.R_av)
+        axpy!(dthalf, avg_for, rho.P_av)
 
     elseif part == 2
-        wigner.P_av .+= 1/2.0 .* avg_for .* dt # repeat with the new force
+	axpy!(dthalf, avg_for, rho.P_av)
     end
 end 
 
+
+"""
+   classic_evolution!(Rs::Vector{T}, Ps::Vector{T}, dt::T, cl_for, part) where {T <: AbstractFloat}
+
+Classic dynamics.
+"""
+function classic_evolution!(Rs::Vector{T}, Ps::Vector{T}, dt::T, cl_for, part) where {T <: AbstractFloat}
+
+        γ = 0.000
+        if part == 1
+            @. Rs += Ps * dt + 1/2.0 * (cl_for - γ * Ps) * dt^2
+            @. Ps = ((1 - γ/2.0*dt)*Ps + 1/2.0 * cl_for * dt) / (1+γ/2.0*dt)
+        elseif part ==2
+            @. Ps += (1/2.0 * cl_for * dt) ./ (1+γ/2.0*dt)
+        end
+
+end
+
+"""
+   euler_step!(wigner:: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}) where {T <: AbstractFloat}
+
+Explicit Euler method. Implemented for testing and didactic use. MUST BE AVOIDED, it is unconditionally unstable. 
+"""
+function euler_step!(wigner:: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}) where {T <: AbstractFloat}
+    # Solve the newton equations
+    @. wigner.P_av += avg_for * dt
+    @. wigner.R_av += wigner.P_av * dt
+
+    tmp_d2v_mul = similar(d2V_dr2)
+    copy_RP_corr = copy(wigner.RP_corr)
+    copy_RP_corr .*= dt
+    copy_PP_corr = copy(wigner.PP_corr) # Debug
+
+
+    # Evolve the correlators
+    mul!(tmp_d2v_mul, d2V_dr2, wigner.RP_corr) # first calculate <d2V><RP>
+    tmp_d2v_mul .*= dt
+
+    @. wigner_distribution.RP_corr += wigner.PP_corr * dt # update RP
+
+    @. wigner_distribution.PP_corr -= (tmp_d2v_mul + tmp_d2v_mul')    # update PP
+
+    mul!(tmp_d2v_mul, wigner.RR_corr, d2V_dr2)
+    tmp_d2v_mul .*= dt
+    wigner.RP_corr .-=  tmp_d2v_mul      # update RP
+
+    wigner.RR_corr .+= copy_RP_corr
+    wigner.RR_corr .+= copy_RP_corr'
+end 
+
+"""
+   semi_implicit_euler_step!(wigner:: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}) where {T <: AbstractFloat}
+
+Semi-implicit Euler method. Implemented for testing and didactic use. Not efficient, use semi-implicit Verlet instead.
+"""
+function semi_implicit_euler_step!(wigner:: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}) where {T <: AbstractFloat}
+    # Solve the newton equations
+    @. wigner.P_av += avg_for * dt
+    @. wigner.R_av += wigner.P_av * dt
+
+    tmp_d2v_mul = similar(d2V_dr2)
+    copy_RP_corr = copy(wigner.RP_corr)
+    copy_RP_corr .*= dt
+    copy_PP_corr = copy(wigner.PP_corr) # Debug
+
+
+    # Evolve the correlators
+    mul!(tmp_d2v_mul, wigner.RR_corr, d2V_dr2)  # calculate <RR><d2V>
+    tmp_d2v_mul .*= dt
+
+    @. wigner.RP_corr += (wigner.PP_corr * dt - tmp_d2v_mul) # update RP
+
+    mul!(tmp_d2v_mul, d2V_dr2, wigner.RP_corr) # calculate <d2V><RP>
+    tmp_d2v_mul .*= dt
+
+    @. wigner.PP_corr -= (tmp_d2v_mul + tmp_d2v_mul')    # update PP
+
+    @. wigner.RR_corr += (wigner.RP_corr + wigner.RP_corr')*dt # update RR
+end 
+
+
+
+"""
+   semi_implicit_euler_step!(wigner:: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}) where {T <: AbstractFloat}
+
+Experimental.
+"""
 function full_generalized_verlet_step!(wigner :: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}, bc0 :: Vector{T} ,part ) where {T <: AbstractFloat}
     # Solve the newton equations
     if part == 1
@@ -251,8 +364,6 @@ function full_generalized_verlet_step!(wigner :: WignerDistribution{T}, dt :: T,
         end
         bc1 = sol.minimizer
         B0, C0 = unmerge_vector(bc1)
-        #println(sol["Status"])
-        #error()
 
         #optf = OptimizationFunction(obj, grad = grad)
         #prob = OptimizationProblem(obj, bc0, [wigner.PP_corr,  wigner.RP_corr, d2V_dr2, AK])
@@ -263,37 +374,9 @@ function full_generalized_verlet_step!(wigner :: WignerDistribution{T}, dt :: T,
 
         wigner.PP_corr .= B0
         wigner.RP_corr .= C0
-        #println(sol)
-        #error()
-
-        """
-        wigner_distribution.RP_corr .+= (wigner_distribution.PP_corr .* dt .- tmp_d2v_mul) # update RP
-
-        mul!(tmp_d2v_mul, d2V_dr2, wigner_distribution.RP_corr) # calculate <d2V><RP>
-        tmp_d2v_mul .*= dt
-
-        wigner_distribution.PP_corr .-= (tmp_d2v_mul .+ tmp_d2v_mul')    # update PP
-
-        wigner_distribution.RR_corr .+= (wigner_distribution.RP_corr .+ wigner_distribution.RP_corr') # update RR
-        """
     end
 end 
 
-
-
-
-function classic_evolution!(Rs::Vector{T}, Ps::Vector{T}, dt::T, cl_for, part) where {T <: AbstractFloat}
-        #Ps .+= cl_for .* dt
-        #Rs .+= Ps .* dt
-        γ = 0.000
-        if part == 1
-            Rs .+= Ps .* dt + 1/2.0 .* (cl_for .- γ .* Ps) .* dt^2
-            Ps .= ((1 - γ/2.0*dt)*Ps .+ 1/2.0 .* cl_for .* dt) ./ (1+γ/2.0*dt)
-        elseif part ==2
-            Ps .+= (1/2.0 .* cl_for .* dt) ./ (1+γ/2.0*dt)
-        end
-        #((f + fext + f_old + fext_old)/2.0*dt + (1 - γ/2.0*dt)*u[2])/(1+γ/2.0*dt)
-end
 
 
 function get_merged_vector(BB, CC)

@@ -101,8 +101,8 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
         elseif "fixed" == lowercase(settings.algorithm)
             fixed_step!(wigner, my_dt, tot_for, d2v_dr2, 1)
         elseif "generalized-verlet" == lowercase(settings.algorithm) 
-            bc0 = get_merged_vector(wigner.PP_corr, wigner.RP_corr)
-            generalized_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, bc0, 1) 
+            #bc0 = get_merged_vector(wigner.PP_corr, wigner.RP_corr)
+            generalized_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 1) 
         elseif "none" == lowercase(settings.algorithm)
             nothing
 
@@ -149,7 +149,7 @@ Error, the selected algorithm $(settings.algorithm)
         elseif "fixed" == lowercase(settings.algorithm)
             fixed_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
         elseif "generalized-verlet" == lowercase(settings.algorithm) 
-            generalized_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, bc0, 2)
+            generalized_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
         end
         # Classic integration (part 2)
         classic_evolution!(Rs, Ps, my_dt, tot_cl_for, 2)
