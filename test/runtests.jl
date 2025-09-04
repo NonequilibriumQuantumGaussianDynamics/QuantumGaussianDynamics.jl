@@ -6,7 +6,8 @@ using QuantumGaussianDynamics
 end
 
 @testset "Dynamics" begin
-    include("dynamics/main.jl")
+    include("dynamics/SIE.jl")
+    include("dynamics/GV.jl")
 end
 
 @testset "Stress" begin
