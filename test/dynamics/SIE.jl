@@ -59,7 +59,7 @@ MPI.Init()
     QuantumGaussianDynamics.get_classic_forces(rho,crystal)
 
     # Run!
-    QuantumGaussianDynamics.integrate!(rho, ensemble, settings, crystal, efield )
+    @time QuantumGaussianDynamics.integrate!(rho, ensemble, settings, crystal, efield )
 
     data = readdlm( method*"0.1-10.0-100.pos" )
     ref = readdlm(joinpath(@__DIR__, "../../examples/H2/semi-implicit-verlet0.1-10.0-100.pos"))

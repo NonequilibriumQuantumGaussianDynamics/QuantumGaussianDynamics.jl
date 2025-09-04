@@ -58,32 +58,39 @@ function semi_implicit_euler_step!(wigner_distribution:: WignerDistribution{T}, 
 end 
 
 
-function semi_implicit_verlet_step!(wigner_distribution:: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}, part ) where {T <: AbstractFloat}
+function semi_implicit_verlet_step!(rho:: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}, part ) where {T <: AbstractFloat}
     # Solve the newton equations
+    dthalf = dt/2.0
+    dtsq = dt^2/2.0
+
     if part == 1
-        wigner_distribution.R_av .+= wigner_distribution.P_av .* dt .+ 1/2.0 * avg_for .* dt^2
-        wigner_distribution.P_av .+= 1/2.0 .* avg_for .* dt
+        #rho.R_av .+= rho.P_av .* dt .+ 1/2.0 * avg_for .* dt^2
+	axpy!(dt, rho.P_av, rho.R_av)
+	axpy!(dtsq, avg_for, rho.R_av)
+        #rho.P_av .+= 1/2.0 .* avg_for .* dt
+	axpy!(dthalf, avg_for, rho.P_av)
     elseif part == 2
-        wigner_distribution.P_av .+= 1/2.0 .* avg_for .* dt # repeat with the new force
+        #rho.P_av .+= 1/2.0 .* avg_for .* dt # repeat with the new force
+	axpy!(dthalf, avg_for, rho.P_av)
 
-        tmp_d2v_mul = similar(d2V_dr2)
-        copy_RP_corr = copy(wigner_distribution.RP_corr)
-        copy_RP_corr .*= dt
-        copy_PP_corr = copy(wigner_distribution.PP_corr) # Debug
-
+        tmp = similar(d2V_dr2)
 
         # Evolve the correlators
-        mul!(tmp_d2v_mul, wigner_distribution.RR_corr, d2V_dr2)  # calculate <RR><d2V>
-        tmp_d2v_mul .*= dt
+        #mul!(tmp_d2v_mul, rho.RR_corr, d2V_dr2)  # calculate <RR><d2V>
+        #tmp_d2v_mul .*= dt
+        #rho.RP_corr .+= (rho.PP_corr .* dt .- tmp_d2v_mul) # update RP
+	BLAS.axpy!(dt, rho.PP_corr, rho.RP_corr)
+	BLAS.gemm!('N', 'N', -dt, rho.RR_corr, d2V_dr2, 1.0, rho.RP_corr)
 
-        wigner_distribution.RP_corr .+= (wigner_distribution.PP_corr .* dt .- tmp_d2v_mul) # update RP
+        mul!(tmp, d2V_dr2, rho.RP_corr) # calculate <d2V><RP>
+        #tmp .*= dt
+        #rho.PP_corr .-= (tmp .+ tmp')    # update PP
+	axpy!(-dt, tmp, rho.PP_corr)
+	axpy!(-dt, tmp', rho.PP_corr)
 
-        mul!(tmp_d2v_mul, d2V_dr2, wigner_distribution.RP_corr) # calculate <d2V><RP>
-        tmp_d2v_mul .*= dt
-
-        wigner_distribution.PP_corr .-= (tmp_d2v_mul .+ tmp_d2v_mul')    # update PP
-
-        wigner_distribution.RR_corr .+= (wigner_distribution.RP_corr .+ wigner_distribution.RP_corr')*dt # update RR
+        #rho.RR_corr .+= (rho.RP_corr .+ rho.RP_corr')*dt # update RR
+	axpy!(dt, rho.RP_corr, rho.RR_corr)
+	axpy!(dt, rho.RP_corr', rho.RR_corr)
     end
 end 
 
