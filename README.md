@@ -1,4 +1,4 @@
-[![CI](https://github.com/NonequilibriumQuantumGaussianDynamics/QuantumGaussianDynamics.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/NonequilibriumQuantumGaussianDynamics/QuantumGaussianDynamics.jl/actions/workflows/CI.yml)
+[![CI](https://github.com/NonequilibriumQuantumGaussianDynamics/QuantumGaussianDynamics.jl/actions/workflows/main.yml/badge.svg)](https://github.com/NonequilibriumQuantumGaussianDynamics/QuantumGaussianDynamics.jl/actions/workflows/main.yml)
 [![Docs: dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://NonequilibriumQuantumGaussianDynamics.github.io/QuantumGaussianDynamics.jl/dev/)
 [![codecov](https://codecov.io/gh/NonequilibriumQuantumGaussianDynamics/QuantumGaussianDynamics.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/NonequilibriumQuantumGaussianDynamics/QuantumGaussianDynamics.jl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
