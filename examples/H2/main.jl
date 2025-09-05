@@ -1,6 +1,4 @@
 t0 = time()
-push!(LOAD_PATH, "/home/flibbi/programs/sscha/QuantumGaussianDynamics.jl")   # Needed for finding the installation of the code
-println(LOAD_PATH)
 
 using MPI
 MPI.Init()
