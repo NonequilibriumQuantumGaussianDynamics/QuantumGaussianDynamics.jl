@@ -1,12 +1,20 @@
+# 📦 QuantumGaussianDynamics.jl
+
 [![CI](https://github.com/NonequilibriumQuantumGaussianDynamics/QuantumGaussianDynamics.jl/actions/workflows/main.yml/badge.svg)](https://github.com/NonequilibriumQuantumGaussianDynamics/QuantumGaussianDynamics.jl/actions/workflows/main.yml)
 [![Docs: dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://NonequilibriumQuantumGaussianDynamics.github.io/QuantumGaussianDynamics.jl/dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Julia](https://img.shields.io/badge/Julia-1.10%20|%201.11-9558B2)](https://julialang.org/downloads/)
 
-# QuantumGaussianDynamics.jl
+*A Julia package for simulating quantum nuclear dynamics of materials under impulsive radiation, based on the Time-Dependent Self-Consistent Harmonic Approximation (TD-SCHA).*
 
-This package performs the quantum nuclear dynamics of a system under impulsive radiation (Pump-Probe).
-It works by integrating the Time-Dependent Self-Consistent Harmonic Approximation equations of motion.
+---
+
+## Features
+- Integration of **TD-SCHA** equations of motion for nuclear quantum dynamics  
+- Handles electric fields of custom shape and intensity  
+- Interfaces with **ASE** and **CellConstructor** for calculator backends  
+
+---
 
 ## Installation
 To use it, you must activate the environment and install the dependencies.
