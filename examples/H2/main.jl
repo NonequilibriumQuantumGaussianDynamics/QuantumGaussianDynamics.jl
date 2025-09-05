@@ -4,8 +4,8 @@ println(LOAD_PATH)
 
 using MPI
 MPI.Init()
-import QuanumGaussianDynamics
-using QuanumGaussianDynamics.QuanumGaussianDynamics
+import QuantumGaussianDynamics
+using QuantumGaussianDynamics.QuantumGaussianDynamics
 
 using PyCall
 using LinearAlgebra
@@ -42,25 +42,25 @@ seed: seed for the calculations. If you do not want to specify any seed, use see
 correlated: whether the dynamics is correlated or not. 
 """
 method = "semi-implicit-verlet" # use this one
-settings = QuanumGaussianDynamics.Dynamics(dt = 0.1, total_time = 10.0, algorithm = method, kong_liu_ratio = 1.0, 
+settings = QuantumGaussianDynamics.Dynamics(dt = 0.1, total_time = 10.0, algorithm = method, kong_liu_ratio = 1.0, 
                                            verbose = true,  evolve_correlators = true, save_filename = method, 
                                           save_correlators = true, save_each = 1, N=100,seed=1254, correlated = true)
-rho = QuanumGaussianDynamics.init_from_dyn(dyn, Float64(TEMPERATURE), settings)
-ensemble = QuanumGaussianDynamics.init_ensemble_from_python(py_ensemble, settings)
+rho = QuantumGaussianDynamics.init_from_dyn(dyn, Float64(TEMPERATURE), settings)
+ensemble = QuantumGaussianDynamics.init_ensemble_from_python(py_ensemble, settings)
 
 # Initialization
 dv_dr = zeros(rho.n_atoms*3)
 d2v_dr2 = zeros(rho.n_atoms*3,rho.n_atoms*3)
-QuanumGaussianDynamics.get_averages!(dv_dr, d2v_dr2, ensemble, rho)
+QuantumGaussianDynamics.get_averages!(dv_dr, d2v_dr2, ensemble, rho)
 
 # Specify here the ASE calculator
 calculator = emt.EMT()
-crystal = QuanumGaussianDynamics.init_calculator(calculator, rho, ase.Atoms)
+crystal = QuantumGaussianDynamics.init_calculator(calculator, rho, ase.Atoms)
 
 
 # Electric field
 # If you do not want to apply any field, use fake_field, like this. Otherwise, prepare a fake ph.out to read the effective charges and the dielectric constant
-efield = QuanumGaussianDynamics.fake_field(rho.n_atoms)
+efield = QuantumGaussianDynamics.fake_field(rho.n_atoms)
 
 # If you want to apply the pulse, specify the parameters
 # Equation of the pulse: E(t)=A*cos(2\pi*freq*t)*exp(-(t-t0)^2/(2*sig^2))
@@ -69,24 +69,24 @@ efield = QuanumGaussianDynamics.fake_field(rho.n_atoms)
 #t0 = 1875.0 #fs
 #sig = 468.0 #fs
 #edir = [0,0,1.0] #Polarization of the field, must have norm=1
-#field_fun = deepcopy(QuanumGaussianDynamics.pulse)
+#field_fun = deepcopy(QuantumGaussianDynamics.pulse)
 #field_f = t -> field_fun(t,A,freq,t0,sig)
 
 # Read effective charges and dielectric tensor from ph.out
-#Zeff, eps = QuanumGaussianDynamics.read_charges_from_out!("ph.out",  rho)
-#efield = QuanumGaussianDynamics.ElectricField(fun = field_f, Zeff = Zeff, edir=edir, eps = eps)
+#Zeff, eps = QuantumGaussianDynamics.read_charges_from_out!("ph.out",  rho)
+#efield = QuantumGaussianDynamics.ElectricField(fun = field_f, Zeff = Zeff, edir=edir, eps = eps)
 
 # Displacement from equilbrium, optional
 rho.P_av[1] += 0.01 #sqrt(Ry)
 
 # Some calculation
-QuanumGaussianDynamics.generate_ensemble!(settings.N,ensemble, rho)
-QuanumGaussianDynamics.calculate_ensemble!(ensemble, crystal)
-QuanumGaussianDynamics.get_average_forces(ensemble)
-QuanumGaussianDynamics.get_classic_forces(rho,crystal)
+QuantumGaussianDynamics.generate_ensemble!(settings.N,ensemble, rho)
+QuantumGaussianDynamics.calculate_ensemble!(ensemble, crystal)
+QuantumGaussianDynamics.get_average_forces(ensemble)
+QuantumGaussianDynamics.get_classic_forces(rho,crystal)
 
 # Run!
-QuanumGaussianDynamics.integrate!(rho, ensemble, settings, crystal, efield )
+QuantumGaussianDynamics.integrate!(rho, ensemble, settings, crystal, efield )
 
 
 

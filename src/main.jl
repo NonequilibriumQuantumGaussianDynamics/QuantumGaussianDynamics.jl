@@ -8,7 +8,7 @@ using PyCall
 using LinearAlgebra
 using DelimitedFiles
 
-#import .QuanumGaussianDynamics
+#import .QuantumGaussianDynamics
 
 @pyimport cellconstructor.Phonons as PH
 @pyimport cellconstructor as CC
@@ -61,8 +61,6 @@ QuantumGaussianDynamics.get_averages!(dv_dr, d2v_dr2, ensemble, rho)
 calculator = DIMERCalc.DIMERCalculator(2, case= "cubic", k2 = 0.1)
 crystal = QuantumGaussianDynamics.init_calculator(calculator, rho, ase.Atoms)
 
-#println("initial free energy", QuanumGaussianDynamics.get_average_energy(ensemble))
-#println("initial forces", QuanumGaussianDynamics.get_average_forces(ensemble) )
 # Display atoms
 rho.P_av[1] += 0.01 #sqrt(Ry)
 QuantumGaussianDynamics.generate_ensemble!(200,ensemble, rho)
