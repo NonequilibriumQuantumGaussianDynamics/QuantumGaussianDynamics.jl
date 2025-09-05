@@ -19,7 +19,7 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/yourusername/QuantumGaussianDynamics.jl.git",
+    repo = "github.com/NonequilibriumQuantumGaussianDynamics/QuantumGaussianDynamics.jl.git",
     devbranch = "main",   # or "master" if that's your default branch
 )
 
