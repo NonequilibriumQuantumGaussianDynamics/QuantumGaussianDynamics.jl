@@ -12,10 +12,20 @@ Note that this documentation is under development and may not be complete.
 ```
 
 # Installation
-To use it, you must activate the environment and install the dependencies.
+To use it, you must first install the cellconstructor routing from the sscha code. NB for compatibility
+issues with the cellconstructor code, it is necessary to install Python 3.10.
+
+```
+conda create -n sscha -c conda-forge python=3.10 gfortran libblas lapack openmpi openmpi-mpicc pip numpy scipy spglib=2.2 setuptools=64
+conda activate sscha
+pip install ase mpi4py
+pip install cellconstructor python-sscha tdscha
+```
+
+Once you cloned the folder locally, run 
 
 ```bash
-julia --project=/path/to/TDSCHA
+julia --project=/path/to/QuantumGaussianDynamics
 ```
 
 Then instantiate the environment and install the dependencies.
@@ -27,12 +37,27 @@ Pkg.instantiate()
 
 This will create a file named ``Manifest.toml`` contaning the current state of the environment.
 
-To employ the ASE interface for the calculators, you must install the following python packages:
-```bash
-pip install ase
-pip install cellconstructor
-pip install python-sscha
+Sometimes the default python used by PyCall is different with respect to the main one on which all the packages are installed
+This can be checked with
+
 ```
+julia; using PyCall; PyCall.python
+```
+
+if the output is different to that of 
+
+```
+which python
+```
+
+then the pkg PyCall should be rebuild as
+
+```
+ENV["PYTHON"] = "[path to the right python]"
+import Pkg
+Pkg.build("PyCall")
+```
+
 
 # Simulation setup
 
