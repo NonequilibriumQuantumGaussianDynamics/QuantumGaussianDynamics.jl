@@ -15,20 +15,24 @@ Note that this documentation is under development and may not be complete.
 To use it, you must first install the cellconstructor routing from the sscha code. NB for compatibility
 issues with the cellconstructor code, it is necessary to install Python 3.10.
 
-```
+```bash
 conda create -n sscha -c conda-forge python=3.10 gfortran libblas lapack openmpi openmpi-mpicc pip numpy scipy spglib=2.2 setuptools=64
 conda activate sscha
 pip install ase mpi4py
 pip install cellconstructor python-sscha tdscha
 ```
 
-Once you cloned the folder locally, run 
+Clone the folder locally
+
+```bash
+git clone git@github.com:NonequilibriumQuantumGaussianDynamics/QuantumGaussianDynamics.jl.git
+```
+
+and instantiate the package
 
 ```bash
 julia --project=/path/to/QuantumGaussianDynamics
 ```
-
-Then instantiate the environment and install the dependencies.
 
 ```julia
 using Pkg
@@ -37,7 +41,7 @@ Pkg.instantiate()
 
 This will create a file named ``Manifest.toml`` contaning the current state of the environment.
 
-Sometimes the default python used by PyCall is different with respect to the main one on which all the packages are installed
+Sometimes the default python used by PyCall is different with respect to the main one on which all the packages are installed.
 This can be checked with
 
 ```
