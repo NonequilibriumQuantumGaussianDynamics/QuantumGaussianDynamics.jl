@@ -18,3 +18,8 @@ makedocs(
     build    = joinpath(@__DIR__, "build"),
 )
 
+deploydocs(
+    repo = "github.com/yourusername/QuantumGaussianDynamics.jl.git",
+    devbranch = "main",   # or "master" if that's your default branch
+)
+
