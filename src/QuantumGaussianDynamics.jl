@@ -232,6 +232,41 @@ function remove_translations(vectors::AbstractMatrix{T}, values::AbstractVector{
     return vectors[:, mask], values[mask]
 end
 
+"""
+    init_from_dyn(dyn, TEMPERATURE::T, settings::Dynamics{T}) where {T<:AbstractFloat}
+
+Initialize a `WignerDistribution` object starting from a dynamical matrix.
+
+This routine constructs the equilibrium nuclear quantum state (in terms of
+positions, momenta, and correlation matrices) associated with the phonon
+modes of the provided dynamical matrix at a given temperature.
+
+# Arguments
+- `dyn`: A dynamical matrix object from SSCHA calculations
+- `TEMPERATURE::T`: The target temperature.
+- `settings::Dynamics{T}`: Simulation settings.
+
+# Details
+- Builds a supercell from `dyn` and computes the number of modes and atoms.
+- Diagonalizes the supercell dynamical matrix to obtain phonon frequencies and
+  eigenvectors (polarizations).
+- Computes Gaussian width parameters (`alpha`, `beta`) and correlators
+  (`RR_corr`, `PP_corr`, `RP_corr`) at the specified temperature.
+- Initializes average positions (`R_av`) and momenta (`P_av`), rescaled by
+  atomic masses.
+- Removes translational acoustic modes from the correlators/eigenvalues.
+
+# Returns
+- `rho::WignerDistribution`: An initialized Wigner distribution representing the
+  quantum nuclear state corresponding to the given dynamical matrix and
+  temperature.
+
+# Notes
+- Frequencies are assumed to be in Rydberg units.
+- Cell vectors and coordinates are converted to Bohr units.
+- If `settings.evolve_correlators == false`, eigen-decomposition of `alpha`
+  is used; otherwise, the `RR_corr` matrix is diagonalized (deprecated).
+"""
 function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T <: AbstractFloat}
 
     # Initialize the WignerDistribution structure starting from a dynamical matrix

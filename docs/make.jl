@@ -14,5 +14,4 @@ makedocs(
 
 # For GitHub Pages deployment
 deploydocs(
-    repo = "https://github.com/NonequilibriumQuantumGaussianDynamics/QuantumGaussianDynamics.jl",
     devbranch = "main",       # or "master"
