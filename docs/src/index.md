@@ -54,9 +54,6 @@ Here we specify the total simulation time, time-step and number of configuration
 
 In the following, we show the available functions to setup the dynamics.
 
-```@docs
-Dynamics
-```
 
 ### Load the initial conditions (dynamical matrix)
 
@@ -92,7 +89,7 @@ wigner = init_from_dyn(dyn, temperature, settings)
 In the following, the API for the function `init_from_dyn` is shown
 
 ```@docs
-init_from_dyn
+QuantumGaussianDynamics.init_from_dyn
 ```
 
 ## Initialize the forces calculator

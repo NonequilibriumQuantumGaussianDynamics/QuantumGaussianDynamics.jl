@@ -1,17 +1,20 @@
+using Pkg
+Pkg.activate(@__DIR__)
+Pkg.develop(path=joinpath(@__DIR__, ".."))   # use local checkout
+Pkg.instantiate()
+
 using Documenter, QuantumGaussianDynamics
+
 
 makedocs(
     sitename = "QuantumGaussianDynamics.jl",
-    format   = Documenter.HTML(),
+    format   = Documenter.HTML(prettyurls = false),
     modules  = [QuantumGaussianDynamics],
     clean    = true,
-    strict   = true,          # fail the build on doc warnings (nice for CI)
     pages    = [
         "Home" => "index.md",
-        "API"  => "api.md",
+	"API"  => "api.md",
     ],
+    build    = joinpath(@__DIR__, "build"),
 )
 
-# For GitHub Pages deployment
-deploydocs(
-    devbranch = "main",       # or "master"
