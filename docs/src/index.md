@@ -81,8 +81,29 @@ These steps will be discussed in details in the next subsections
 To perform a dynamics, we need a configuration variables called `Dynamics`.
 Here we specify the total simulation time, time-step and number of configurations, as well as other properties of the integration.
 
+
+```julia
+settings = QuantumGaussianDynamics.Dynamics(
+    dt = 0.1,
+    total_time = 10.0,
+    algorithm = 'generalized-verlet',
+    kong_liu_ratio = 1.0,
+    verbose = true,
+    evolve_correlators = true,
+    save_filename = method,
+    save_correlators = true,
+    save_each = 1,
+    N = 100,
+    seed = 1254,
+    correlated = true,
+)
+```
+
 In the following, we show the available functions to setup the dynamics.
 
+```@docs
+QuantumGaussianDynamics.Dynamics
+```
 
 ### Load the initial conditions (dynamical matrix)
 
@@ -117,9 +138,6 @@ wigner = init_from_dyn(dyn, temperature, settings)
 
 In the following, the API for the function `init_from_dyn` is shown
 
-```@docs
-QuantumGaussianDynamics.init_from_dyn
-```
 
 ## Initialize the forces calculator
 

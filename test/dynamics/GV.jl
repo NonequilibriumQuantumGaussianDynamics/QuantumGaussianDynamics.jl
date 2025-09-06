@@ -1,6 +1,6 @@
 #import Pkg
-Pkg.activate("/Users/flibbi/Documents/programs/QuantumGaussianDynamics.jl")
-#using QuantumGaussianDynamics
+#Pkg.activate("/Users/flibbi/Documents/programs/QuantumGaussianDynamics.jl")
+using QuantumGaussianDynamics
 #@info "Using package at" path = pathof(QuantumGaussianDynamics)
 
 using MPI

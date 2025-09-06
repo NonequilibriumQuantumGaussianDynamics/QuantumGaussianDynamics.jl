@@ -22,8 +22,6 @@ sscha_path = "./"
 dyn = PH.Phonons.(sscha_path * "final_result", 1)
 py_ensemble = PyEnsemble.Ensemble(dyn, TEMPERATURE)
 py_ensemble.load_bin(sscha_path * "sscha_ensemble", 1)
-dyn.Symmetrize()
-dyn.ForcePositiveDefinite()
 
 t1 = time()
 
