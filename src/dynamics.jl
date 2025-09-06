@@ -49,14 +49,20 @@ integrate!(w, ens, Dynamics(dt=1.0, total_time=200.0, algorithm="generalized-ver
                             seed=1, N=size(ens.positions,2), save_each=50,
                             save_filename="run"), crystal, ef)
 """
-function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, settings :: Dynamics{T}, crystal, efield :: ElectricField{T}) where {T <: AbstractFloat}
-    
-    index :: Int32 = 0
-    t :: T = 0
+function integrate!(
+    wigner::WignerDistribution{T},
+    ensemble::Ensemble{T},
+    settings::Dynamics{T},
+    crystal,
+    efield::ElectricField{T},
+) where {T<:AbstractFloat}
+
+    index::Int32 = 0
+    t::T = 0
     my_dt = settings.dt / CONV_FS # Convert to Rydberg units
 
     sqrtm = sqrt.(wigner.masses)
-    nat3 = wigner.n_atoms* 3
+    nat3 = wigner.n_atoms * 3
 
     avg_for = zeros(T, nat3)
     d2v_dr2 = zeros(T, (nat3, nat3))
@@ -65,7 +71,7 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
     Ps = deepcopy(wigner.P_av)
 
     name = settings.save_filename*"$(settings.dt)-$(settings.total_time)-$(settings.N)"
-    rank  = MPI.Comm_rank(MPI.COMM_WORLD)
+    rank = MPI.Comm_rank(MPI.COMM_WORLD)
     file0 = init_file(name*".pos")
     file1 = init_file(name*".rho")
     file2 = init_file(name*".for")
@@ -74,7 +80,7 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
     file5 = init_file(name*".str")
     file6 = init_file(name*".bet")
     file7 = init_file(name*".gam")
-    
+
     # Get the average derivatives
     get_averages!(avg_for, d2v_dr2, ensemble, wigner)
     total_energy = get_total_energy(ensemble, wigner)
@@ -100,9 +106,9 @@ function integrate!(wigner :: WignerDistribution{T}, ensemble :: Ensemble{T}, se
             semi_implicit_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 1)
         elseif "fixed" == lowercase(settings.algorithm)
             fixed_step!(wigner, my_dt, tot_for, d2v_dr2, 1)
-        elseif "generalized-verlet" == lowercase(settings.algorithm) 
+        elseif "generalized-verlet" == lowercase(settings.algorithm)
             #bc0 = get_merged_vector(wigner.PP_corr, wigner.RP_corr)
-            generalized_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 1) 
+            generalized_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 1)
         elseif "none" == lowercase(settings.algorithm)
             nothing
 
@@ -118,7 +124,11 @@ Error, the selected algorithm $(settings.algorithm)
 
         # Update matrix and weights
         lambda_eigen = eigen(Symmetric(wigner.RR_corr))
-        λvects, λs = QuantumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, THR_ACOUSTIC)
+        λvects, λs = QuantumGaussianDynamics.remove_translations(
+            lambda_eigen.vectors,
+            lambda_eigen.values,
+            THR_ACOUSTIC,
+        )
         wigner.λs_vect = λvects
         wigner.λs = λs
 
@@ -129,7 +139,7 @@ Error, the selected algorithm $(settings.algorithm)
             println("KL ratio ", kl/T(ensemble.n_configs))
         end
         if kl < settings.kong_liu_ratio*ensemble.n_configs
-            generate_ensemble!(settings.N,ensemble, wigner)
+            generate_ensemble!(settings.N, ensemble, wigner)
             calculate_ensemble!(ensemble, crystal)
         end
 
@@ -148,7 +158,7 @@ Error, the selected algorithm $(settings.algorithm)
             semi_implicit_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
         elseif "fixed" == lowercase(settings.algorithm)
             fixed_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
-        elseif "generalized-verlet" == lowercase(settings.algorithm) 
+        elseif "generalized-verlet" == lowercase(settings.algorithm)
             generalized_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
         end
         # Classic integration (part 2)
@@ -164,11 +174,11 @@ Error, the selected algorithm $(settings.algorithm)
                     println("T = $t fs")
                     println()
                 end
-                line = "$t "                            
-                for i in 1:nat3
+                line = "$t "
+                for i = 1:nat3
                     line *= "  $(wigner.R_av[i]/sqrtm[i]) "
                 end
-                for i in 1:nat3
+                for i = 1:nat3
                     line *= "  $(wigner.P_av[i]*sqrtm[i]) "
                 end
                 if rank==0
@@ -176,76 +186,76 @@ Error, the selected algorithm $(settings.algorithm)
                 end
                 line *= " $total_energy"
                 line *= "\n"
-                write_file(file0,line)
+                write_file(file0, line)
 
                 line = ""
-                for i in 1:nat3
+                for i = 1:nat3
                     line *= "  $(avg_for[i]*sqrtm[i]) "
                 end
-                for i in 1:nat3
+                for i = 1:nat3
                     line *= "  $(classic_for[i]*sqrtm[i]) "
                 end
-                for i in 1:nat3 , j in 1:nat3
+                for i = 1:nat3, j = 1:nat3
                     line *= "  $(d2v_dr2[i,j]*sqrtm[i]*sqrtm[j])"
                 end
                 line *= "\n"
-                write_file(file2, line)                   
+                write_file(file2, line)
 
 
                 line = ""
-                for i in 1:nat3 , j in 1:nat3
+                for i = 1:nat3, j = 1:nat3
                     line *= "  $(wigner.RR_corr[i,j]/sqrtm[i]/sqrtm[j]) "
                 end
                 line *= "\n"
-                write_file(file1,line)
+                write_file(file1, line)
 
                 line = ""
-                for i in 1:nat3 , j in 1:nat3
+                for i = 1:nat3, j = 1:nat3
                     line *= "  $(wigner.PP_corr[i,j]*sqrtm[i]*sqrtm[j]) "
                 end
                 line *= "\n"
-                write_file(file6,line)
+                write_file(file6, line)
 
                 line = ""
-                for i in 1:nat3 , j in 1:nat3
+                for i = 1:nat3, j = 1:nat3
                     line *= "  $(wigner.RP_corr[i,j]/sqrtm[i]*sqrtm[j]) "
                 end
                 line *= "\n"
-                write_file(file7,line)
+                write_file(file7, line)
 
 
                 line = ""
-                for i in 1:nat3
+                for i = 1:nat3
                     line *= "  $(Rs[i]/sqrtm[i]) "
                 end
-                for i in 1:nat3
+                for i = 1:nat3
                     line *= "  $(Ps[i]*sqrtm[i]) "
                 end
                 line *= " $cl_energy"
                 line *= "\n"
-                write_file(file3,line)
+                write_file(file3, line)
 
                 line = ""
-                for i in 1:nat3
+                for i = 1:nat3
                     line *= "  $(ext_for[i]*sqrtm[i]) "
                 end
                 line *= "\n"
-                write_file(file4,line)
+                write_file(file4, line)
 
 
                 line = ""
-                for i in 1:6
+                for i = 1:6
                     line *= " $(avg_stress[i]) "
                 end
                 line *= "\n"
-                write_file(file5,line)
+                write_file(file5, line)
 
             end
         end
 
         #if index%500 == 0
-            #println("Garbage")
-            #GC.gc()
+        #println("Garbage")
+        #GC.gc()
         #end
     end
     if rank==0
@@ -258,4 +268,4 @@ Error, the selected algorithm $(settings.algorithm)
         close(file6)
         close(file7)
     end
-end 
+end

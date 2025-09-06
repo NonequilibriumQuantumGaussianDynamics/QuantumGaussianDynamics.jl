@@ -33,14 +33,14 @@ using PyCall
 # Init MPI
 include("parallel.jl")
 
-const SMALL_VALUE :: Float64 = 1e-8
-const THR_ACOUSTIC :: Float64 = 1e-1
-const CONV_FS :: Float64 = 0.048377687 # to femtoseconds
-const CONV_RY :: Float64 = 0.0734985857 # eV to Ry
-const CONV_BOHR :: Float64 = 1.8897261246257702 # Angstrom to Bohr
-const CONV_MASS :: Float64 = 911.444175 # amu to kg
-const CONV_EFIELD :: Float64 = 2.7502067*1e-7 #kVcm to E_Ry
-const CONV_FREQ :: Float64 = 4.83776857*1e-5 #THz to w_Ry
+const SMALL_VALUE::Float64 = 1e-8
+const THR_ACOUSTIC::Float64 = 1e-1
+const CONV_FS::Float64 = 0.048377687 # to femtoseconds
+const CONV_RY::Float64 = 0.0734985857 # eV to Ry
+const CONV_BOHR::Float64 = 1.8897261246257702 # Angstrom to Bohr
+const CONV_MASS::Float64 = 911.444175 # amu to kg
+const CONV_EFIELD::Float64 = 2.7502067*1e-7 #kVcm to E_Ry
+const CONV_FREQ::Float64 = 4.83776857*1e-5 #THz to w_Ry
 
 export SMALL_VALUE
 export CONV_FS
@@ -65,11 +65,11 @@ This structure contains the information about the external IR electric field.
 - `edir` is the direction of the electric field
 - `eps` is the dielectric constant matrix
 """
-Base.@kwdef mutable struct ElectricField{T <: AbstractFloat} 
-    fun :: Function #Time in fs, unit 
-    Zeff :: Matrix{T} 
-    edir :: Vector{T} #Must have unit norm
-    eps :: Matrix{T}
+Base.@kwdef mutable struct ElectricField{T<:AbstractFloat}
+    fun::Function #Time in fs, unit 
+    Zeff::Matrix{T}
+    edir::Vector{T} #Must have unit norm
+    eps::Matrix{T}
 end
 
 """
@@ -106,26 +106,26 @@ The settings for the simulation. dt and total_time are in femtoseconds
 - `save_correlators` is a flag to save the correlators information
 - `save_each` is the number of steps between each save of the data
 """
-Base.@kwdef struct Dynamics{T <: AbstractFloat}
-    dt :: T = 1.0  #femtosecodns
-    total_time :: T # In femtosecodns
-    algorithm :: String = "generalized-verlet"
-    kong_liu_ratio :: T = 1.0
-    verbose :: Bool = true
-    evolve_correlators :: Bool = true
-    correlated :: Bool = true
-    seed :: Int64
-    N :: Int64
+Base.@kwdef struct Dynamics{T<:AbstractFloat}
+    dt::T = 1.0  #femtosecodns
+    total_time::T # In femtosecodns
+    algorithm::String = "generalized-verlet"
+    kong_liu_ratio::T = 1.0
+    verbose::Bool = true
+    evolve_correlators::Bool = true
+    correlated::Bool = true
+    seed::Int64
+    N::Int64
 
     # Save the data each
-    save_each :: Int64 = 1
-    save_filename :: String 
-    save_correlators :: Bool 
+    save_each::Int64 = 1
+    save_filename::String
+    save_correlators::Bool
 end
 
-Base.@kwdef struct GeneralSettings{T <: AbstractFloat}
-    ciao :: T
-    evolve_correlators :: Bool
+Base.@kwdef struct GeneralSettings{T<:AbstractFloat}
+    ciao::T
+    evolve_correlators::Bool
 end
 
 """
@@ -163,25 +163,25 @@ The structure contains the following fields:
 Note that all the variable here are with a tilde (mass rescaled)
 So that we can use linear-algebra on them quickly.
 """
-Base.@kwdef mutable struct WignerDistribution{T<: AbstractFloat}
-    R_av    :: Vector{T}
-    P_av    :: Vector{T}
-    masses  :: Vector{T}
-    n_atoms :: Int32
-    n_modes :: Int32
-    RR_corr :: Matrix{T}
-    PP_corr :: Matrix{T}
-    RP_corr :: Matrix{T}
-    alpha :: Matrix{T}
-    beta :: Matrix{T}
-    gamma   :: Matrix{T}
+Base.@kwdef mutable struct WignerDistribution{T<:AbstractFloat}
+    R_av::Vector{T}
+    P_av::Vector{T}
+    masses::Vector{T}
+    n_atoms::Int32
+    n_modes::Int32
+    RR_corr::Matrix{T}
+    PP_corr::Matrix{T}
+    RP_corr::Matrix{T}
+    alpha::Matrix{T}
+    beta::Matrix{T}
+    gamma::Matrix{T}
 
     # Eigenvalues and eigenvectors of the current Y matrix 
-    λs :: Vector{T}
-    λs_vect :: Matrix{T}
-    evolve_correlators :: Bool
-    cell :: Matrix{T}
-    atoms :: Vector{String}
+    λs::Vector{T}
+    λs_vect::Matrix{T}
+    evolve_correlators::Bool
+    cell::Matrix{T}
+    atoms::Vector{String}
 end
 
 """
@@ -202,28 +202,32 @@ Ensemble(rho0 :: WignerDistribution{T},
     y0 :: Matrix{T},
     #unit_cell :: Matrix{T})
 """
-Base.@kwdef mutable struct Ensemble{T <: AbstractFloat}
-    rho0 :: WignerDistribution{T}
+Base.@kwdef mutable struct Ensemble{T<:AbstractFloat}
+    rho0::WignerDistribution{T}
 
     # stocastic displacements and forces
     # index i, j means configuration j, coordinate i
-    positions :: Matrix{T}  # Positions are multiplied by the squareroot of the masses
-    energies :: Vector{T} 
-    forces :: Matrix{T} # Forces are divided by the squareroot of masses
-    stress :: Matrix{T} # Stress in eV/A^3
-    sscha_energies :: Vector{T} 
-    sscha_forces :: Matrix{T}
-    n_configs :: Int32
-    weights :: Vector{T}
-    temperature :: T
-    correlated :: Bool
-    y0 :: Matrix{T}
-end 
+    positions::Matrix{T}  # Positions are multiplied by the squareroot of the masses
+    energies::Vector{T}
+    forces::Matrix{T} # Forces are divided by the squareroot of masses
+    stress::Matrix{T} # Stress in eV/A^3
+    sscha_energies::Vector{T}
+    sscha_forces::Matrix{T}
+    n_configs::Int32
+    weights::Vector{T}
+    temperature::T
+    correlated::Bool
+    y0::Matrix{T}
+end
 
 """
 Remove acoustic sum rule from eigenvalue and eigenvectors
 """
-function remove_translations(vectors::AbstractMatrix{T}, values::AbstractVector{T}, thr::T) where {T<:AbstractFloat}
+function remove_translations(
+    vectors::AbstractMatrix{T},
+    values::AbstractVector{T},
+    thr::T,
+) where {T<:AbstractFloat}
     mask = values .> thr
     nremoved = count(!, mask)
     if nremoved != 3
@@ -267,16 +271,16 @@ modes of the provided dynamical matrix at a given temperature.
 - If `settings.evolve_correlators == false`, eigen-decomposition of `alpha`
   is used; otherwise, the `RR_corr` matrix is diagonalized (deprecated).
 """
-function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T <: AbstractFloat}
+function init_from_dyn(dyn, TEMPERATURE::T, settings::Dynamics{T}) where {T<:AbstractFloat}
 
     # Initialize the WignerDistribution structure starting from a dynamical matrix
-    
+
     super_struct = dyn.structure.generate_supercell(dyn.GetSupercell())
     N_modes = super_struct.N_atoms * 3
     N_atoms = Int32(super_struct.N_atoms)
 
     w, pols = dyn.DiagonalizeSupercell() #frequencies are in Ry
-    
+
     alpha, beta = QuantumGaussianDynamics.get_alphabeta(T(TEMPERATURE), w, pols)
     RR_corr, PP_corr = QuantumGaussianDynamics.get_correlators(T(TEMPERATURE), w, pols)
     gamma = zeros(N_modes, N_modes) #already rescaled (tilde)
@@ -290,27 +294,50 @@ function init_from_dyn(dyn, TEMPERATURE :: T, settings :: Dynamics{T}) where {T 
 
     # Rescale
     masses = super_struct.get_masses_array() # already in Rydberg units
-    mass_array = reshape(repeat(masses',3,1), N_modes)
+    mass_array = reshape(repeat(masses', 3, 1), N_modes)
     R_av .*= sqrt.(mass_array)
     P_av ./= sqrt.(mass_array)
 
     # Diagonalize alpha
     if settings.evolve_correlators == false
         lambda_eigen = eigen(alpha)
-        λvects, λs = QuantumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, THR_ACOUSTIC) #NO NEEDED WITH ALPHAS
+        λvects, λs = QuantumGaussianDynamics.remove_translations(
+            lambda_eigen.vectors,
+            lambda_eigen.values,
+            THR_ACOUSTIC,
+        ) #NO NEEDED WITH ALPHAS
     else
         lambda_eigen = eigen(RR_corr)
-        λvects, λs = QuantumGaussianDynamics.remove_translations(lambda_eigen.vectors, lambda_eigen.values, THR_ACOUSTIC) #NO NEEDED WITH ALPHAS       
+        λvects, λs = QuantumGaussianDynamics.remove_translations(
+            lambda_eigen.vectors,
+            lambda_eigen.values,
+            THR_ACOUSTIC,
+        ) #NO NEEDED WITH ALPHAS       
     end
 
     # Cell
-    cell = super_struct.unit_cell .*CONV_BOHR
+    cell = super_struct.unit_cell .* CONV_BOHR
     atoms = super_struct.atoms
 
     # Initialize
-    rho = QuantumGaussianDynamics.WignerDistribution(R_av  = R_av, P_av = P_av, n_atoms = N_atoms, masses = mass_array, n_modes = Int32(N_modes), 
-                                                alpha = alpha, beta = beta, gamma = gamma, RR_corr = RR_corr, PP_corr = PP_corr, RP_corr = RP_corr, 
-                                                λs_vect = λvects, λs = λs, evolve_correlators = settings.evolve_correlators, cell = cell, atoms = atoms)
+    rho = QuantumGaussianDynamics.WignerDistribution(
+        R_av = R_av,
+        P_av = P_av,
+        n_atoms = N_atoms,
+        masses = mass_array,
+        n_modes = Int32(N_modes),
+        alpha = alpha,
+        beta = beta,
+        gamma = gamma,
+        RR_corr = RR_corr,
+        PP_corr = PP_corr,
+        RP_corr = RP_corr,
+        λs_vect = λvects,
+        λs = λs,
+        evolve_correlators = settings.evolve_correlators,
+        cell = cell,
+        atoms = atoms,
+    )
     return rho
 end
 
