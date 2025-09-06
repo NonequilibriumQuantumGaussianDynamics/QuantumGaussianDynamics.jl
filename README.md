@@ -72,7 +72,10 @@ Pkg.build("PyCall")
 
 Details about the numerical methods can be found at 
 > F. Libbi *et al.*, *Atomistic simulations of out-of-equilibrium quantum nuclear dynamics*, npj Computational Materials  11, 144 (2025) https://doi.org/10.1038/s41524-025-01588-4
+
 while the thoeretical formulation is conteined in 
+
 > L. Monacelli *et al.*, *Time-dependent self-consistent harmonic approximation: Anharmonic nuclear quantum
 dynamics and time correlation functions*, Physical Review B 103, 104305 (2021) https://journals.aps.org/prb/abstract/10.1103/PhysRevB.103.104305
+
 > A. Siciliano *et al.*, *Wigner Gaussian dynamics: Simulating the anharmonic and quantum ionic motion*, Physical Review B 107, 174307 (2023) https://journals.aps.org/prb/abstract/10.1103/PhysRevB.107.174307
