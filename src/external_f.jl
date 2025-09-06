@@ -90,6 +90,10 @@ function read_charges_from_out!(
     return Zeff, eps
 end
 
+"""
+    sin_field(t, A, w)
+Sinusoidal external field. 
+"""
 function sin_field(t, A, w)
     # t in Rydberg units
     # Amplitude in kV/cm
@@ -101,6 +105,10 @@ function sin_field(t, A, w)
     return A_Ry*sin(2*π*w_Ry*t)
 end
 
+"""
+    pulse(t, A, w, t0, sig)
+Gaussian wavepacket pulse
+"""
 function pulse(t, A, w, t0, sig)
 
     A_Ry = A*CONV_EFIELD

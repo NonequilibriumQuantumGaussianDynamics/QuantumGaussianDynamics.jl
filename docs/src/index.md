@@ -99,11 +99,9 @@ settings = QuantumGaussianDynamics.Dynamics(
 )
 ```
 
-In the following, we show the available functions to setup the dynamics.
+See [`Dynamics`](@ref QuantumGaussianDynamics.Dynamics) for details on
+creating the initial Wigner distribution from a CellConstructor dynamical matrix.
 
-```@docs
-QuantumGaussianDynamics.Dynamics
-```
 
 ### Load the initial conditions (dynamical matrix)
 
@@ -111,7 +109,6 @@ The TD-SCHA evolves starting from a initial equilibrium Gaussian distribution, o
 For details on how to obtain this solution, see the [SSCHA package](https://sscha.eu).
 
 Here, we assume you already obtained a dynamical matrix and want to use it to initialize the TD-SCHA dynamics.
-
 For this, we use PyCall to load the dynamics using a python calculator
 
 ```julia
@@ -133,16 +130,22 @@ using QuantumGaussianDynamics
 temperature = 300.0 #K
 
 # Convert the python dynamical matrix into a Wigner distribution
-wigner = init_from_dyn(dyn, temperature, settings)
+rho = init_from_dyn(dyn, temperature, settings)
 ```
 
 In the following, the API for the function `init_from_dyn` is shown
+See [`init_from_dyn`](@ref QuantumGaussianDynamics.init_from_dyn) for details.
 
 
 ## Initialize the forces calculator
 
 The force calculator can be initialized using the ASE interface.
 If `ase_calculator` is a valid PyObject representing an ASE calculator, the following code initializes the forces calculator.
+
+```julia
+
+crystal = QuantumGaussianDynamics.init_calculator(ase_calculator, rho, ase.Atoms)
+```
 
 # External force
 
@@ -152,11 +155,22 @@ External forces are introduced in the dynamics as `ExternalPerturbation` objects
 get_external_forces(time :: T, perturbation :: ExternalPerturbation, wigner :: WignerDistribution{T}) :: Vector{T} where {T}
 ```
 
-It must return a vector of size `n_dims * n_atoms`, with the external force acting on each atom at the given time. All quantities must be expressed in Hartree atomic units.
+It must return a vector of size `n_dims * n_atoms`, with the external force acting on each atom at the given time. All quantities must be expressed in Rydberg atomic units.
 
-Two types of external perturbations are already implemented: `ElectricField` and `StimulatedRamanField`.
+One type of external perturbations is already implemented: `ElectricField`. There are several pulse shapes available in [`pulse`](@ref QuantumGaussianDynamics.pulse). Here is an example of a pulse with a [`Gaussian wave-packet`](@ref QuantumGaussianDynamics.pulse) shape.
 
+```julia
 
+# Equation of the pulse: E(t)=A*cos(2\pi*freq*t)*exp(-(t-t0)^2/(2*sig^2))
+A = 3000.0 #kV/cm
+freq = 2.4 #THz
+t0 = 1875.0 #fs
+sig = 468.0 #fs
+edir = [0,0,1.0] 
+field_fun = QuantumGaussianDynamics.pulse
+field_f = t -> field_fun(t,A,freq,t0,sig)
+
+```
 
 ## Index
 
