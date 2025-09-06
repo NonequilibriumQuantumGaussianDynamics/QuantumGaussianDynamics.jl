@@ -27,6 +27,10 @@ jobs:
           activate-environment: sscha
           python-version: '3.10'
 
+      - name: Install dependencies
+        run: |
+          julia --project -e 'using Pkg; Pkg.instantiate()'
+
       # Install Python deps *into the already-activated sscha env*
       - name: Install Python deps
         shell: bash -l {0}
@@ -48,10 +52,6 @@ jobs:
             Pkg.build("PyCall")
             using PyCall
             @info "PyCall.python" PyCall.python'
-
-      - name: Install dependencies
-        run: |
-          julia --project -e 'using Pkg; Pkg.instantiate()'
 
       - name: Run tests
         run: |
