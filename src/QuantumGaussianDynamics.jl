@@ -33,12 +33,12 @@ using PyCall
 # Init MPI
 include("parallel.jl")
 include("constants.jl")
+include("dynamics.jl")
 include("wigner.jl")
 include("time_evolution.jl")
 include("ensemble.jl")
 include("phonons.jl")
 include("calculator.jl")
-include("dynamics.jl")
 include("external_f.jl")
 
 # Core structures
