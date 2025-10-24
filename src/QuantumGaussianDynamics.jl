@@ -33,8 +33,8 @@ using PyCall
 # Parallelization module
 include("parallel.jl")
 
-# Constant and units
-include("constants.jl")
+# Structures module
+include("structures.jl")
 
 # Setting and dynamics loop
 include("dynamics.jl")
