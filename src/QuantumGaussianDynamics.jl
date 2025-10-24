@@ -19,16 +19,6 @@ See the docstrings of each type/function for details and examples.
 
 module QuantumGaussianDynamics
 
-using LinearAlgebra
-using Roots
-using MPI
-
-using Optim
-using OptimizationOptimJL
-using ForwardDiff
-
-using PyCall
-
 # Parallelization module
 include("parallel.jl")
 

@@ -1,3 +1,8 @@
+using LinearAlgebra
+using Roots
+using Optim
+using OptimizationOptimJL
+using ForwardDiff
 
 
 """

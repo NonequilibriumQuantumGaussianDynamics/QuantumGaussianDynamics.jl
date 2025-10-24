@@ -1,4 +1,4 @@
-
+using MPI
 
 function parallel_force_distribute(nconf)
     if MPI.Initialized()
