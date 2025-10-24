@@ -20,7 +20,6 @@ See the docstrings of each type/function for details and examples.
 module QuantumGaussianDynamics
 
 using LinearAlgebra
-using Random
 using Roots
 using MPI
 

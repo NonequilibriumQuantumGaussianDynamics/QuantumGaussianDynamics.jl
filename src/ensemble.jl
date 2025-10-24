@@ -1,3 +1,4 @@
+using Random
 
 """
    calculate_ensemble!(ensemble::Ensemble{T}, crystal) where {T<:AbstractFloat}
