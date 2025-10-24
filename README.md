@@ -22,10 +22,11 @@ To use this package, you must first install the CellConstructor module from the 
 Note: For compatibility with CellConstructor, Python 3.10 is required.
 
 ```bash
-conda create -n sscha -c conda-forge python=3.10 gfortran libblas lapack openmpi openmpi-mpicc pip numpy scipy spglib=2.2 setuptools=64
+conda create -n sscha -c conda-forge python=3.10 gfortran libblas lapack openmpi openmpi-mpicc pip numpy scipy spglib=2.2 setuptools=64 pkgconfig
 conda activate sscha
-pip install ase mpi4py
-pip install cellconstructor python-sscha tdscha
+pip install ase 
+pip install 'cellconstructor==1.4.1'
+pip install 'python-sscha==1.4.1' 
 ```
 
 Clone the folder locally

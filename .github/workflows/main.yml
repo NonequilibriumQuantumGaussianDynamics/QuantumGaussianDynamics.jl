@@ -40,6 +40,7 @@ jobs:
           which python
           python -V
           python -m pip list
+          pip install ase
           pip install --no-build-isolation "cellconstructor==1.4.1"
           pip install --no-build-isolation "python-sscha==1.4.1"
 
