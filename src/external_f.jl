@@ -1,3 +1,27 @@
+"""
+Electric Field.
+
+    Base.@kwdef mutable struct ElectricField{T <: AbstractFloat} 
+        fun :: Function #Time in fs, unit 
+        Zeff :: Matrix{T} 
+        edir :: Vector{T} #Must have unit norm
+        eps :: Matrix{T}
+    end
+
+This structure contains the information about the external IR electric field.
+
+- `fun` is the function that describes the electric field as a function of time
+- `Zeff` is the effective charge matrix
+- `edir` is the direction of the electric field
+- `eps` is the dielectric constant matrix
+"""
+Base.@kwdef mutable struct ElectricField{T<:AbstractFloat}
+    fun::Function #Time in fs, unit 
+    Zeff::Matrix{T}
+    edir::Vector{T} #Must have unit norm
+    eps::Matrix{T}
+end
+
 
 function read_charges_from_dict!(
     dict,

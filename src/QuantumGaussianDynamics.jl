@@ -30,15 +30,31 @@ using ForwardDiff
 
 using PyCall
 
-# Init MPI
+# Parallelization module
 include("parallel.jl")
+
+# Constant and units
 include("constants.jl")
+
+# Setting and dynamics loop
 include("dynamics.jl")
+
+# Wigner distribution
 include("wigner.jl")
+
+# Integration schemes
 include("time_evolution.jl")
+
+# Ensemble
 include("ensemble.jl")
+
+# Phonons operations
 include("phonons.jl")
+
+# Interface with ASE
 include("calculator.jl")
+
+# External forces
 include("external_f.jl")
 
 # Core structures
