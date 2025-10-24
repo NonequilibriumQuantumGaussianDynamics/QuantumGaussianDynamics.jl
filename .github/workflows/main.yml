@@ -36,11 +36,12 @@ jobs:
         shell: bash -l {0}
         run: |
           conda create -n sscha -c conda-forge python=3.10 gfortran libblas lapack \
-          openmpi openmpi-mpicc pip numpy scipy spglib=2.2 setuptools=64
+          openmpi openmpi-mpicc pip numpy scipy spglib=2.2 pkgconfig
           which python
           python -V
           python -m pip list
-          pip install "cellconstructor==1.4.1" "python-sscha==1.4.1" 
+          pip install --no-build-isolation "cellconstructor==1.4.1"
+          pip install --no-build-isolation "python-sscha==1.4.1"
 
       # Point PyCall to Conda's Python and rebuild it
       - name: Configure PyCall to use Conda Python
