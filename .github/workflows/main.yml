@@ -36,7 +36,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda create -n sscha -c conda-forge python=3.10 gfortran libblas lapack \
-          openmpi openmpi-mpicc pip numpy scipy spglib=2.2 pkgconfig
+          openmpi openmpi-mpicc pip numpy scipy spglib=2.2 pkgconfig setuptools=64
           which python
           python -V
           python -m pip list
