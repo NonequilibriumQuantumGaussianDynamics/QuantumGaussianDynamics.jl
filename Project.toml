@@ -1,7 +1,7 @@
 name = "QuantumGaussianDynamics"
 uuid = "b5781b8a-c3cd-49e3-88b7-4e99ca02a1de"
 authors = ["Francesco Libbi <libbi@g.harvard.edu>", "Lorenzo Monacelli <lorenzo.monacelli@epfl.ch>"]
-version = "0.1.0"
+version = "1.0.0-dev"
 
 [deps]
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
@@ -17,12 +17,12 @@ Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
 [compat]
 MPI = "0.20.23"
 PyCall = "1.96.4"
-#julia = "1.10"               
-#ForwardDiff = "0.10"
-#Optim = "1"
-#Optimization = "3"
-#OptimizationOptimJL = "0.3"
-#Roots = "2"
+julia = "1.10"               
+ForwardDiff = "0.10"
+Optim = "1"
+Optimization = "3"
+OptimizationOptimJL = "0.3"
+Roots = "2"
 
 [extras]
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
