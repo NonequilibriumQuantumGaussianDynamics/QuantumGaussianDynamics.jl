@@ -648,3 +648,14 @@ function get_λs(RR_corr::Matrix{T}) where {T<:AbstractFloat}
     eigvals::T = eigvals(Hermitian(RR_corr))
     return eigvals
 end
+
+function equilibrium_ensemble(TEMPERATURE::T, file_dyn::String, ens_file::String, ndyn::Int, ens_bin::Int ) where {T<:AbstractFloat}
+
+    dyn = PH.Phonons(file_dyn, ndyn)
+    py_ensemble = PyEnsemble.Ensemble(dyn, TEMPERATURE)
+    py_ensemble.load_bin(ens_file, 1)
+    dyn.Symmetrize()
+    dyn.ForcePositiveDefinite()
+
+    return py_ensemble, dyn
+end
