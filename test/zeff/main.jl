@@ -88,12 +88,8 @@ MPI.Init()
         for icar = 1:3
             fx = ext_for[icar:3:end]
             summ = sum(fx)
-            if summ>1e-8
-                error("Sum rule broken: ", summ)
-            end
+	    @test summ < 1e-8
         end
     end
-    bool=true
-    @test bool = true
 
 end
