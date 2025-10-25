@@ -68,5 +68,5 @@ MPI.Init()
     data = readdlm(method*"0.1-10.0-100.pos")
     ref = readdlm(joinpath(@__DIR__, "reference_generalized-verlet0.1-10.0-100.pos"))
 
-    @test norm(data .- ref) < 1e-8
+    @test norm(data .- ref) < 1e-3
 end

@@ -158,13 +158,12 @@ function generalized_verlet_step!(
             B1_ = copy(B0p)
             BLAS.syr2k!('U', 'T', -dt/2.0, d2V_dr2, C1, 1.0, B1_)
             LinearAlgebra.copytri!(B1_, 'U')
+ 
+            err_B = norm((B1_ .- B1) .^ 2)
+            err_C = norm((C1_ .- C1) .^ 2)
+	    err = err_B + err_C
 
-            if rank == 0
-                println("optimization B ", norm((B1_ .- B1) .^ 2))
-                println("optimization C ", norm((C1_ .- C1) .^ 2))
-            end
-
-            return B1_, C1_
+            return B1_, C1_, err
 
         end
 
@@ -174,9 +173,10 @@ function generalized_verlet_step!(
         dthalf = dt / 2.0
         BLAS.gemm!('N', 'N', -dthalf, rho.RR_corr, d2V_dr2, 1.0, rho.RP_corr)
 
-        niter = 4
-        for i = 1:niter
-            B1, C1 = obj(B1, C1, d2V_dr2, rho.PP_corr, rho.RP_corr)
+	thr = 1e-12
+	err = 1
+        while err > thr
+            B1, C1, err = obj(B1, C1, d2V_dr2, rho.PP_corr, rho.RP_corr)
         end
 
         rho.PP_corr .= B1
