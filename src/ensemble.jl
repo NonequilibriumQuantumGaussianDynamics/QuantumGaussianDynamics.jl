@@ -651,6 +651,8 @@ end
 
 function equilibrium_ensemble(TEMPERATURE::T, file_dyn::String, ens_file::String, ndyn::Int, ens_bin::Int ) where {T<:AbstractFloat}
 
+    PH   = pyimport("cellconstructor.Phonons")
+    PyEnsemble = pyimport("sscha.Ensemble")
     dyn = PH.Phonons(file_dyn, ndyn)
     py_ensemble = PyEnsemble.Ensemble(dyn, TEMPERATURE)
     py_ensemble.load_bin(ens_file, 1)

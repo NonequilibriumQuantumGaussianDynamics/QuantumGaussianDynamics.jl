@@ -50,10 +50,11 @@ include("external_f.jl")
 export Dynamics, Ensemble, ElectricField, WignerDistribution
 
 # Initialization functions
-export init_from_dyn, init_ensemble_from_python, init_calculator, fake_field, load_ensemble
+export init_from_dyn, init_ensemble_from_python, init_calculator, fake_field, equilibrium_ensemble
 
 # Core workflow
 export generate_ensemble!, calculate_ensemble!, get_averages!, get_alphabeta, get_correlators
+export get_average_forces, get_classic_forces
 export integrate!
 
 end 
