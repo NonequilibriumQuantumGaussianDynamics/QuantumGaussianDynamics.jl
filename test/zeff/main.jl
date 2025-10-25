@@ -68,8 +68,7 @@ MPI.Init()
     t0 = 1878.0 #fs
     sig = 468.0 #fs
     edir = [1.0, 0.0, 0.0]
-    field_fun = deepcopy(QuantumGaussianDynamics.pulse)
-    field_f = t -> field_fun(t, A, freq, t0, sig)
+    field_f = QuantumGaussianDynamics.pulse(A, freq, t0, sig) 
 
     Zeff, eps =
         QuantumGaussianDynamics.read_charges_from_out!(joinpath(@__DIR__, "ph.out"), rho)

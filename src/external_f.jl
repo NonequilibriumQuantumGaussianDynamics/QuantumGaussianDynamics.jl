@@ -142,11 +142,21 @@ function fake_field(nat)
 
 end
 
+function fake_dielectric_constant(nat)
+
+    Zeff = zeros(3*nat, 3)
+    eps = [1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0]
+
+    return Zeff, eps
+
+end
+
+
 """
     sin_field(t, A, w)
 Sinusoidal external field. 
 """
-function sin_field(t, A, w)
+function sin_field(A, w)
     # t in Rydberg units
     # Amplitude in kV/cm
     # Frequency in THz
@@ -161,7 +171,7 @@ end
     pulse(t, A, w, t0, sig)
 Gaussian wavepacket pulse
 """
-function pulse(t, A, w, t0, sig)
+function pulse(A, w, t0, sig)
     # t in Rydberg units
     # Amplitude in kV/cm
     # Frequency in THz
@@ -177,7 +187,7 @@ function pulse(t, A, w, t0, sig)
 
 end
 
-function gaussian1(t, A, w, t0)
+function gaussian1(A, w, t0)
     # t in Rydberg units
     # Amplitude in kV/cm
     # Frequency in THz

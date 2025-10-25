@@ -52,9 +52,10 @@ export Dynamics, Ensemble, ElectricField, WignerDistribution
 # Initialization functions
 export init_from_dyn, init_ensemble_from_python, init_calculator, fake_field, equilibrium_ensemble
 
-# Core workflow
+# Forces and electric fields
 export generate_ensemble!, calculate_ensemble!, get_averages!, get_alphabeta, get_correlators
 export get_average_forces, get_classic_forces
+export pulse, sin_field, gaussian1, fake_dielectric_constant, read_charges_from_out!
 export integrate!
 
 end 
