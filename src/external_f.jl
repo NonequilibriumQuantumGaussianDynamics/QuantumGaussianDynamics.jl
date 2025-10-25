@@ -90,47 +90,6 @@ function read_charges_from_out!(
     return Zeff, eps
 end
 
-"""
-    sin_field(t, A, w)
-Sinusoidal external field. 
-"""
-function sin_field(t, A, w)
-    # t in Rydberg units
-    # Amplitude in kV/cm
-    # Frequency in THz
-
-    A_Ry = A*CONV_EFIELD
-    w_Ry = w*CONV_FREQ
-
-    return A_Ry*sin(2*π*w_Ry*t)
-end
-
-"""
-    pulse(t, A, w, t0, sig)
-Gaussian wavepacket pulse
-"""
-function pulse(t, A, w, t0, sig)
-
-    A_Ry = A*CONV_EFIELD
-    w_Ry = w*CONV_FREQ
-    t0_Ry = t0/CONV_FS
-    sig_Ry = sig/CONV_FS
-
-    return A_Ry * cos(2*π*w_Ry*t) * exp(-0.5*(t-t0_Ry)^2/sig_Ry^2)
-
-end
-
-function gaussian1(t, A, w, t0)
-    A_Ry = A*CONV_EFIELD
-    w_Ry = w*CONV_FREQ
-    t0_Ry = t0/CONV_FS
-    sig_Ry = 1/(2*π*w_Ry)
-
-
-    return -A_Ry * (t-t0_Ry)/sig_Ry * exp(-0.5*(t-t0_Ry)^2/sig_Ry^2 + 0.5)
-end
-
-
 function get_external_forces(
     t::T,
     efield::ElectricField{T},
@@ -181,4 +140,53 @@ function fake_field(nat)
 
     return efield
 
+end
+
+"""
+    sin_field(t, A, w)
+Sinusoidal external field. 
+"""
+function sin_field(t, A, w)
+    # t in Rydberg units
+    # Amplitude in kV/cm
+    # Frequency in THz
+
+    A_Ry = A*CONV_EFIELD
+    w_Ry = w*CONV_FREQ
+
+    return (t::Float64) -> A_Ry*sin(2*π*w_Ry*t)
+end
+
+"""
+    pulse(t, A, w, t0, sig)
+Gaussian wavepacket pulse
+"""
+function pulse(t, A, w, t0, sig)
+    # t in Rydberg units
+    # Amplitude in kV/cm
+    # Frequency in THz
+    # t0 in fs
+    # sig in fs
+
+    A_Ry = A*CONV_EFIELD
+    w_Ry = w*CONV_FREQ
+    t0_Ry = t0/CONV_FS
+    sig_Ry = sig/CONV_FS
+
+    return (t::Float64) -> A_Ry * cos(2*π*w_Ry*t) * exp(-0.5*(t-t0_Ry)^2/sig_Ry^2)
+
+end
+
+function gaussian1(t, A, w, t0)
+    # t in Rydberg units
+    # Amplitude in kV/cm
+    # Frequency in THz
+    # t_0 in fs
+    
+    A_Ry = A*CONV_EFIELD
+    w_Ry = w*CONV_FREQ
+    t0_Ry = t0/CONV_FS
+    sig_Ry = 1/(2*π*w_Ry)
+
+    return (t::Float64) -> -A_Ry * (t-t0_Ry)/sig_Ry * exp(-0.5*(t-t0_Ry)^2/sig_Ry^2 + 0.5)
 end
