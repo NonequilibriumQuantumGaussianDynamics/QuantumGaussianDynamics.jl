@@ -4,25 +4,19 @@ authors = ["Francesco Libbi <libbi@g.harvard.edu>", "Lorenzo Monacelli <lorenzo.
 version = "1.0.0-dev"
 
 [deps]
-#ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
-#Optim = "429524aa-4258-5aef-a3af-852621145aeb"
-Optimization = "7f7a1694-90dd-40f0-9382-eb1efda571ba"
-#OptimizationOptimJL = "36348300-93cb-4f02-beb5-3c3902f8871e"
+OptimizationOptimJL = "36348300-93cb-4f02-beb5-3c3902f8871e"
 PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
 
 [compat]
-MPI = "0.20.23"
-PyCall = "1.96.4"
-julia = "1.10"               
-#ForwardDiff = "0.10"
-#Optim = "1"
-Optimization = "3"
-#OptimizationOptimJL = "0.3"
-Roots = "2"
+julia = "1.11"
+MPI = "0.20"
+OptimizationOptimJL = "0.4"
+PyCall = "1.96"
+Roots = "2.2"
 
 [extras]
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
