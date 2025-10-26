@@ -1,7 +1,6 @@
 using LinearAlgebra
 using Roots
 using OptimizationOptimJL
-using ForwardDiff
 
 """
 Perform one integration step using the selected algorithm.
