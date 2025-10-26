@@ -4,6 +4,51 @@ using Optim
 using OptimizationOptimJL
 using ForwardDiff
 
+"""
+Perform one integration step using the selected algorithm.
+
+Arguments
+---------
+- `algorithm` : Dynamics structure containing algorithm name.
+- `wigner`   : WignerDistribution state.
+- `my_dt`       : timestep, in Ry units.
+- `tot_for`   : total force vector.
+- `d2v_dr2`  : force constant (Hessian-like) matrix.
+- `part`     : part of the algorithm (1,2)
+
+It automatically calls the correct *_step! function.
+"""
+function step!(algorithm:: String, wigner:: WignerDistribution{T},  my_dt :: T, tot_for :: Vector{T}, d2v_dr2 :: Matrix{T}, part :: Int ) where {T <: AbstractFloat}
+
+    if part == 1
+        if "euler" == lowercase(algorithm)
+            euler_step!(wigner, my_dt, tot_for, d2v_dr2)
+        elseif "semi-implicit-euler" == lowercase(algorithm)
+            semi_implicit_euler_step!(wigner, my_dt, tot_for, d2v_dr2)
+        elseif "semi-implicit-verlet" == lowercase(algorithm)
+            semi_implicit_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 1)
+        elseif "fixed" == lowercase(algorithm)
+            fixed_step!(wigner, my_dt, tot_for, d2v_dr2, 1)
+        elseif "generalized-verlet" == lowercase(algorithm)
+            generalized_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 1)
+        elseif "none" == lowercase(algorithm)
+           nothing
+        else
+            throw(ArgumentError("""
+        Error, the selected algorithm $(algorithm)
+        is not in the implemented list.
+        """))
+        end
+    elseif part == 2
+        if "semi-implicit-verlet" == lowercase(algorithm)
+            semi_implicit_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
+        elseif "fixed" == lowercase(algorithm)
+            fixed_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
+        elseif "generalized-verlet" == lowercase(algorithm)
+            generalized_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
+        end
+    end    
+end
 
 """
     function semi_implicit_verlet_step!(rho:: WignerDistribution{T}, dt :: T, avg_for :: Vector{T}, d2V_dr2 :: Matrix{T}, part ) where {T <: AbstractFloat}

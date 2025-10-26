@@ -96,28 +96,9 @@ function integrate!(
         # Update the ensemble 
         index += 1
         t += settings.dt
-
-        # Integrate
-        if "euler" == lowercase(settings.algorithm)
-            euler_step!(wigner, my_dt, tot_for, d2v_dr2)
-        elseif "semi-implicit-euler" == lowercase(settings.algorithm)
-            semi_implicit_euler_step!(wigner, my_dt, tot_for, d2v_dr2)
-        elseif "semi-implicit-verlet" == lowercase(settings.algorithm)
-            semi_implicit_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 1)
-        elseif "fixed" == lowercase(settings.algorithm)
-            fixed_step!(wigner, my_dt, tot_for, d2v_dr2, 1)
-        elseif "generalized-verlet" == lowercase(settings.algorithm)
-            #bc0 = get_merged_vector(wigner.PP_corr, wigner.RP_corr)
-            generalized_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 1)
-        elseif "none" == lowercase(settings.algorithm)
-            nothing
-
-        else
-            throw(ArgumentError("""
-Error, the selected algorithm $(settings.algorithm)
-       is not in the implemented list.
-"""))
-        end
+	
+	# Evolution with f(t), k(t)
+	step!(settings.algorithm, wigner, my_dt, tot_for, d2v_dr2, 1)
 
         # Classic integration (part 1)
         classic_evolution!(Rs, Ps, my_dt, tot_cl_for, 1)
@@ -154,13 +135,9 @@ Error, the selected algorithm $(settings.algorithm)
         tot_for = avg_for .+ ext_for
         tot_cl_for = cl_for .+ ext_for
 
-        if "semi-implicit-verlet" == lowercase(settings.algorithm)
-            semi_implicit_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
-        elseif "fixed" == lowercase(settings.algorithm)
-            fixed_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
-        elseif "generalized-verlet" == lowercase(settings.algorithm)
-            generalized_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
-        end
+	# Evolution with f(t+dt), k(t+dt)
+        step!(settings.algorithm, wigner, my_dt, tot_for, d2v_dr2, 2)
+
         # Classic integration (part 2)
         classic_evolution!(Rs, Ps, my_dt, tot_cl_for, 2)
 
