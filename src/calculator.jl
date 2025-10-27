@@ -18,7 +18,7 @@ function init_calculator(
 end
 
 
-function get_ase_positions(pos, masses)
+function get_ase_positions(pos, masses::Vector{T}) where {T<:AbstractFloat}
     if length(masses) != length(pos)
         error("masses and positions have different lengths")
     end
@@ -28,7 +28,7 @@ function get_ase_positions(pos, masses)
 end
 
 
-function get_ase_positions_array(pos, masses)
+function get_ase_positions_array(pos, masses::Vector{T}) where {T<:AbstractFloat}
     if length(masses) != length(pos)
         error("masses and positions have different lengths")
     end

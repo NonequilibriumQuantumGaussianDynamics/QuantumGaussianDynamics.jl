@@ -165,7 +165,7 @@ Generates a random matrix of numbers sampled from a normal distribution.
 Each row corresponds to a phonon mode, and contains N random configurations (or N/2 if even_odd = true).
 For parallel execution, the matrix ymu_i is broadcast so that all processors use the same random variables.
 """
-function get_random_y(N, N_modes, settings::Dynamics{T}) where {T<:AbstractFloat}
+function get_random_y(N::Int, N_modes::Int, settings::Dynamics{T}) where {T<:AbstractFloat}
 
     even_odd = true
 
@@ -215,7 +215,7 @@ based on a Wigner distribution.
 
 """
 function generate_ensemble!(
-    N,
+    N::Int,
     ensemble::Ensemble{T},
     wigner_distribution::WignerDistribution{T},
 ) where {T<:AbstractFloat}

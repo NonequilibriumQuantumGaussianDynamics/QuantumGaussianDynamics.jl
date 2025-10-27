@@ -1,6 +1,6 @@
 
 function read_charges_from_dict!(
-    dict,
+    dict :: AbstractDict,
     wigner::WignerDistribution{T},
 ) where {T<:AbstractFloat}
     n_atoms = length(wigner.atoms)
@@ -14,7 +14,7 @@ function read_charges_from_dict!(
 end
 
 function read_charges_from_out!(
-    filename,
+    filename :: String,
     wigner::WignerDistribution{T},
 ) where {T<:AbstractFloat}
     n_atoms = length(wigner.atoms)
@@ -124,7 +124,7 @@ function get_external_forces(
     return forces
 end
 
-function fake_field(nat)
+function fake_field(nat::Int32)
 
     Zeff = zeros(3*nat, 3)
     eps = [1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0]
@@ -142,7 +142,7 @@ function fake_field(nat)
 
 end
 
-function fake_dielectric_constant(nat)
+function fake_dielectric_constant(nat::Int32)
 
     Zeff = zeros(3*nat, 3)
     eps = [1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0]
@@ -156,7 +156,7 @@ end
     sin_field(t, A, w)
 Sinusoidal external field. 
 """
-function sin_field(A, w)
+function sin_field(A::T, w::T) where {T<:AbstractFloat}
     # t in Rydberg units
     # Amplitude in kV/cm
     # Frequency in THz
@@ -171,7 +171,7 @@ end
     pulse(t, A, w, t0, sig)
 Gaussian wavepacket pulse
 """
-function pulse(A, w, t0, sig)
+function pulse(A::T, w::T, t0::T, sig::T) where {T<:AbstractFloat}
     # t in Rydberg units
     # Amplitude in kV/cm
     # Frequency in THz
@@ -187,7 +187,7 @@ function pulse(A, w, t0, sig)
 
 end
 
-function gaussian1(A, w, t0)
+function gaussian1(A::T, w::T, t0::T) where {T<:AbstractFloat}
     # t in Rydberg units
     # Amplitude in kV/cm
     # Frequency in THz

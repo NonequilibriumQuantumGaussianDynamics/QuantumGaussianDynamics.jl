@@ -1,6 +1,6 @@
 
 
-function get_alphabeta(TEMP, w_full, pols_full)
+function get_alphabeta(TEMP :: T, w_full :: Vector{T}, pols_full :: Matrix{T}) where {T<:AbstractFloat}
     # omega are frequencies in Rydberg
     # T is in Kelvin
 
@@ -54,7 +54,7 @@ function get_alphabeta(TEMP, w_full, pols_full)
 end
 
 
-function get_correlators(TEMP, w_full, pols_full)
+function get_correlators(TEMP ::T , w_full :: Vector{T}, pols_full :: Matrix{T}) where {T<:AbstractFloat}
     # omega are frequencies in Rydberg
     # T is in Kelvin
 
@@ -113,7 +113,7 @@ end
 
 function extract_dynamical_matrix(
     wigner::WignerDistribution{T},
-    TEMP,
+    TEMP :: T,
 ) where {T<:AbstractFloat}
 
     function psi(w, TEMP, val)
@@ -142,7 +142,7 @@ end
 
 
 
-function displace_along_mode!(mod, eta, wigner, dyn)
+function displace_along_mode!(mod :: Int32, eta :: T, wigner :: WignerDistribution, dyn) where {T<:AbstractFloat}
     # eta in Angstrom*sqrt(uma)
     eta = eta * CONV_BOHR * sqrt(CONV_MASS)
 
@@ -157,10 +157,3 @@ end
 
 
 
-
-"""
-# TODO: add a function to load and save the ensemble on disk
-function load_ensemble!(ensemble :: Ensemble{T}, path_to_json :: String) where {T <: AbstractFloat}
-end
-
-"""

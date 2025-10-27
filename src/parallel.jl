@@ -1,6 +1,6 @@
 using MPI
 
-function parallel_force_distribute(nconf)
+function parallel_force_distribute(nconf::Int32)
     if MPI.Initialized()
         comm = MPI.COMM_WORLD
         rank = MPI.Comm_rank(comm)
@@ -37,7 +37,7 @@ function parallel_force_distribute(nconf)
 end
 
 
-function write_file(file, line)
+function write_file(file, line::String)
     comm = MPI.COMM_WORLD
     rank = MPI.Comm_rank(comm)
 
@@ -53,7 +53,7 @@ function write_file(file, line)
 end
 
 
-function init_file(filename)
+function init_file(filename::String)
     if MPI.Initialized()
         comm = MPI.COMM_WORLD
         rank = MPI.Comm_rank(comm)
