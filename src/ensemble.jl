@@ -170,9 +170,9 @@ function get_random_y(N::Int, N_modes::Int, settings::Dynamics{T}) where {T<:Abs
     even_odd = true
 
     if even_odd
-        if mod(N, 2) != 0
-            error("Error, evenodd allowed only with an even number of random structures")
-        end
+
+        @assert  mod(N, 2) == 0 "Error, evenodd allowed only with an even number of random structures"
+
         N2 = Int64(N/2.0)
         ymu_i = randn(T, (N_modes, N2))
         if MPI.Initialized()
@@ -228,9 +228,8 @@ function generate_ensemble!(
     sqrtλs = sqrt.(wigner_distribution.λs)
 
     if even_odd
-        if mod(N, 2) != 0
-            error("Error, evenodd allowed only with an even number of random structures")
-        end
+        @assert mod(N, 2) == 0 "Error, evenodd allowed only with an even number of random structures"
+
         N2 = Int64(N/2.0)
         if ensemble.correlated
             sqrt_RR =
@@ -325,13 +324,9 @@ function update_weights!(
 
     # Check the lenght
 
-    if length(wigner_distribution.λs) != length(ensemble.rho0.λs)
-        error("Different length of the eigenvalues vectors")
-    end
+    @assert length(wigner_distribution.λs) == length(ensemble.rho0.λs) "Different length of the eigenvalues vectors"
 
-    if (wigner_distribution.evolve_correlators != ensemble.rho0.evolve_correlators)
-        error("The evolution mode is not the same")
-    end
+    @assert wigner_distribution.evolve_correlators == ensemble.rho0.evolve_correlators "The evolution mode is not the same"
 
     if (wigner_distribution.evolve_correlators == false)
         ensemble.weights .= prod(sqrt.(wigner_distribution.λs ./ ensemble.rho0.λs))

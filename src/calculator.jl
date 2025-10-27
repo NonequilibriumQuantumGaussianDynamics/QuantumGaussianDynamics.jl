@@ -19,9 +19,9 @@ end
 
 
 function get_ase_positions(pos, masses::Vector{T}) where {T<:AbstractFloat}
-    if length(masses) != length(pos)
-        error("masses and positions have different lengths")
-    end
+
+    @assert length(masses) == length(pos) "masses and positions have different lengths"
+
     N_atoms = Int64(length(masses)/3.0)
     new_pos = permutedims(reshape(pos ./ sqrt.(masses), 3, N_atoms)) ./ CONV_BOHR
     return new_pos
@@ -29,9 +29,9 @@ end
 
 
 function get_ase_positions_array(pos, masses::Vector{T}) where {T<:AbstractFloat}
-    if length(masses) != length(pos)
-        error("masses and positions have different lengths")
-    end
+
+    @assert length(masses) == length(pos) "masses and positions have different lengths"
+
     N_atoms = Int64(length(masses)/3.0)
     new_pos = pos ./ sqrt.(masses) ./ CONV_BOHR
     return new_pos

@@ -99,13 +99,10 @@ function get_external_forces(
     # t must be in Rydberg units
     # efield.fun must be a function of t only
 
-    if abs(norm(efield.edir)-1) > SMALL_VALUE
-        error("Electric field direction must have norm 1")
-    end
+    @assert abs(norm(efield.edir)-1) < SMALL_VALUE "Electric field direction must have norm 1"
+
     for i = 1:3
-        if abs(sum(efield.Zeff[:, i])) > 1e-4
-            error("Must enforce sum rule for effective charges")
-        end
+	@assert abs(sum(efield.Zeff[:, i])) < 1e-4 "Must enforce sum rule for effective charges"
     end
 
     nat = Int32(length(efield.Zeff[:, 1])/3.0)

@@ -8,9 +8,7 @@ function get_alphabeta(
     # omega are frequencies in Rydberg
     # T is in Kelvin
 
-    if TEMP<0
-        error("Temperature must be >= 0, got instead $T")
-    end
+    @assert TEMP >= 0 "Temperature must be >= 0, got instead $T"
 
     K_to_Ry=6.336857346553283e-06
 
@@ -66,9 +64,7 @@ function get_correlators(
     # omega are frequencies in Rydberg
     # T is in Kelvin
 
-    if TEMP<0
-        error("Temperature must be >= 0, got instead $T")
-    end
+    @assert TEMP >= 0 "Temperature must be >= 0, got instead $T"
 
     K_to_Ry=6.336857346553283e-06
 
@@ -141,9 +137,8 @@ function extract_dynamical_matrix(
 
         psix = x -> psi(x, TEMP, lambda)
         omeg = find_zeros(psix, (xmin, xmax))
-        if length(omeg) == 0
-            error("Root finding failed")
-        end
+
+	@assert length(omeg) !=0 "Root finding failed"
     end
 
 end
