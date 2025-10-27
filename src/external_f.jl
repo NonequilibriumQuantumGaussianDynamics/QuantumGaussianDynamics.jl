@@ -1,6 +1,6 @@
 
 function read_charges_from_dict!(
-    dict :: AbstractDict,
+    dict::AbstractDict,
     wigner::WignerDistribution{T},
 ) where {T<:AbstractFloat}
     n_atoms = length(wigner.atoms)
@@ -14,7 +14,7 @@ function read_charges_from_dict!(
 end
 
 function read_charges_from_out!(
-    filename :: String,
+    filename::String,
     wigner::WignerDistribution{T},
 ) where {T<:AbstractFloat}
     n_atoms = length(wigner.atoms)
@@ -192,7 +192,7 @@ function gaussian1(A::T, w::T, t0::T) where {T<:AbstractFloat}
     # Amplitude in kV/cm
     # Frequency in THz
     # t_0 in fs
-    
+
     A_Ry = A*CONV_EFIELD
     w_Ry = w*CONV_FREQ
     t0_Ry = t0/CONV_FS

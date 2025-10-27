@@ -118,4 +118,3 @@ function remove_translations(
     end
     return vectors[:, mask], values[mask]
 end
-

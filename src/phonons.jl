@@ -1,6 +1,10 @@
 
 
-function get_alphabeta(TEMP :: T, w_full :: Vector{T}, pols_full :: Matrix{T}) where {T<:AbstractFloat}
+function get_alphabeta(
+    TEMP::T,
+    w_full::Vector{T},
+    pols_full::Matrix{T},
+) where {T<:AbstractFloat}
     # omega are frequencies in Rydberg
     # T is in Kelvin
 
@@ -54,7 +58,11 @@ function get_alphabeta(TEMP :: T, w_full :: Vector{T}, pols_full :: Matrix{T}) w
 end
 
 
-function get_correlators(TEMP ::T , w_full :: Vector{T}, pols_full :: Matrix{T}) where {T<:AbstractFloat}
+function get_correlators(
+    TEMP::T,
+    w_full::Vector{T},
+    pols_full::Matrix{T},
+) where {T<:AbstractFloat}
     # omega are frequencies in Rydberg
     # T is in Kelvin
 
@@ -113,7 +121,7 @@ end
 
 function extract_dynamical_matrix(
     wigner::WignerDistribution{T},
-    TEMP :: T,
+    TEMP::T,
 ) where {T<:AbstractFloat}
 
     function psi(w, TEMP, val)
@@ -142,7 +150,12 @@ end
 
 
 
-function displace_along_mode!(mod :: Int32, eta :: T, wigner :: WignerDistribution, dyn) where {T<:AbstractFloat}
+function displace_along_mode!(
+    mod::Int32,
+    eta::T,
+    wigner::WignerDistribution,
+    dyn,
+) where {T<:AbstractFloat}
     # eta in Angstrom*sqrt(uma)
     eta = eta * CONV_BOHR * sqrt(CONV_MASS)
 
@@ -152,8 +165,3 @@ function displace_along_mode!(mod :: Int32, eta :: T, wigner :: WignerDistributi
     du = v .* eta # No need to divide by sqrt(m), by definition of TDSCHA coord
     wigner.R_av .+= du
 end
-
-
-
-
-

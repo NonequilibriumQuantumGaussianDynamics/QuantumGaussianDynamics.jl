@@ -96,9 +96,9 @@ function integrate!(
         # Update the ensemble 
         index += 1
         t += settings.dt
-	
-	# Evolution with f(t), k(t)
-	step!(settings.algorithm, wigner, my_dt, tot_for, d2v_dr2, 1)
+
+        # Evolution with f(t), k(t)
+        step!(settings.algorithm, wigner, my_dt, tot_for, d2v_dr2, 1)
 
         # Classic integration (part 1)
         classic_evolution!(Rs, Ps, my_dt, tot_cl_for, 1)
@@ -135,7 +135,7 @@ function integrate!(
         tot_for = avg_for .+ ext_for
         tot_cl_for = cl_for .+ ext_for
 
-	# Evolution with f(t+dt), k(t+dt)
+        # Evolution with f(t+dt), k(t+dt)
         step!(settings.algorithm, wigner, my_dt, tot_for, d2v_dr2, 2)
 
         # Classic integration (part 2)

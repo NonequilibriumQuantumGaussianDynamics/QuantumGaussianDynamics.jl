@@ -649,9 +649,15 @@ function get_λs(RR_corr::Matrix{T}) where {T<:AbstractFloat}
     return eigvals
 end
 
-function equilibrium_ensemble(TEMPERATURE::T, file_dyn::String, ens_file::String, ndyn::Int, ens_bin::Int ) where {T<:AbstractFloat}
+function equilibrium_ensemble(
+    TEMPERATURE::T,
+    file_dyn::String,
+    ens_file::String,
+    ndyn::Int,
+    ens_bin::Int,
+) where {T<:AbstractFloat}
 
-    PH   = pyimport("cellconstructor.Phonons")
+    PH = pyimport("cellconstructor.Phonons")
     PyEnsemble = pyimport("sscha.Ensemble")
     dyn = PH.Phonons(file_dyn, ndyn)
     py_ensemble = PyEnsemble.Ensemble(dyn, TEMPERATURE)

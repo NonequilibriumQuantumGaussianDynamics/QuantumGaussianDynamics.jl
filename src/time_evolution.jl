@@ -16,7 +16,14 @@ Arguments
 
 It automatically calls the correct *_step! function.
 """
-function step!(algorithm:: String, wigner:: WignerDistribution{T},  my_dt :: T, tot_for :: Vector{T}, d2v_dr2 :: Matrix{T}, part :: Int ) where {T <: AbstractFloat}
+function step!(
+    algorithm::String,
+    wigner::WignerDistribution{T},
+    my_dt::T,
+    tot_for::Vector{T},
+    d2v_dr2::Matrix{T},
+    part::Int,
+) where {T<:AbstractFloat}
 
     if part == 1
         if "euler" == lowercase(algorithm)
@@ -30,7 +37,7 @@ function step!(algorithm:: String, wigner:: WignerDistribution{T},  my_dt :: T, 
         elseif "generalized-verlet" == lowercase(algorithm)
             generalized_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 1)
         elseif "none" == lowercase(algorithm)
-           nothing
+            nothing
         else
             throw(ArgumentError("""
         Error, the selected algorithm $(algorithm)
@@ -45,7 +52,7 @@ function step!(algorithm:: String, wigner:: WignerDistribution{T},  my_dt :: T, 
         elseif "generalized-verlet" == lowercase(algorithm)
             generalized_verlet_step!(wigner, my_dt, tot_for, d2v_dr2, 2)
         end
-    end    
+    end
 end
 
 """
@@ -201,10 +208,10 @@ function generalized_verlet_step!(
             B1_ = copy(B0p)
             BLAS.syr2k!('U', 'T', -dt/2.0, d2V_dr2, C1, 1.0, B1_)
             LinearAlgebra.copytri!(B1_, 'U')
- 
+
             err_B = norm((B1_ .- B1) .^ 2)
             err_C = norm((C1_ .- C1) .^ 2)
-	    err = err_B + err_C
+            err = err_B + err_C
 
             return B1_, C1_, err
 
@@ -216,8 +223,8 @@ function generalized_verlet_step!(
         dthalf = dt / 2.0
         BLAS.gemm!('N', 'N', -dthalf, rho.RR_corr, d2V_dr2, 1.0, rho.RP_corr)
 
-	thr = 1e-12
-	err = 1
+        thr = 1e-12
+        err = 1
         while err > thr
             B1, C1, err = obj(B1, C1, d2V_dr2, rho.PP_corr, rho.RP_corr)
         end
